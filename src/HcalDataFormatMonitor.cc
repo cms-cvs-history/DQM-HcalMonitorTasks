@@ -144,7 +144,11 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     ///\\\///HO_DATAFORMAT_PROBLEM_ZOO = m_dbe->book1D(type, type, 16, 0, 16);   
     ///\\\///labelthezoo(HO_DATAFORMAT_PROBLEM_ZOO);
     
-    m_dbe->setCurrentFolder("Hcal/FEDIntegrity"); // don't make FEDIntegrity part of the DataFormatMonitor folder
+
+    m_dbe->setCurrentFolder(baseFolder_ + "/HcalFEDChecking");
+    
+    //m_dbe->setCurrentFolder("Hcal/FEDIntegrity"); // don't make FEDIntegrity part of the DataFormatMonitor folder
+
     type="FEDEntries";
     fedEntries_ = m_dbe->book1D(type,type,32,699.5,731.5);
     type="FEDFatal";
@@ -211,6 +215,7 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     meDCC_DataIntegrityCheck_->setBinLabel( 2,"   Size",2); //FmtErrs    
     meDCC_DataIntegrityCheck_->setBinLabel( 1,"       ",2);
 
+    m_dbe->setCurrentFolder(baseFolder_ + "/HTR Plots");
     type="Half-HTR DataIntegrity Check";
     meHalfHTR_DataIntegrityCheck_= m_dbe->book2D(type,type,
 						 97,0,97,
@@ -256,7 +261,7 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     label_xFEDs (meChannSumm_DataIntegrityCheck_, 3); // 2 bins + 1 margin per ch.
     label_ySpigots(meChannSumm_DataIntegrityCheck_, 4); // 3 bins + 1 margin per spgt
  
-    m_dbe->setCurrentFolder(baseFolder_ + "/Channel Data Integrity");
+    m_dbe->setCurrentFolder(baseFolder_ + "/HTR Plots/ Channel Data Integrity");
     char label[10];
     for (int f=0; f<32; f++){      
       sprintf(label, "FED %03d Channel Integrity", f+700);
