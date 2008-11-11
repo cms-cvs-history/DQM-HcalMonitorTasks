@@ -32,8 +32,11 @@ namespace HcalDigiPerChan
     ///shapes by channel
     _mei=tool.find(digi.id()); // look for a histogram with this hit's id
     if (_mei!=tool.end()){
-      if (_mei->second==0) cout << "HcalDigiMonitor::perChanHists, Found the histo, but it's null??";
-      else{
+      //if (_mei->second==0 )
+      //cout << "HcalDigiMonitor::perChanHists, Found the histo, but it's null??";
+      //else
+      if (_mei->second!=0)
+	{
 	for (int i=0; i<digi.size(); ++i) tool[digi.id()]->Fill(i,ampl[i]);
       }
     }
@@ -145,7 +148,7 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
   baseFolder_ = rootFolder_+"DigiMonitor";
 
   occThresh_ = ps.getUntrackedParameter<int>("DigiOccThresh", -9999);
-  cout << "Digi occupancy threshold set to " << occThresh_ << endl;
+  if (fVerbosity) cout << "Digi occupancy threshold set to " << occThresh_ << endl;
 
   doFCpeds_ = ps.getUntrackedParameter<bool>("PedestalsInFC", true);
 
@@ -161,12 +164,12 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
   etaMax_ = ps.getUntrackedParameter<double>("MaxEta", 42.5);
   etaMin_ = ps.getUntrackedParameter<double>("MinEta", -42.5);
   etaBins_ = (int)(etaMax_ - etaMin_);
-  cout << "Digi eta min/max set to " << etaMin_ << "/" <<etaMax_ << endl;
+  if (fVerbosity) cout << "Digi eta min/max set to " << etaMin_ << "/" <<etaMax_ << endl;
 
   phiMax_ = ps.getUntrackedParameter<double>("MaxPhi", 73.5);
   phiMin_ = ps.getUntrackedParameter<double>("MinPhi", -0.5);
   phiBins_ = (int)(phiMax_ - phiMin_);
-  cout << "Digi phi min/max set to " << phiMin_ << "/" <<phiMax_ << endl;
+  if (fVerbosity) cout << "Digi phi min/max set to " << phiMin_ << "/" <<phiMax_ << endl;
 
    // The number of consecutive events for which a cell must not have a digi in order to be considered dead
 
