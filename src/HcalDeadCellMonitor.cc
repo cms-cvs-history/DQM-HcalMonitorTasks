@@ -20,6 +20,7 @@ HcalDeadCellMonitor::~HcalDeadCellMonitor()
 void HcalDeadCellMonitor::setup(const edm::ParameterSet& ps,
 				DQMStore* dbe)
 {
+  HcalBaseMonitor::setup(ps,dbe);
   if (showTiming)
     {
       cpu_timer.reset(); cpu_timer.start();
@@ -27,7 +28,6 @@ void HcalDeadCellMonitor::setup(const edm::ParameterSet& ps,
   if (fVerbosity>0)
     cout <<"<HcalDeadCellMonitor::setup>  Setting up histograms"<<endl;
 
-  HcalBaseMonitor::setup(ps,dbe);
   baseFolder_ = rootFolder_+"DeadCellMonitor_Hcal";
 
   // Assume subdetectors not present until shown otherwise

@@ -20,6 +20,7 @@ HcalHotCellMonitor::~HcalHotCellMonitor()
 void HcalHotCellMonitor::setup(const edm::ParameterSet& ps,
 				DQMStore* dbe)
 {
+  HcalBaseMonitor::setup(ps,dbe);
   if (showTiming)
     {
       cpu_timer.reset(); cpu_timer.start();
@@ -28,7 +29,6 @@ void HcalHotCellMonitor::setup(const edm::ParameterSet& ps,
   if (fVerbosity>0)
     cout <<"<HcalHotCellMonitor::setup>  Setting up histograms"<<endl;
 
-  HcalBaseMonitor::setup(ps,dbe);
   baseFolder_ = rootFolder_+"HotCellMonitor_Hcal";
   
   // Hot Cell Monitor - specific cfg variables
