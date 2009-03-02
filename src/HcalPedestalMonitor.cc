@@ -58,7 +58,7 @@ void HcalPedestalMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe)
   nominalPedWidthInADC_ = ps.getUntrackedParameter<double>("PedestalMonitor_nominalPedWidthInADC",1);
 
   // Set error limits that will cause problem histograms to be filled
-  maxPedMeanDiffADC_ = ps.getUntrackedParameter<double>("PedesstalMonitor_maxPedMeanDiffADC",1.);
+  maxPedMeanDiffADC_ = ps.getUntrackedParameter<double>("PedestalMonitor_maxPedMeanDiffADC",1.);
   maxPedWidthDiffADC_ = ps.getUntrackedParameter<double>("PedestalMonitor_maxPedWidthDiffADC",1.);
 
   pedmon_minErrorFlag_ = ps.getUntrackedParameter<double>("PedestalMonitor_minErrorFlag", minErrorFlag_);
@@ -627,8 +627,15 @@ void HcalPedestalMonitor::fillPedestalHistos(void)
 	      // nominal expectations of (mean=3 ADC counts, RMS = 1 count)
 	      // We may instead want to compare the values to the database values in order to determine problems?
 	      if  (fillvalue>pedmon_minErrorFlag_ 
-		   && (fabs(ADC_mean-nominalPedMeanInADC_)>maxPedMeanDiffADC_ 
-		       || fabs(ADC_RMS-nominalPedWidthInADC_)>maxPedWidthDiffADC_))
+		   && 
+		   (
+		    //fabs(ADC_mean-nominalPedMeanInADC_)>maxPedMeanDiffADC_ 
+		    // compare mean to mean value from DB
+		    fabs(ADC_temp_mean)>maxPedMeanDiffADC_
+		    || fabs(ADC_RMS-nominalPedWidthInADC_)>maxPedWidthDiffADC_
+		    )
+		   )
+
 		{
 		  ProblemPedestals->setBinContent(eta+2,phi+2,fillvalue);
 		  ProblemPedestalsByDepth[depth]->setBinContent(eta+2,phi+2,fillvalue);
