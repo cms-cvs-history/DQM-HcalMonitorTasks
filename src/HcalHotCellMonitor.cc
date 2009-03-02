@@ -123,6 +123,17 @@ void HcalHotCellMonitor::setup(const edm::ParameterSet& ps,
         }
     }
 
+  // zero diagnostic counters
+  for (int i=0;i<300;++i)
+    {
+      diagADC_HB[i]=0;
+      diagADC_HE[i]=0;
+      diagADC_HO[i]=0;
+      diagADC_HF[i]=0;
+      diagADC_ZDC[i]=0;
+    }
+  // Add other diagnostic counters here later
+
   // Set up histograms
   if (m_dbe)
     {
@@ -234,20 +245,22 @@ void HcalHotCellMonitor::setup(const edm::ParameterSet& ps,
       setupDepthHists2D(AboveNeighborsHotCellsByDepth,"Hot Cells Failing Neighbor Test","");
       setMinMaxHists2D(AboveNeighborsHotCellsByDepth,0.,1.);
 
+      if (hotmon_test_pedestal_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/diagnostics/pedestal");
+	  d_HBnormped=m_dbe->book1D("HB_normped","HB Hot Cell pedestal diagnostic ",300,-10,20);
+	  d_HEnormped=m_dbe->book1D("HE_normped","HE Hot Cell pedestal diagnostic",300,-10,20);
+	  d_HOnormped=m_dbe->book1D("HO_normped","HO Hot Cell pedestal diagnostic",300,-10,20);
+	  d_HFnormped=m_dbe->book1D("HF_normped","HF Hot Cell pedestal diagnostic",300,-10,20);
+	  d_HBnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
+	  d_HEnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
+	  d_HOnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
+	  d_HFnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
+	}
+      // TODO:  Clean these up so that they're always made (filling every N events), regardless
+      // of makeDiagnostics flag
       if (hotmon_makeDiagnostics_)
 	{
-	  if (hotmon_test_pedestal_)
-	    {
-	      m_dbe->setCurrentFolder(baseFolder_+"/diagnostics/pedestal");
-	      d_HBnormped=m_dbe->book1D("HB_normped","HB Hot Cell pedestal diagnostic ",300,-10,20);
-	      d_HEnormped=m_dbe->book1D("HE_normped","HE Hot Cell pedestal diagnostic",300,-10,20);
-	      d_HOnormped=m_dbe->book1D("HO_normped","HO Hot Cell pedestal diagnostic",300,-10,20);
-	      d_HFnormped=m_dbe->book1D("HF_normped","HF Hot Cell pedestal diagnostic",300,-10,20);
-	      d_HBnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
-	      d_HEnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
-	      d_HOnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
-	      d_HFnormped->setAxisTitle("(avg ADC-pedestal)/#sigma",1);
-	    }
 	  if (hotmon_test_energy_ || hotmon_test_persistent_)
 	    {
 	      m_dbe->setCurrentFolder(baseFolder_+"/diagnostics/rechitenergy");
@@ -329,12 +342,13 @@ void HcalHotCellMonitor::createMaps(const HcalDbService& cond)
   
   if (fVerbosity>0)
     cout <<"<HcalHotCellMonitor::createMaps>:  Making pedestal maps"<<endl;
-  float ped=0;
-  float width=0;
+  double ped=0;
+  double width=0;
   HcalCalibrations calibs;
   const HcalQIEShape* shape = cond.getHcalShape();
 
   double myNsigma=0;
+  double myADC=0;
 
   for (int ieta=(int)etaMin_;ieta<=(int)etaMax_;++ieta)
     {
@@ -362,43 +376,31 @@ void HcalHotCellMonitor::createMaps(const HcalDbService& cond)
 		   
 		  ped=0.;
 		  width=0.;
-
+		  myADC=0.;
 		  // loop over capids
 		  for (int capid=0;capid<4;++capid)
 		    {
+		      // pedestals from calibs.pedestal are always in fC
+		      const HcalQIECoder* channelCoder=cond.getHcalCoder(hcal);
+		      
+		      // Convert pedestals to ADC
+		      myADC=channelCoder->adc(*shape,
+					      (float)calibs.pedestal(capid),
+					      capid);
+		      ped+=myADC;
+		      // Now the tricky part -- need to convert widths to ADC if provided in fC
 		      if (doFCpeds_)
 			{
-			  // pedestals in fC
-			  const HcalQIECoder* channelCoder=cond.getHcalCoder(hcal);
-
-			  // Convert pedestals to ADC
-			  ped+=channelCoder->adc(*shape,
-						 (float)calibs.pedestal(capid),
-						 capid);
-
-			  // Okay, this definitely isn't right.  Need to figure out how to convert from fC to ADC properly
-			  // Right now, take width as half the difference between (ped+width)- (ped-width), converting each to ADC
-
-			  width+=0.5*(channelCoder->adc(*shape,
-							(float)calibs.pedestal(capid)+(float)pow((double)pedw->getWidth(capid),(double)0.5),
-							capid)
-				      - channelCoder->adc(*shape,
-							  (float)calibs.pedestal(capid)-(float)pow((double)pedw->getWidth(capid),(double)0.5),
-							  capid));
-			} // if (doFCpeds_) // (pedestals in fC)
+			  // Form width by summing the diagonal terms of the covariance matrix (sigma_ii),
+			  // and scale by ADC/fC ratio to convert from fC^2 to ADC^2
+			  width+=(pedw->getSigma(capid,capid)*pow(myADC/calibs.pedestal(capid),2));
+			}
 		      else
-			{
-			  // pedestals in ADC
-			  ped+=calibs.pedestal(capid);
-			  width+=pedw->getWidth(capid); // add in quadrature?  Make use of correlations?
-			} // else //pedestals in ADC
+			width+=pedw->getSigma(capid,capid);
 		    } // for (int capid=0;capid<4;++capid)
 
 		  ped/=4.;  // pedestal value is average over capids
-		  if (doFCpeds_)
-		    width/=4.;
-		  else
-		    width=pow((double)width/4.,(double)0.5); // getWidth returns width^2
+		  width=pow(width,0.5)/4.;
 
 		  pedestals_[hcal]=ped;
 		  widths_[hcal]=width;
@@ -1125,8 +1127,9 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
       depth=digi.id().depth();
       
       HcalDetId myid = digi.id();
-      //cond.makeHcalCalibrationWidth(digi.id(),&widths);
-      const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id());
+
+      //cond.makeHcalCalibrationWidth(digi.id(),&widths); // use in CMSSW_2_X
+      const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id()); // use in CMSSW_3_X
 
       calibs = cond.getHcalCalibrations(digi.id());
 
@@ -1171,10 +1174,14 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	  if (hotmon_makeDiagnostics_)
 	    {
 	      if (widths_[myid]==0) continue;
+	      if (1.*(ADCsum-pedestals_[myid])/widths_[myid]<=-10)
+		continue;
+	      if (1.*(ADCsum-pedestals_[myid])/widths_[myid]>=20)
+		continue;
 	      if (myid.subdet()==HcalBarrel)
-		d_HBnormped->Fill(1.*(ADCsum-pedestals_[myid])/widths_[myid]);
+		++diagADC_HB[int(10*(10+1.*(ADCsum-pedestals_[myid])/widths_[myid]))];
 	      else
-		d_HEnormped->Fill(1.*(ADCsum-pedestals_[myid])/widths_[myid]);
+		++diagADC_HE[int(10*(10+1.*(ADCsum-pedestals_[myid])/widths_[myid]))];
 	    } // if (hotmon_makeDiagnostics)
 	}
     } // for (HBHEDigiCollection...)
@@ -1198,8 +1205,9 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	  depth=digi.id().depth();
 	  
 	  HcalDetId myid = digi.id();
-	  //cond.makeHcalCalibrationWidth(digi.id(),&widths);
-	  const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id());
+
+	  //cond.makeHcalCalibrationWidth(digi.id(),&widths); // use in CMSSW_2_X
+	  const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id()); // use in CMSSW_3_X
 
 	  calibs = cond.getHcalCalibrations(digi.id());
 	  
@@ -1241,7 +1249,11 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	      if (hotmon_makeDiagnostics_)
 		{
 		  if (widths_[myid]==0) continue;
-		  d_HOnormped->Fill(1.*(ADCsum-pedestals_[myid])/widths_[myid]);
+		  if (1.*(ADCsum-pedestals_[myid])/widths_[myid]<=-10)
+		    continue;
+		  if (1.*(ADCsum-pedestals_[myid])/widths_[myid]>=20)
+		    continue;
+		  ++diagADC_HO[int(10*(10+1.*(ADCsum-pedestals_[myid])/widths_[myid]))];
 		} // if (hotmon_makeDiagnostics)
 	    }
 	} // for (HODigiCollection...)
@@ -1266,8 +1278,9 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	  depth=digi.id().depth()+2; // offset depth by 2 for HF
 
 	  HcalDetId myid = digi.id();
-	  //cond.makeHcalCalibrationWidth(digi.id(),&widths);
-	  const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id());
+
+	  //cond.makeHcalCalibrationWidth(digi.id(),&widths); // use in CMSSW_2_X
+	  const HcalCalibrationWidths widths = cond.getHcalCalibrationWidths(digi.id()); // use in CMSSW_3_X
 
 	  calibs = cond.getHcalCalibrations(digi.id());
 
@@ -1309,7 +1322,11 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	      if (hotmon_makeDiagnostics_)
 		{
 		  if (widths_[myid]==0) continue;
-		  d_HFnormped->Fill(1.*(ADCsum-pedestals_[myid])/widths_[myid]);
+		  if (1.*(ADCsum-pedestals_[myid])/widths_[myid]<=-10)
+		    continue;
+		  if (1.*(ADCsum-pedestals_[myid])/widths_[myid]>=20)
+		    continue;
+		  ++diagADC_HF[int(10*(10+1.*(ADCsum-pedestals_[myid])/widths_[myid]))];
 		} // if (hotmon_makeDiagnostics)
 	    }
 	} // for (HFDigiCollection...)
@@ -1424,6 +1441,19 @@ void HcalHotCellMonitor::fillNevents_pedestal(void)
   if (fVerbosity>0)
     cout <<"<HcalHotCellMonitor::fillNevents_pedestal> FILLING HOT CELL PEDESTAL PLOTS"<<endl;
 
+  for (int i=0;i<300;++i)
+    {
+      if (diagADC_HB[i]>0)
+	d_HBnormped->setBinContent(i+1,diagADC_HB[i]);
+      if (diagADC_HE[i]>0)
+	d_HEnormped->setBinContent(i+1,diagADC_HE[i]);
+      if (diagADC_HO[i]>0)
+	d_HOnormped->setBinContent(i+1,diagADC_HO[i]);
+      if (diagADC_HF[i]>0)
+	d_HFnormped->setBinContent(i+1,diagADC_HF[i]);
+      // Add ZDC later!
+    }
+  
   int mydepth=0;
   int ieta=0;
   int iphi=0;
