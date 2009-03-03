@@ -714,7 +714,7 @@ void HcalPedestalMonitor::fillPedestalHistos(void)
   FillUnphysicalHEHFBins(subfCPedestalRMS);  
 
   // Individual capid plots
-  for (int capid=0;capid<4;++capid)
+  for (unsigned int capid=0;capid<ADCPedestalMean_bycapid.size();++capid)
     {
       FillUnphysicalHEHFBins(ADCPedestalMean_bycapid[capid]);
       FillUnphysicalHEHFBins(ADCPedestalRMS_bycapid[capid]);
@@ -878,7 +878,7 @@ void HcalPedestalMonitor::fillDBValues(const HcalDbService& cond)
   FillUnphysicalHEHFBins(ADC_WidthFromDBByDepth);
   FillUnphysicalHEHFBins(fC_PedestalFromDBByDepth);
   FillUnphysicalHEHFBins(fC_WidthFromDBByDepth);
-  for (int capid=0;capid<4;++capid)
+  for (unsigned int capid=0;capid<ADC_PedestalFromDBByDepth_bycapid.size();++capid)
     {
       FillUnphysicalHEHFBins(ADC_PedestalFromDBByDepth_bycapid[capid]);
       FillUnphysicalHEHFBins(ADC_WidthFromDBByDepth_bycapid[capid]);
