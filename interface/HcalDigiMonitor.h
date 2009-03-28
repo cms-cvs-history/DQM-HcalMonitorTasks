@@ -13,8 +13,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2009/01/07 18:37:28 $
-  * $Revision: 1.34 $
+  * $Date: 2009/03/27 19:59:55 $
+  * $Revision: 1.37 $
   * \author W. Fisher - FNAL
   * \author J. Temple - Univ. of Maryland
   */
@@ -68,6 +68,7 @@ public:
   void setSubDetectors(bool hb, bool he, bool ho, bool hf);
 private:  ///Methods
 
+  void zeroCounters();
   void fill_Nevents();
   void setupHists(DigiHists& hist,  DQMStore* dbe); // enable this feature at some point
 
@@ -95,7 +96,6 @@ private:
   std::vector<MonitorElement*> DigiErrorsBadCapID;
   std::vector<MonitorElement*> DigiErrorsBadDigiSize;
   std::vector<MonitorElement*> DigiErrorsBadADCSum;
-  std::vector<MonitorElement*> DigiErrorsNoDigi;
   std::vector<MonitorElement*> DigiErrorsDVErr;
   MonitorElement* DigiSize;
   int problemdigis[87][72][6];

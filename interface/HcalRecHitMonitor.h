@@ -13,8 +13,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2008/11/06 18:02:33 $
-  * $Revision: 1.23 $
+  * $Date: 2009/03/27 19:59:55 $
+  * $Revision: 1.22 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -30,8 +30,8 @@ class HcalRecHitMonitor: public HcalBaseMonitor {
   void done();
   void clearME(); // overrides base class function
   void reset();
-
-  
+  void zeroCounters();
+ 
   void processEvent(const HBHERecHitCollection& hbHits,
                     const HORecHitCollection& hoHits,
                     const HFRecHitCollection& hfHits
@@ -75,7 +75,12 @@ class HcalRecHitMonitor: public HcalBaseMonitor {
   std::vector<MonitorElement*> TimeByDepth;
   std::vector<MonitorElement*> TimeThreshByDepth;
   
-
+  //std::vector<MonitorElement*> SumOccupancyByDepth;
+  //std::vector<MonitorElement*> SumOccupancyThreshByDepth;
+  std::vector<MonitorElement*> SumEnergyByDepth;
+  std::vector<MonitorElement*> SumEnergyThreshByDepth;
+  std::vector<MonitorElement*> SumTimeByDepth;
+  std::vector<MonitorElement*> SumTimeThreshByDepth;
 
 
   unsigned int occupancy_[ETABINS][PHIBINS][6]; // will get filled when rechit found

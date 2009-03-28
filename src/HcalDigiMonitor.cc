@@ -93,133 +93,7 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
 
   /******** Zero all counters *******/
   
-  for (int i=0;i<87;++i)
-    {
-      occupancyEta[i]=0;
-      if (i<72)
-	occupancyPhi[i]=0;
-      for (int j=0;j<72;++j)
-	{
-	  for (int k=0;k<6;++k)
-	    {
-	      problemdigis[i][j][k]=0;
-	      badcapID[i][j][k]=0;
-	      baddigisize[i][j][k]=0;
-	      badADCsum[i][j][k]=0;
-	      occupancyEtaPhi[i][j][k]=0;
-	      digierrorsdverr[i][j][k]=0;
-	    }
-	} // for (int j=0;j<72;++i)
-    } // for (int i=0;i<87;++i)
-
-  for (int i=0;i<40;++i)
-    {
-      for (int j=0;j<18;++j)
-	{
-	  occupancyVME[i][j]=0;
-	  errorVME[i][j]=0;
-	}
-    }
-
-  for (int i=0;i<HcalDCCHeader::SPIGOT_COUNT;++i)
-    {
-      for (int j=0;j<36;++j)
-	{
-	  occupancySpigot[i][j]=0;
-	  errorSpigot[i][j]=0;
-	}
-    }
-
-
-  for (int i=0;i<20;++i)
-    {
-      for (int j=0;j<4;++j)
-	digisize[i][j]=0;
-    }
-
-  for (int i=0;i<DIGI_NUM;++i)
-    {
-      if (i<DIGI_BQ_FRAC_NBINS)
-	digiBQfrac[i]=0;
-      digiBQ[i]=0;
-      diginum[i]=0;
-      
-      // set all DigiHists counters to 0
-      if (i<4)
-	{
-	  hbHists.dverr[i]=0;
-	  heHists.dverr[i]=0;
-	  hoHists.dverr[i]=0;
-	  hfHists.dverr[i]=0;
-	  hbHists.capid[i]=0;
-	  heHists.capid[i]=0;
-	  hoHists.capid[i]=0;
-	  hfHists.capid[i]=0;
-	}
-      if (i<8)
-	{
-	  hbHists.capIDdiff[i]=0;
-	  heHists.capIDdiff[i]=0;
-	  hoHists.capIDdiff[i]=0;
-	  hfHists.capIDdiff[i]=0;
-	}
-
-      if (i<10)
-	{
-	  hbHists.count_shape[i]=0;
-	  heHists.count_shape[i]=0;
-	  hoHists.count_shape[i]=0;
-	  hfHists.count_shape[i]=0;
-	  hbHists.count_shapeThresh[i]=0;
-	  heHists.count_shapeThresh[i]=0;
-	  hoHists.count_shapeThresh[i]=0;
-	  hfHists.count_shapeThresh[i]=0;
-	}
-      if (i<50)
-	{
-	  hbHists.count_presample[i]=0;
-	  heHists.count_presample[i]=0;
-	  hoHists.count_presample[i]=0;
-	  hfHists.count_presample[i]=0;
-	  for (int j=0;j<10;++j)
-	    {
-	      hbHists.tssumplus[i][j]=0;
-	      heHists.tssumplus[i][j]=0;
-	      hoHists.tssumplus[i][j]=0;
-	      hfHists.tssumplus[i][j]=0;
-	      hbHists.tssumminus[i][j]=0;
-	      heHists.tssumminus[i][j]=0;
-	      hoHists.tssumminus[i][j]=0;
-	      hfHists.tssumminus[i][j]=0;
-	    }
-	}
-      if (i<200)
-	{
-	  hbHists.adc[i]=0;
-	  heHists.adc[i]=0;
-	  hoHists.adc[i]=0;
-	  hfHists.adc[i]=0;
-	  hbHists.adcsum[i]=0;
-	  heHists.adcsum[i]=0;
-	  hoHists.adcsum[i]=0;
-	  hfHists.adcsum[i]=0;
-	}
-      if (i<DIGI_SUBDET_NUM)
-	{
-	  hbHists.count_BQ[i]=0;
-	  heHists.count_BQ[i]=0;
-	  hoHists.count_BQ[i]=0;
-	  hfHists.count_BQ[i]=0;
-	}
-      if (i<DIGI_BQ_FRAC_NBINS)
-	{
-	  hbHists.count_BQFrac[i]=0;
-	  heHists.count_BQFrac[i]=0;
-	  hoHists.count_BQFrac[i]=0;
-	  hfHists.count_BQFrac[i]=0;
-	}
-    } // for (int i=0;i<DIGI_NUM;++i)
-
+  zeroCounters();
 
   /******* Set up all histograms  ********/
 
@@ -265,17 +139,7 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
 	  DigiErrorsBadADCSum[i]->setTitle(static_cast<const string>(name.str().c_str()));
 	  name.str("");
 	}
-      m_dbe->setCurrentFolder(baseFolder_+"/problem_digis/nodigis");
-      name<<" Digis Missing for a Number of Consecutive Events";
-      // setup requires char*; .c_str() returns const char*; recast
-      setupDepthHists2D(DigiErrorsNoDigi," Digis Missing for a Number of Consecutive Events", "");
-      name.str("");
-      for (int i=0;i<6;++i)
-	{
-	  name<<DigiErrorsNoDigi[i]->getTitle()<<"("<<digi_checkNevents_<<" events)";
-	  DigiErrorsNoDigi[i]->setTitle(static_cast<const string>(name.str().c_str()));
-	  name.str("");
-	}
+
       m_dbe->setCurrentFolder(baseFolder_+"/problem_digis/data_invalid_error");
       setupDepthHists2D(DigiErrorsDVErr," Digis with Data Invalid or Error Bit Set", "");
 
@@ -327,7 +191,7 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
       DigiErrorSpigot -> setAxisTitle("Spigot",1);  
       DigiErrorSpigot -> setAxisTitle("DCC Id",2);
       
-      DigiBQ = m_dbe->book1D("# Bad Qual Digis","# Bad Qual Digis",DIGI_NUM,-0.5,DIGI_NUM-0.5);
+      DigiBQ = m_dbe->book1D("# Bad Qual Digis","# Bad Qual Digis",DIGI_NUM+500,-0.5,DIGI_NUM+500-0.5);
       DigiBQ -> setAxisTitle("# Bad Quality Digis",1);  
       DigiBQ -> setAxisTitle("# of Events",2);
       
@@ -337,7 +201,7 @@ void HcalDigiMonitor::setup(const edm::ParameterSet& ps,
 
 
       m_dbe->setCurrentFolder(baseFolder_+"/digi_info");
-      DigiNum = m_dbe->book1D("# of Digis","# of Digis",DIGI_NUM,-0.5,DIGI_NUM-0.5);
+      DigiNum = m_dbe->book1D("# of Digis","# of Digis",DIGI_NUM+500,-0.5,DIGI_NUM+500-0.5);
       DigiNum -> setAxisTitle("# of Digis",1);  
       DigiNum -> setAxisTitle("# of Events",2);
       
@@ -1036,95 +900,95 @@ void HcalDigiMonitor::fill_Nevents()
     {
       for (int j=0;j<50;++j)
 	{
-	  if (hbHists.tssumplus[j][i]>0) hbHists.TS_sum_plus[i]->setBinContent(j+1, hbHists.tssumplus[j][i]);
-	  if (hbHists.tssumminus[j][i]>0) hbHists.TS_sum_minus[i]->setBinContent(j+1, hbHists.tssumminus[j][i]);
-	  if (heHists.tssumplus[j][i]>0) heHists.TS_sum_plus[i]->setBinContent(j+1, heHists.tssumplus[j][i]);
-	  if (heHists.tssumminus[j][i]>0) heHists.TS_sum_minus[i]->setBinContent(j+1, heHists.tssumminus[j][i]);
-	  if (hoHists.tssumplus[j][i]>0) hoHists.TS_sum_plus[i]->setBinContent(j+1, hoHists.tssumplus[j][i]);
-	  if (hoHists.tssumminus[j][i]>0) hoHists.TS_sum_minus[i]->setBinContent(j+1, hoHists.tssumminus[j][i]);
-	  if (hfHists.tssumplus[j][i]>0) hfHists.TS_sum_plus[i]->setBinContent(j+1, hfHists.tssumplus[j][i]);
-	  if (hfHists.tssumminus[j][i]>0) hfHists.TS_sum_minus[i]->setBinContent(j+1, hfHists.tssumminus[j][i]);
+	  if (hbHists.tssumplus[j][i]>0) hbHists.TS_sum_plus[i]->Fill(j, hbHists.tssumplus[j][i]);
+	  if (hbHists.tssumminus[j][i]>0) hbHists.TS_sum_minus[i]->Fill(j, hbHists.tssumminus[j][i]);
+	  if (heHists.tssumplus[j][i]>0) heHists.TS_sum_plus[i]->Fill(j, heHists.tssumplus[j][i]);
+	  if (heHists.tssumminus[j][i]>0) heHists.TS_sum_minus[i]->Fill(j, heHists.tssumminus[j][i]);
+	  if (hoHists.tssumplus[j][i]>0) hoHists.TS_sum_plus[i]->Fill(j, hoHists.tssumplus[j][i]);
+	  if (hoHists.tssumminus[j][i]>0) hoHists.TS_sum_minus[i]->Fill(j, hoHists.tssumminus[j][i]);
+	  if (hfHists.tssumplus[j][i]>0) hfHists.TS_sum_plus[i]->Fill(j, hfHists.tssumplus[j][i]);
+	  if (hfHists.tssumminus[j][i]>0) hfHists.TS_sum_minus[i]->Fill(j, hfHists.tssumminus[j][i]);
 	}
     } // for (int i=0;i<10;++i)
 
   // Fill plots of number of digis found
   for (int i=0;i<DIGI_NUM;++i)
     {
-      if (diginum[i]>0) DigiNum->setBinContent(i+1,diginum[i]);
-      if (digiBQ[i]>0) DigiBQ->setBinContent(i+1,digiBQ[i]);
+      if (diginum[i]>0) DigiNum->Fill(i, diginum[i]);
+      if (digiBQ[i]>0) DigiBQ->Fill(i, digiBQ[i]);
       if (i>=DIGI_SUBDET_NUM) continue;
-      if (hbHists.count_BQ[i]>0) hbHists.BQ->setBinContent(i+1,hbHists.count_BQ[i]);
-      if (heHists.count_BQ[i]>0) heHists.BQ->setBinContent(i+1,heHists.count_BQ[i]);
-      if (hoHists.count_BQ[i]>0) hoHists.BQ->setBinContent(i+1,hoHists.count_BQ[i]);
-      if (hfHists.count_BQ[i]>0) hfHists.BQ->setBinContent(i+1,hfHists.count_BQ[i]);
+      if (hbHists.count_BQ[i]>0) hbHists.BQ->Fill(i, hbHists.count_BQ[i]);
+      if (heHists.count_BQ[i]>0) heHists.BQ->Fill(i, heHists.count_BQ[i]);
+      if (hoHists.count_BQ[i]>0) hoHists.BQ->Fill(i, hoHists.count_BQ[i]);
+      if (hfHists.count_BQ[i]>0) hfHists.BQ->Fill(i, hfHists.count_BQ[i]);
 
     }//for int i=0;i<DIGI_NUM;++i)
 
   // Fill data-valid/error plots and capid plots
   for (int i=0;i<4;++i)
     {
-      if (hbHists.dverr[i]>0) hbHists.DVerr->setBinContent(i+1,hbHists.dverr[i]);
-      if (heHists.dverr[i]>0) heHists.DVerr->setBinContent(i+1,heHists.dverr[i]);
-      if (hoHists.dverr[i]>0) hoHists.DVerr->setBinContent(i+1,hoHists.dverr[i]);
-      if (hfHists.dverr[i]>0) hfHists.DVerr->setBinContent(i+1,hfHists.dverr[i]);
-      if (hbHists.capid[i]>0) hbHists.CapID->setBinContent(i+1,hbHists.capid[i]);
-      if (heHists.capid[i]>0) heHists.CapID->setBinContent(i+1,heHists.capid[i]);
-      if (hoHists.capid[i]>0) hoHists.CapID->setBinContent(i+1,hoHists.capid[i]);
-      if (hfHists.capid[i]>0) hfHists.CapID->setBinContent(i+1,hfHists.capid[i]);
+      if (hbHists.dverr[i]>0) hbHists.DVerr->Fill(i, hbHists.dverr[i]);
+      if (heHists.dverr[i]>0) heHists.DVerr->Fill(i, heHists.dverr[i]);
+      if (hoHists.dverr[i]>0) hoHists.DVerr->Fill(i, hoHists.dverr[i]);
+      if (hfHists.dverr[i]>0) hfHists.DVerr->Fill(i, hfHists.dverr[i]);
+      if (hbHists.capid[i]>0) hbHists.CapID->Fill(i, hbHists.capid[i]);
+      if (heHists.capid[i]>0) heHists.CapID->Fill(i, heHists.capid[i]);
+      if (hoHists.capid[i]>0) hoHists.CapID->Fill(i, hoHists.capid[i]);
+      if (hfHists.capid[i]>0) hfHists.CapID->Fill(i, hfHists.capid[i]);
     }
   for (int i=0;i<200;++i)
     {
-      if (hbHists.adc[i]>0) hbHists.ADC->setBinContent(i+1,hbHists.adc[i]);
-      if (heHists.adc[i]>0) heHists.ADC->setBinContent(i+1,heHists.adc[i]);
-      if (hoHists.adc[i]>0) hoHists.ADC->setBinContent(i+1,hoHists.adc[i]);
-      if (hfHists.adc[i]>0) hfHists.ADC->setBinContent(i+1,hfHists.adc[i]);
-      if (hbHists.adcsum[i]>0) hbHists.ADCsum->setBinContent(i+1,hbHists.adcsum[i]);
-      if (heHists.adcsum[i]>0) heHists.ADCsum->setBinContent(i+1,heHists.adcsum[i]);
-      if (hoHists.adcsum[i]>0) hoHists.ADCsum->setBinContent(i+1,hoHists.adcsum[i]);
-      if (hfHists.adcsum[i]>0) hfHists.ADCsum->setBinContent(i+1,hfHists.adcsum[i]);
+      if (hbHists.adc[i]>0) hbHists.ADC->Fill(i, hbHists.adc[i]);
+      if (heHists.adc[i]>0) heHists.ADC->Fill(i, heHists.adc[i]);
+      if (hoHists.adc[i]>0) hoHists.ADC->Fill(i, hoHists.adc[i]);
+      if (hfHists.adc[i]>0) hfHists.ADC->Fill(i, hfHists.adc[i]);
+      if (hbHists.adcsum[i]>0) hbHists.ADCsum->Fill(i, hbHists.adcsum[i]);
+      if (heHists.adcsum[i]>0) heHists.ADCsum->Fill(i, heHists.adcsum[i]);
+      if (hoHists.adcsum[i]>0) hoHists.ADCsum->Fill(i, hoHists.adcsum[i]);
+      if (hfHists.adcsum[i]>0) hfHists.ADCsum->Fill(i, hfHists.adcsum[i]);
     }
 
 
   // Fill plots of bad fraction of digis found
   for (int i=0;i<DIGI_BQ_FRAC_NBINS;++i)
     {
-      if (digiBQfrac[i]>0) DigiBQFrac->setBinContent(i+1,digiBQfrac[i]);
-      if (hbHists.count_BQFrac[i]>0) hbHists.BQFrac->setBinContent(i+1,hbHists.count_BQFrac[i]);
-      if (heHists.count_BQFrac[i]>0) heHists.BQFrac->setBinContent(i+1,heHists.count_BQFrac[i]);
-      if (hoHists.count_BQFrac[i]>0) hoHists.BQFrac->setBinContent(i+1,hoHists.count_BQFrac[i]);
-      if (hfHists.count_BQFrac[i]>0) hfHists.BQFrac->setBinContent(i+1,hfHists.count_BQFrac[i]);
+      if (digiBQfrac[i]>0) DigiBQFrac->Fill(i, digiBQfrac[i]);
+      if (hbHists.count_BQFrac[i]>0) hbHists.BQFrac->Fill(i, hbHists.count_BQFrac[i]);
+      if (heHists.count_BQFrac[i]>0) heHists.BQFrac->Fill(i, heHists.count_BQFrac[i]);
+      if (hoHists.count_BQFrac[i]>0) hoHists.BQFrac->Fill(i, hoHists.count_BQFrac[i]);
+      if (hfHists.count_BQFrac[i]>0) hfHists.BQFrac->Fill(i, hfHists.count_BQFrac[i]);
 
     }//for (int i=0;i<DIGI_BQ_FRAC_NBINS;++i)
 
   // Fill presample plots
   for (int i=0;i<50;++i)
     {
-      if (hbHists.count_presample[i]>0) hbHists.presample->setBinContent(i+1,hbHists.count_presample[i]);
-      if (heHists.count_presample[i]>0) heHists.presample->setBinContent(i+1,heHists.count_presample[i]);
-      if (hoHists.count_presample[i]>0) hoHists.presample->setBinContent(i+1,hoHists.count_presample[i]);
-      if (hfHists.count_presample[i]>0) hfHists.presample->setBinContent(i+1,hfHists.count_presample[i]);
+      if (hbHists.count_presample[i]>0) hbHists.presample->Fill(i, hbHists.count_presample[i]);
+      if (heHists.count_presample[i]>0) heHists.presample->Fill(i, heHists.count_presample[i]);
+      if (hoHists.count_presample[i]>0) hoHists.presample->Fill(i, hoHists.count_presample[i]);
+      if (hfHists.count_presample[i]>0) hfHists.presample->Fill(i, hfHists.count_presample[i]);
     } //for (int i=0;i<50;++i)
 
   // Fill shape plots
   for (int i=0;i<10;++i)
     {
-      if (hbHists.count_shape[i]>0) hbHists.shape->setBinContent(i+1,hbHists.count_shape[i]);
-      if (hbHists.count_shapeThresh[i]>0) hbHists.shapeThresh->setBinContent(i+1,hbHists.count_shapeThresh[i]);
-      if (heHists.count_shape[i]>0) heHists.shape->setBinContent(i+1,heHists.count_shape[i]);
-      if (heHists.count_shapeThresh[i]>0) heHists.shapeThresh->setBinContent(i+1,heHists.count_shapeThresh[i]);
-      if (hoHists.count_shape[i]>0) hoHists.shape->setBinContent(i+1,hoHists.count_shape[i]);
-      if (hoHists.count_shapeThresh[i]>0) hoHists.shapeThresh->setBinContent(i+1,hoHists.count_shapeThresh[i]);
-      if (hfHists.count_shape[i]>0) hfHists.shape->setBinContent(i+1,hfHists.count_shape[i]);
-      if (hfHists.count_shapeThresh[i]>0) hfHists.shapeThresh->setBinContent(i+1,hfHists.count_shapeThresh[i]);
+      if (hbHists.count_shape[i]>0) hbHists.shape->Fill(i, hbHists.count_shape[i]);
+      if (hbHists.count_shapeThresh[i]>0) hbHists.shapeThresh->Fill(i, hbHists.count_shapeThresh[i]);
+      if (heHists.count_shape[i]>0) heHists.shape->Fill(i, heHists.count_shape[i]);
+      if (heHists.count_shapeThresh[i]>0) heHists.shapeThresh->Fill(i, heHists.count_shapeThresh[i]);
+      if (hoHists.count_shape[i]>0) hoHists.shape->Fill(i, hoHists.count_shape[i]);
+      if (hoHists.count_shapeThresh[i]>0) hoHists.shapeThresh->Fill(i, hoHists.count_shapeThresh[i]);
+      if (hfHists.count_shape[i]>0) hfHists.shape->Fill(i, hfHists.count_shape[i]);
+      if (hfHists.count_shapeThresh[i]>0) hfHists.shapeThresh->Fill(i, hfHists.count_shapeThresh[i]);
     }//  for (int i=0;i<10;++i)
 
   // Fill capID difference plots
   for (int i=0;i<8;++i)
     {
-      if (hbHists.capIDdiff[i]>0) hbHists.DigiFirstCapID->setBinContent(i+1,hbHists.capIDdiff[i]);
-      if (heHists.capIDdiff[i]>0) heHists.DigiFirstCapID->setBinContent(i+1,heHists.capIDdiff[i]);
-      if (hoHists.capIDdiff[i]>0) hoHists.DigiFirstCapID->setBinContent(i+1,hoHists.capIDdiff[i]);
-      if (hfHists.capIDdiff[i]>0) hfHists.DigiFirstCapID->setBinContent(i+1,hfHists.capIDdiff[i]);
+      if (hbHists.capIDdiff[i]>0) hbHists.DigiFirstCapID->Fill(i, hbHists.capIDdiff[i]);
+      if (heHists.capIDdiff[i]>0) heHists.DigiFirstCapID->Fill(i, heHists.capIDdiff[i]);
+      if (hoHists.capIDdiff[i]>0) hoHists.DigiFirstCapID->Fill(i, hoHists.capIDdiff[i]);
+      if (hfHists.capIDdiff[i]>0) hfHists.DigiFirstCapID->Fill(i, hfHists.capIDdiff[i]);
     }
 
 
@@ -1133,8 +997,8 @@ void HcalDigiMonitor::fill_Nevents()
     {
       for (int j=0;j<18;++j)
 	{
-	  if (errorVME[i][j]>0) DigiErrorVME->setBinContent(i+1,j+1,errorVME[i][j]);
-	  if (occupancyVME[i][j]>0) DigiOccupancyVME->setBinContent(i+1,j+1,occupancyVME[i][j]);
+	  if (errorVME[i][j]>0) DigiErrorVME->Fill(i, j,errorVME[i][j]);
+	  if (occupancyVME[i][j]>0) DigiOccupancyVME->Fill(i, j,occupancyVME[i][j]);
 	}
     } //for (int i=0;i<40;++i)
   
@@ -1143,8 +1007,8 @@ void HcalDigiMonitor::fill_Nevents()
     {
       for (int j=0;j<36;++j)
 	{
-	  if (errorSpigot[i][j]>0) DigiErrorSpigot->setBinContent(i+1,j+1,errorSpigot[i][j]);
-	  if (occupancySpigot[i][j]>0) DigiOccupancySpigot->setBinContent(i+1,j+1,occupancySpigot[i][j]);
+	  if (errorSpigot[i][j]>0) DigiErrorSpigot->Fill(i, j,errorSpigot[i][j]);
+	  if (occupancySpigot[i][j]>0) DigiOccupancySpigot->Fill(i, j,occupancySpigot[i][j]);
 	}
     } //for (int i=0;i<HcalDCCHeader::SPIGOT_COUNT;++i)
 
@@ -1154,7 +1018,7 @@ void HcalDigiMonitor::fill_Nevents()
       for (int dsize=0;dsize<20;++dsize)
 	{
 	  if (digisize[dsize][sub]>0)
-	    DigiSize->setBinContent(sub+1,dsize+1,digisize[dsize][sub]);
+	    DigiSize->Fill(sub,dsize,digisize[dsize][sub]);
 	}
     } // for (int sub=0;sub<4;++sub)
 
@@ -1162,20 +1026,20 @@ void HcalDigiMonitor::fill_Nevents()
   // Loop over eta, phi, depth
   for (int phi=0;phi<(phiBins_-2);++phi)
     {
-      DigiOccupancyPhi->setBinContent(phi+2,occupancyPhi[phi]);
+      iPhi=phi+1;
+      DigiOccupancyPhi->Fill(iPhi,occupancyPhi[phi]);
       for (int eta=0;eta<(etaBins_-2);++eta)
 	{
+	  iEta=eta-int((etaBins_-2)/2);
 	  if (phi==0)
-	    DigiOccupancyEta->setBinContent(eta+2,occupancyEta[eta]);
+	    DigiOccupancyEta->Fill(iEta,occupancyEta[eta]);
 	  problemsum=0;  
 	  valid=false;
 
 	  for (int d=0;d<6;++d)
 	    {
-	      iPhi=phi+1;
-	      iEta=eta-int((etaBins_-2)/2);
 	      iDepth=d+1;
-	     
+	      ProblemDigisByDepth[d]->setBinContent(0,0,ievt_); // underflow bin contains event counter
 	      // HB
 	      if (validDetId(HcalBarrel, iEta, iPhi, iDepth))
 		{
@@ -1190,23 +1054,23 @@ void HcalDigiMonitor::fill_Nevents()
 		      // Fill plots as fractions of total # of events
 		      
 		      // Occupancy plot needs to get old occupancy value, since counter gets reset
-		      DigiOccupancyByDepth[d]->setBinContent(eta+2,phi+2,
-							     ((ievt_-digi_checkNevents_)*DigiOccupancyByDepth[d]->getBinContent(eta+2,phi+2)+occupancyEtaPhi[eta][phi][d])/ievt_);
-
-		      DigiErrorsBadCapID[d]->setBinContent(eta+2, phi+2,
-							   badcapID[eta][phi][d]/ievt_);
-		      DigiErrorsBadDigiSize[d]->setBinContent(eta+2, phi+2,
-							      baddigisize[eta][phi][d]/ievt_);
-		      DigiErrorsBadADCSum[d]->setBinContent(eta+2, phi+2,
-							    badADCsum[eta][phi][d]/ievt_);
-		      DigiErrorsDVErr[d]->setBinContent(eta+2, phi+2,
-							digierrorsdverr[eta][phi][d]/ievt_);
+		      DigiOccupancyByDepth[d]->Fill(iEta, iPhi,
+						    occupancyEtaPhi[eta][phi][d]);
+		      
+		      DigiErrorsBadCapID[d]->Fill(iEta, iPhi,
+						  badcapID[eta][phi][d]);
+		      DigiErrorsBadDigiSize[d]->Fill(iEta, iPhi,
+						     baddigisize[eta][phi][d]);
+		      DigiErrorsBadADCSum[d]->Fill(iEta, iPhi,
+						   badADCsum[eta][phi][d]);
+		      DigiErrorsDVErr[d]->Fill(iEta, iPhi,
+					       digierrorsdverr[eta][phi][d]);
 		      problemsum+=problemdigis[eta][phi][d];
-		      problemvalue=problemdigis[eta][phi][d]/ievt_;
-		      if (problemvalue>1)
-			problemvalue=1;
-		      ProblemDigisByDepth[d]->setBinContent(eta+2, phi+2,
-							    problemvalue);
+		      problemvalue=min(ievt_,problemdigis[eta][phi][d]);
+		      ProblemDigisByDepth[d]->Fill(iEta, iPhi,
+						   problemvalue);
+		      // Use this for testing purposes only
+		      //ProblemDigisByDepth[d]->Fill(iEta, iPhi, ievt_);
 		    } // if (hbHists.check)
 		} 
 	      // HE (depth=3 only)
@@ -1221,25 +1085,24 @@ void HcalDigiMonitor::fill_Nevents()
 			}
 		      
 		      // Fill plots as fractions of total # of events
+		      // Update -- making fractional plots needs to take place in Client; otherwise offline jobs split among processes won't calculate fractions correctly
 		      
 		      // Occupancy plot needs to get old occupancy value, since counter gets reset
-		      DigiOccupancyByDepth[d]->setBinContent(eta+2,phi+2,
-							     ((ievt_-digi_checkNevents_)*DigiOccupancyByDepth[d]->getBinContent(eta+2,phi+2)+occupancyEtaPhi[eta][phi][d])/ievt_);
-
-		      DigiErrorsBadCapID[d]->setBinContent(eta+2, phi+2,
-							   badcapID[eta][phi][d]/ievt_);
-		      DigiErrorsBadDigiSize[d]->setBinContent(eta+2, phi+2,
-							      baddigisize[eta][phi][d]/ievt_);
-		      DigiErrorsBadADCSum[d]->setBinContent(eta+2, phi+2,
-							    badADCsum[eta][phi][d]/ievt_);
-		      DigiErrorsDVErr[d]->setBinContent(eta+2, phi+2,
-							digierrorsdverr[eta][phi][d]/ievt_);
+		      DigiOccupancyByDepth[d]->Fill(iEta, iPhi,
+						    occupancyEtaPhi[eta][phi][d]);
+		      
+		      DigiErrorsBadCapID[d]->Fill(iEta, iPhi,
+						  badcapID[eta][phi][d]);
+		      DigiErrorsBadDigiSize[d]->Fill(iEta, iPhi,
+						     baddigisize[eta][phi][d]);
+		      DigiErrorsBadADCSum[d]->Fill(iEta, iPhi,
+						   badADCsum[eta][phi][d]);
+		      DigiErrorsDVErr[d]->Fill(iEta, iPhi,
+					       digierrorsdverr[eta][phi][d]);
 		      problemsum+=problemdigis[eta][phi][d];
-		      problemvalue=problemdigis[eta][phi][d]/ievt_;
-		      if (problemvalue>1)
-			problemvalue=1;
-		      ProblemDigisByDepth[d]->setBinContent(eta+2, phi+2,
-							    problemvalue);
+		      problemvalue=problemdigis[eta][phi][d];
+		      ProblemDigisByDepth[d]->Fill(iEta, iPhi,
+						   problemvalue);
 		    } // if (heHists.check)
 		} 
 	      // HO 
@@ -1256,23 +1119,21 @@ void HcalDigiMonitor::fill_Nevents()
 		      // Fill plots as fractions of total # of events
 		      
 		      // Occupancy plot needs to get old occupancy value, since counter gets reset
-		      DigiOccupancyByDepth[d]->setBinContent(eta+2,phi+2,
-							     ((ievt_-digi_checkNevents_)*DigiOccupancyByDepth[d]->getBinContent(eta+2,phi+2)+occupancyEtaPhi[eta][phi][d])/ievt_);
+		      DigiOccupancyByDepth[d]->Fill(iEta, iPhi,
+						    occupancyEtaPhi[eta][phi][d]);
 
-		      DigiErrorsBadCapID[d]->setBinContent(eta+2, phi+2,
-							   badcapID[eta][phi][d]/ievt_);
-		      DigiErrorsBadDigiSize[d]->setBinContent(eta+2, phi+2,
-							      baddigisize[eta][phi][d]/ievt_);
-		      DigiErrorsBadADCSum[d]->setBinContent(eta+2, phi+2,
-							    badADCsum[eta][phi][d]/ievt_);
-		      DigiErrorsDVErr[d]->setBinContent(eta+2, phi+2,
-							digierrorsdverr[eta][phi][d]/ievt_);
+		      DigiErrorsBadCapID[d]->Fill(iEta, iPhi,
+						  badcapID[eta][phi][d]);
+		      DigiErrorsBadDigiSize[d]->Fill(iEta, iPhi,
+						     baddigisize[eta][phi][d]);
+		      DigiErrorsBadADCSum[d]->Fill(iEta, iPhi,
+						   badADCsum[eta][phi][d]);
+		      DigiErrorsDVErr[d]->Fill(iEta, iPhi,
+					       digierrorsdverr[eta][phi][d]);
 		      problemsum+=problemdigis[eta][phi][d];
-		      problemvalue=problemdigis[eta][phi][d]/ievt_;
-		      if (problemvalue>1)
-			problemvalue=1;
-		      ProblemDigisByDepth[d]->setBinContent(eta+2, phi+2,
-							    problemvalue);
+		      problemvalue=problemdigis[eta][phi][d];
+		      ProblemDigisByDepth[d]->Fill(iEta, iPhi,
+						   problemvalue);
 		    } // if (hoHists.check)
 		}
 	      // HF
@@ -1289,22 +1150,20 @@ void HcalDigiMonitor::fill_Nevents()
 		      // Fill plots as fractions of total # of events
 		      
 		      // Occupancy plot needs to get old occupancy value, since counter gets reset
-		      DigiOccupancyByDepth[d]->setBinContent(eta+2,phi+2,
-							     ((ievt_-digi_checkNevents_)*DigiOccupancyByDepth[d]->getBinContent(eta+2,phi+2)+occupancyEtaPhi[eta][phi][d])/ievt_);
+		      DigiOccupancyByDepth[d]->Fill(iEta, iPhi,
+						    occupancyEtaPhi[eta][phi][d]);
 
-		      DigiErrorsBadCapID[d]->setBinContent(eta+2, phi+2,
-							   badcapID[eta][phi][d]/ievt_);
-		      DigiErrorsBadDigiSize[d]->setBinContent(eta+2, phi+2,
-							      baddigisize[eta][phi][d]/ievt_);
-		      DigiErrorsBadADCSum[d]->setBinContent(eta+2, phi+2,
-							    badADCsum[eta][phi][d]/ievt_);
-		      DigiErrorsDVErr[d]->setBinContent(eta+2, phi+2,
-							digierrorsdverr[eta][phi][d]/ievt_);
+		      DigiErrorsBadCapID[d]->Fill(iEta, iPhi,
+						  badcapID[eta][phi][d]);
+		      DigiErrorsBadDigiSize[d]->Fill(iEta, iPhi,
+						     baddigisize[eta][phi][d]);
+		      DigiErrorsBadADCSum[d]->Fill(iEta, iPhi,
+						   badADCsum[eta][phi][d]);
+		      DigiErrorsDVErr[d]->Fill(iEta, iPhi,
+					       digierrorsdverr[eta][phi][d]);
 		      problemsum+=problemdigis[eta][phi][d];
-		      problemvalue=problemdigis[eta][phi][d]/ievt_;
-		      if (problemvalue>1)
-			problemvalue=1;
-		      ProblemDigisByDepth[d]->setBinContent(eta+2, phi+2,
+		      problemvalue=problemdigis[eta][phi][d];
+		      ProblemDigisByDepth[d]->Fill(iEta, iPhi,
 							    problemvalue);
 		    } // if (hfHists.check)
 		}
@@ -1321,26 +1180,21 @@ void HcalDigiMonitor::fill_Nevents()
 			  problemdigis[eta][phi][d]+=digi_checkNevents_;
 			}
 		      
-		      // Fill plots as fractions of total # of events
+		      DigiOccupancyByDepth[d]->Fill(iEta, iPhi,
+						    occupancyEtaPhi[eta][phi][d]);
 		      
-		      // Occupancy plot needs to get old occupancy value, since counter gets reset
-		      DigiOccupancyByDepth[d]->setBinContent(eta+2,phi+2,
-							     ((ievt_-digi_checkNevents_)*DigiOccupancyByDepth[d]->getBinContent(eta+2,phi+2)+occupancyEtaPhi[eta][phi][d])/ievt_);
-
-		      DigiErrorsBadCapID[d]->setBinContent(eta+2, phi+2,
-							   badcapID[eta][phi][d]/ievt_);
-		      DigiErrorsBadDigiSize[d]->setBinContent(eta+2, phi+2,
-							      baddigisize[eta][phi][d]/ievt_);
-		      DigiErrorsBadADCSum[d]->setBinContent(eta+2, phi+2,
-							    badADCsum[eta][phi][d]/ievt_);
-		      DigiErrorsDVErr[d]->setBinContent(eta+2, phi+2,
-							digierrorsdverr[eta][phi][d]/ievt_);
+		      DigiErrorsBadCapID[d]->Fill(iEta, iPhi,
+						  badcapID[eta][phi][d]);
+		      DigiErrorsBadDigiSize[d]->Fill(iEta, iPhi,
+						     baddigisize[eta][phi][d]);
+		      DigiErrorsBadADCSum[d]->Fill(iEta, iPhi,
+						   badADCsum[eta][phi][d]);
+		      DigiErrorsDVErr[d]->Fill(iEta, iPhi,
+					       digierrorsdverr[eta][phi][d]);
 		      problemsum+=problemdigis[eta][phi][d];
-		      problemvalue=problemdigis[eta][phi][d]/ievt_;
-		      if (problemvalue>1)
-			problemvalue=1;
-		      ProblemDigisByDepth[d]->setBinContent(eta+2, phi+2,
-							    problemvalue);
+		      problemvalue=problemdigis[eta][phi][d];
+		      ProblemDigisByDepth[d]->Fill(iEta, iPhi,
+						   problemvalue);
 		    } // if (validDetId(HcalEndcap,iEta,iPhi,iDepth)
 		} //if (d>3)
 	     
@@ -1348,8 +1202,10 @@ void HcalDigiMonitor::fill_Nevents()
 	    } // for (int d=0;...)
 	  if (valid==true) // only fill overall problem plot if the (eta,phi) value was valid for some depth
 	    {
-	      problemvalue=min(1.,problemsum/ievt_);
-	      ProblemDigis->setBinContent(eta+2,phi+2,problemvalue);
+	      //problemvalue=min(1.,problemsum/ievt_);
+	      problemsum=min((double)ievt_,problemsum);
+	      ProblemDigis->Fill(iEta, iPhi,problemsum);
+	      ProblemDigis->setBinContent(0,0,ievt_);
 	    }
 	} // for (int phi=0;...)
     } // for (int eta=0;...)
@@ -1361,8 +1217,9 @@ void HcalDigiMonitor::fill_Nevents()
   FillUnphysicalHEHFBins(DigiErrorsDVErr);
   FillUnphysicalHEHFBins(DigiErrorsBadDigiSize);
   FillUnphysicalHEHFBins(DigiErrorsBadADCSum);
-  FillUnphysicalHEHFBins(DigiErrorsNoDigi);
   FillUnphysicalHEHFBins(DigiOccupancyByDepth);
+
+  zeroCounters();
   if (showTiming)
     {
       cpu_timer.stop();  cout <<"TIMER:: HcalDigiMonitor DIGI fill_Nevents -> "<<cpu_timer.cpuTime()<<endl;
@@ -1380,3 +1237,138 @@ void HcalDigiMonitor::setSubDetectors(bool hb, bool he, bool ho, bool hf)
   return;
 } // void HcalDigiMonitor::setSubDetectors(...)
 
+void HcalDigiMonitor::zeroCounters()
+{
+  // Set all histogram counters back to 0
+  /******** Zero all counters *******/
+  
+  for (int i=0;i<87;++i)
+    {
+      occupancyEta[i]=0;
+      if (i<72)
+	occupancyPhi[i]=0;
+      for (int j=0;j<72;++j)
+	{
+	  for (int k=0;k<6;++k)
+	    {
+	      problemdigis[i][j][k]=0;
+	      badcapID[i][j][k]=0;
+	      baddigisize[i][j][k]=0;
+	      badADCsum[i][j][k]=0;
+	      occupancyEtaPhi[i][j][k]=0;
+	      digierrorsdverr[i][j][k]=0;
+	    }
+	} // for (int j=0;j<72;++i)
+    } // for (int i=0;i<87;++i)
+
+  for (int i=0;i<40;++i)
+    {
+      for (int j=0;j<18;++j)
+	{
+	  occupancyVME[i][j]=0;
+	  errorVME[i][j]=0;
+	}
+    }
+
+  for (int i=0;i<HcalDCCHeader::SPIGOT_COUNT;++i)
+    {
+      for (int j=0;j<36;++j)
+	{
+	  occupancySpigot[i][j]=0;
+	  errorSpigot[i][j]=0;
+	}
+    }
+
+
+  for (int i=0;i<20;++i)
+    {
+      for (int j=0;j<4;++j)
+	digisize[i][j]=0;
+    }
+
+  for (int i=0;i<DIGI_NUM;++i)
+    {
+      if (i<DIGI_BQ_FRAC_NBINS)
+	digiBQfrac[i]=0;
+      digiBQ[i]=0;
+      diginum[i]=0;
+      
+      // set all DigiHists counters to 0
+      if (i<4)
+	{
+	  hbHists.dverr[i]=0;
+	  heHists.dverr[i]=0;
+	  hoHists.dverr[i]=0;
+	  hfHists.dverr[i]=0;
+	  hbHists.capid[i]=0;
+	  heHists.capid[i]=0;
+	  hoHists.capid[i]=0;
+	  hfHists.capid[i]=0;
+	}
+      if (i<8)
+	{
+	  hbHists.capIDdiff[i]=0;
+	  heHists.capIDdiff[i]=0;
+	  hoHists.capIDdiff[i]=0;
+	  hfHists.capIDdiff[i]=0;
+	}
+
+      if (i<10)
+	{
+	  hbHists.count_shape[i]=0;
+	  heHists.count_shape[i]=0;
+	  hoHists.count_shape[i]=0;
+	  hfHists.count_shape[i]=0;
+	  hbHists.count_shapeThresh[i]=0;
+	  heHists.count_shapeThresh[i]=0;
+	  hoHists.count_shapeThresh[i]=0;
+	  hfHists.count_shapeThresh[i]=0;
+	}
+      if (i<50)
+	{
+	  hbHists.count_presample[i]=0;
+	  heHists.count_presample[i]=0;
+	  hoHists.count_presample[i]=0;
+	  hfHists.count_presample[i]=0;
+	  for (int j=0;j<10;++j)
+	    {
+	      hbHists.tssumplus[i][j]=0;
+	      heHists.tssumplus[i][j]=0;
+	      hoHists.tssumplus[i][j]=0;
+	      hfHists.tssumplus[i][j]=0;
+	      hbHists.tssumminus[i][j]=0;
+	      heHists.tssumminus[i][j]=0;
+	      hoHists.tssumminus[i][j]=0;
+	      hfHists.tssumminus[i][j]=0;
+	    }
+	}
+      if (i<200)
+	{
+	  hbHists.adc[i]=0;
+	  heHists.adc[i]=0;
+	  hoHists.adc[i]=0;
+	  hfHists.adc[i]=0;
+	  hbHists.adcsum[i]=0;
+	  heHists.adcsum[i]=0;
+	  hoHists.adcsum[i]=0;
+	  hfHists.adcsum[i]=0;
+	}
+      if (i<DIGI_SUBDET_NUM)
+	{
+	  hbHists.count_BQ[i]=0;
+	  heHists.count_BQ[i]=0;
+	  hoHists.count_BQ[i]=0;
+	  hfHists.count_BQ[i]=0;
+	}
+      if (i<DIGI_BQ_FRAC_NBINS)
+	{
+	  hbHists.count_BQFrac[i]=0;
+	  heHists.count_BQFrac[i]=0;
+	  hoHists.count_BQFrac[i]=0;
+	  hfHists.count_BQFrac[i]=0;
+	}
+    } // for (int i=0;i<DIGI_NUM;++i)
+
+
+  return;
+}

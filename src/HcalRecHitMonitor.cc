@@ -63,85 +63,7 @@ void HcalRecHitMonitor::setup(const edm::ParameterSet& ps,
 
   // zero all counters
 
-  // TH2F counters
-  for (int i=0;i<ETABINS;++i)
-    {
-      for (int j=0;j<PHIBINS;++j)
-	{
-	  for (int k=0;k<6;++k)
-	    {
-	      occupancy_[i][j][k]=0;
-	      occupancy_thresh_[i][j][k]=0;
-	      energy_[i][j][k]=0;
-	      energy_thresh_[i][j][k]=0;
-	      time_[i][j][k]=0;
-	      time_thresh_[i][j][k]=0;
-	    }
-	} // for (int j=0;j<PHIBINS;++j)
-    } // for (int i=0;i<ETABINS;++i)
-
-  // TH1F counters
-  
-  // energy
-  for (int i=0;i<200;++i)
-    {
-      HBenergy_[i]=0;
-      HBenergy_thresh_[i]=0;
-      HEenergy_[i]=0;
-      HEenergy_thresh_[i]=0;
-      HOenergy_[i]=0;
-      HOenergy_thresh_[i]=0;
-      HFenergy_[i]=0;
-      HFenergy_thresh_[i]=0;
-      HFenergyLong_[i]=0;
-      HFenergyLong_thresh_[i]=0;
-      HFenergyShort_[i]=0;
-      HFenergyShort_thresh_[i]=0;
-    }
-
-  // time
-  for (int i=0;i<(TIME_MAX-TIME_MIN);++i)
-    {
-      HBtime_[i]=0;
-      HBtime_thresh_[i]=0;
-      HEtime_[i]=0;
-      HEtime_thresh_[i]=0;
-      HOtime_[i]=0;
-      HOtime_thresh_[i]=0;
-      HFtime_[i]=0;
-      HFtime_thresh_[i]=0;
-      HFtimeLong_[i]=0;
-      HFtimeLong_thresh_[i]=0;
-      HFtimeShort_[i]=0;
-      HFtimeShort_thresh_[i]=0;
-    }
-
-  // occupancy
-  for (int i=0;i<2593;++i)
-    {
-      HB_occupancy_[i]=0;
-      HE_occupancy_[i]=0;
-      HB_occupancy_thresh_[i]=0;
-      HE_occupancy_thresh_[i]=0;
-      if (i<=2160)
-	{
-	  HO_occupancy_[i]=0;
-	  HO_occupancy_thresh_[i]=0;
-	}
-      if (i<=1728)
-	{
-	  HF_occupancy_[i]=0;
-	  HF_occupancy_thresh_[i]=0;
-	}
-      if (i<=864)
-	{
-	  HFlong_occupancy_[i] =0;
-	  HFshort_occupancy_[i]=0;
-	  HFlong_occupancy_thresh_[i] =0;
-	  HFshort_occupancy_thresh_[i]=0;
-	}
-    } // for (int i=0;i<2592;++i)
-
+  zeroCounters();
 
   // Set up histograms
   if (m_dbe)
@@ -161,29 +83,29 @@ void HcalRecHitMonitor::setup(const edm::ParameterSet& ps,
                                      phiBins_,phiMin_,phiMax_);
       ProblemRecHits->setAxisTitle("i#eta",1);
       ProblemRecHits->setAxisTitle("i#phi",2);
-      // Only show problem cells that are above problem threshold
-      (ProblemRecHits->getTH2F())->SetMinimum(rechit_minErrorFlag_);
-      (ProblemRecHits->getTH2F())->SetMaximum(1.);
       
       // Overall Problem plot appears in main directory; plots by depth appear \in subdirectory
       m_dbe->setCurrentFolder(baseFolder_+"/problem_rechits");
       setupDepthHists2D(ProblemRecHitsByDepth, " Problem RecHit Rate","");
-      setMinMaxHists2D(ProblemRecHitsByDepth,rechit_minErrorFlag_,1.);
 
-      m_dbe->setCurrentFolder(baseFolder_+"/rechit_energy");
-      setupDepthHists2D(EnergyByDepth,"Rec Hit Average Energy","");
-      setupDepthHists2D(EnergyThreshByDepth,"Rec Hit Average Energy Above Threshold","");
+      m_dbe->setCurrentFolder(baseFolder_+"/rechit_info");
+      setupDepthHists2D(EnergyByDepth,"Rec Hit Average Energy","GeV");
+      setupDepthHists2D(OccupancyByDepth,"Rec Hit Occupancy","");
+      setupDepthHists2D(TimeByDepth,"Rec Hit Average Time","nS");
+
+      m_dbe->setCurrentFolder(baseFolder_+"/rechit_energy/sumplots");
+      setupDepthHists2D(SumEnergyByDepth,"Rec Hit Summed Energy","GeV");
+      setupDepthHists2D(SumTimeByDepth,"Rec Hit Summed Time","nS");
       
-      m_dbe->setCurrentFolder(baseFolder_+"/rechit_occupancy");
-      setupDepthHists2D(OccupancyByDepth,"Rec Hit Average Occupancy","");
-      setMinMaxHists2D(OccupancyByDepth,0,1);
-      setupDepthHists2D(OccupancyThreshByDepth,"Rec Hit Average Occupancy Above Threshold","");
-      setMinMaxHists2D(OccupancyThreshByDepth,0,1);
-      
-      m_dbe->setCurrentFolder(baseFolder_+"/rechit_time");
-      setupDepthHists2D(TimeByDepth,"Rec Hit Average Time","");
-      setupDepthHists2D(TimeThreshByDepth,"Rec Hit Average Time Above Threshold","");
-      
+      m_dbe->setCurrentFolder(baseFolder_+"/rechit_info_threshold");
+      setupDepthHists2D(EnergyThreshByDepth,"Above Threshold Rec Hit Average Energy","GeV");
+      setupDepthHists2D(OccupancyThreshByDepth,"Above Threshold Rec Hit Occupancy","");
+      setupDepthHists2D(TimeThreshByDepth,"Above Threshold Rec Hit Average Time","nS");
+
+      m_dbe->setCurrentFolder(baseFolder_+"/rechit_info_threshold/sumplots");
+      setupDepthHists2D(SumEnergyThreshByDepth,"Above Threshold Rec Hit Summed Energy","GeV");
+      setupDepthHists2D(SumTimeThreshByDepth,"Above Threshold Rec Hit Summed Time","nS");
+
       if (rechit_makeDiagnostics_)
 	{
 	  m_dbe->setCurrentFolder(baseFolder_+"/diagnostics/hb");
@@ -611,6 +533,11 @@ void HcalRecHitMonitor::fillNevents(void)
   int ieta=0;
   int iphi=0;
   int mydepth=0;
+
+  ProblemRecHits->setBinContent(0,0,ievt_);
+  for (int i=0;i<6;++i)
+    ProblemRecHitsByDepth[i]->setBinContent(0,0,ievt_);
+
   // Fill Occupancy & Average Energy,Time plots
   if (ievt_>0)
     {
@@ -623,16 +550,31 @@ void HcalRecHitMonitor::fillNevents(void)
 	      for (int depth=0;depth<6;++depth)
 		{
 		  mydepth=depth;
-		  OccupancyByDepth[mydepth]->setBinContent(eta+2,phi+2,occupancy_[eta][phi][mydepth]*1./ievt_);
-		  OccupancyThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,occupancy_thresh_[eta][phi][mydepth]*1./ievt_);
-		  EnergyByDepth[mydepth]->setBinContent(eta+2,phi+2,energy_[eta][phi][mydepth]*1./ievt_);
-		  EnergyThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,energy_thresh_[eta][phi][mydepth]*1./ievt_);
-		  TimeByDepth[mydepth]->setBinContent(eta+2,phi+2,time_[eta][phi][mydepth]*1./ievt_);
-		  TimeThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,time_thresh_[eta][phi][mydepth]*1./ievt_);
+		  OccupancyByDepth[mydepth]->Fill(ieta,iphi,occupancy_[eta][phi][mydepth]);
+		  OccupancyThreshByDepth[mydepth]->Fill(ieta,iphi,occupancy_thresh_[eta][phi][mydepth]);
+		  OccupancyByDepth[mydepth]->setBinContent(0,0,ievt_);
+		  OccupancyThreshByDepth[mydepth]->setBinContent(0,0,ievt_);
+		  SumEnergyByDepth[mydepth]->Fill(ieta,iphi,energy_[eta][phi][mydepth]);
+		  SumEnergyThreshByDepth[mydepth]->Fill(ieta,iphi,energy_thresh_[eta][phi][mydepth]);
+		  SumTimeByDepth[mydepth]->Fill(ieta,iphi,time_[eta][phi][mydepth]);
+		  SumTimeThreshByDepth[mydepth]->Fill(ieta,iphi,time_thresh_[eta][phi][mydepth]);
+
+		  // This won't work with offline DQM, since tasks get split
+		  if (occupancy_[eta][phi][mydepth]>0)
+		    {
+		      EnergyByDepth[mydepth]->setBinContent(eta+2, phi+2, energy_[eta][phi][mydepth]/occupancy_[eta][phi][mydepth]);
+		      TimeByDepth[mydepth]->setBinContent(eta+2, phi+2, time_[eta][phi][mydepth]/occupancy_[eta][phi][mydepth]);
+		    }
+		  if (occupancy_thresh_[eta][phi][mydepth]>0)
+		    {
+		      EnergyThreshByDepth[mydepth]->setBinContent(eta+2, phi+2, energy_thresh_[eta][phi][mydepth]/occupancy_thresh_[eta][phi][mydepth]);
+		      TimeThreshByDepth[mydepth]->setBinContent(eta+2, phi+2, time_thresh_[eta][phi][mydepth]/occupancy_thresh_[eta][phi][mydepth]);
+		    }
 
 		} // for (int depth=0;depth<6;++depth)
 	    } // for (int phi=0;phi<72;++phi)
 	} // for (int eta=0;eta<(etaBins_-2);++eta)
+
 
       FillUnphysicalHEHFBins(OccupancyByDepth);
       FillUnphysicalHEHFBins(OccupancyThreshByDepth);
@@ -640,6 +582,10 @@ void HcalRecHitMonitor::fillNevents(void)
       FillUnphysicalHEHFBins(EnergyThreshByDepth);
       FillUnphysicalHEHFBins(TimeByDepth);
       FillUnphysicalHEHFBins(TimeThreshByDepth);
+      FillUnphysicalHEHFBins(SumEnergyByDepth);
+      FillUnphysicalHEHFBins(SumEnergyThreshByDepth);
+      FillUnphysicalHEHFBins(SumTimeByDepth);
+      FillUnphysicalHEHFBins(SumTimeThreshByDepth);
     } // if (ievt_>0)
 
   // Fill subdet plots
@@ -648,43 +594,35 @@ void HcalRecHitMonitor::fillNevents(void)
     {
       if (HBenergy_[i]!=0) 
 	{
-	  h_HBEnergy->setBinContent(i+1,h_HBEnergy->getBinContent(i+1)+HBenergy_[i]);
-	  HBenergy_[i]=0;
+	  h_HBEnergy->Fill(i,HBenergy_[i]);
 	}
       if (HBenergy_thresh_[i]!=0) 
 	{
-	  h_HBThreshEnergy->setBinContent(i+1,h_HBThreshEnergy->getBinContent(i+1)+HBenergy_thresh_[i]);
-	  HBenergy_thresh_[i]=0;
+	  h_HBThreshEnergy->Fill(i,HBenergy_thresh_[i]);
 	}
       if (HEenergy_[i]!=0) 
 	{
-	  h_HEEnergy->setBinContent(i+1,h_HEEnergy->getBinContent(i+1)+HEenergy_[i]);
-	  HEenergy_[i]=0;
+	  h_HEEnergy->Fill(i,HEenergy_[i]);
 	}
       if (HEenergy_thresh_[i]!=0) 
 	{
-	  h_HEThreshEnergy->setBinContent(i+1,h_HEThreshEnergy->getBinContent(i+1)+HEenergy_thresh_[i]);
-	  HEenergy_thresh_[i]=0;
+	  h_HEThreshEnergy->Fill(i,HEenergy_thresh_[i]);
 	}
       if (HOenergy_[i]!=0) 
 	{
-	  h_HOEnergy->setBinContent(i+1,h_HOEnergy->getBinContent(i+1)+HOenergy_[i]);
-	  HOenergy_[i]=0;
+	  h_HOEnergy->Fill(i,HOenergy_[i]);
 	}
       if (HOenergy_thresh_[i]!=0) 
 	{
-	  h_HOThreshEnergy->setBinContent(i+1,h_HOThreshEnergy->getBinContent(i+1)+HOenergy_thresh_[i]);
-	  HOenergy_thresh_[i]=0;
+	  h_HOThreshEnergy->Fill(i,HOenergy_thresh_[i]);
 	}
       if (HFenergy_[i]!=0) 
 	{
-	  h_HFEnergy->setBinContent(i+1,h_HFEnergy->getBinContent(i+1)+HFenergy_[i]);
-	  HFenergy_[i]=0;
+	  h_HFEnergy->Fill(i,HFenergy_[i]);
 	}
       if (HFenergy_thresh_[i]!=0) 
 	{
-	  h_HFThreshEnergy->setBinContent(i+1,h_HFThreshEnergy->getBinContent(i+1)+HFenergy_thresh_[i]);
-	  HFenergy_thresh_[i]=0;
+	  h_HFThreshEnergy->Fill(i,HFenergy_thresh_[i]);
 	}
     }// for (int i=0;i<200;++i) // Jeff
 
@@ -692,43 +630,36 @@ void HcalRecHitMonitor::fillNevents(void)
     {
       if (HBtime_[i]!=0)
 	{
-	  h_HBTime->setBinContent(i+1,h_HBTime->getBinContent(i+1)+HBtime_[i]);
-	  HBtime_[i]=0;
+	  h_HBTime->Fill(i,HBtime_[i]);
 	}
       if (HBtime_thresh_[i]!=0)
 	{
-	  h_HBThreshTime->setBinContent(i+1,h_HBThreshTime->getBinContent(i+1)+HBtime_thresh_[i]);
-	  HBtime_thresh_[i]=0;
+	  h_HBThreshTime->Fill(i,HBtime_thresh_[i]);
 	}
       if (HEtime_[i]!=0)
 	{
-	  h_HETime->setBinContent(i+1,h_HETime->getBinContent(i+1)+HEtime_[i]);
-	  HEtime_[i]=0;
+
+	  h_HETime->Fill(i,HEtime_[i]);
 	}
       if (HEtime_thresh_[i]!=0)
 	{
-	  h_HEThreshTime->setBinContent(i+1,h_HEThreshTime->getBinContent(i+1)+HEtime_thresh_[i]);
-	  HEtime_thresh_[i]=0;
+	  h_HEThreshTime->Fill(i,HEtime_thresh_[i]);
 	}
       if (HOtime_[i]!=0)
 	{
-	  h_HOTime->setBinContent(i+1,h_HOTime->getBinContent(i+1)+HOtime_[i]);
-	  HOtime_[i]=0;
+	  h_HOTime->Fill(i,HOtime_[i]);
 	}
       if (HOtime_thresh_[i]!=0)
 	{
-	  h_HOThreshTime->setBinContent(i+1,h_HOThreshTime->getBinContent(i+1)+HOtime_thresh_[i]);
-	  HOtime_thresh_[i]=0;
+	  h_HOThreshTime->Fill(i,HOtime_thresh_[i]);
 	}
       if (HFtime_[i]!=0)
 	{
-	  h_HFTime->setBinContent(i+1,h_HFTime->getBinContent(i+1)+HFtime_[i]);
-	  HFtime_[i]=0;
+	  h_HFTime->Fill(i,HFtime_[i]);
 	}
       if (HFtime_thresh_[i]!=0)
 	{
-	  h_HFThreshTime->setBinContent(i+1,h_HFThreshTime->getBinContent(i+1)+HFtime_thresh_[i]);
-	  HFtime_thresh_[i]=0;
+	  h_HFThreshTime->Fill(i,HFtime_thresh_[i]);
 	}
     } // for (int  i=0;i<(TIME_MAX-TIME_MIN);++i)
 
@@ -736,23 +667,19 @@ void HcalRecHitMonitor::fillNevents(void)
     {
       if (HB_occupancy_[i]>0)
 	{
-	  h_HBOccupancy->setBinContent(i+1,h_HBOccupancy->getBinContent(i+1)+HB_occupancy_[i]);
-	  HB_occupancy_[i]=0;
+	  h_HBOccupancy->Fill(i,HB_occupancy_[i]);
 	}
       if (HB_occupancy_thresh_[i]>0)
 	{
-	  h_HBThreshOccupancy->setBinContent(i+1,h_HBThreshOccupancy->getBinContent(i+1)+HB_occupancy_thresh_[i]);
-	  HB_occupancy_thresh_[i]=0;
+	  h_HBThreshOccupancy->Fill(i,HB_occupancy_thresh_[i]);
 	}
       if (HE_occupancy_[i]>0)
 	{
-	  h_HEOccupancy->setBinContent(i+1,h_HEOccupancy->getBinContent(i+1)+HE_occupancy_[i]);
-	  HE_occupancy_[i]=0;
+	  h_HEOccupancy->Fill(i,HE_occupancy_[i]);
 	}
       if (HE_occupancy_thresh_[i]>0)
 	{
-	  h_HEThreshOccupancy->setBinContent(i+1,h_HEThreshOccupancy->getBinContent(i+1)+HE_occupancy_thresh_[i]);
-	  HE_occupancy_thresh_[i]=0;
+	  h_HEThreshOccupancy->Fill(i,HE_occupancy_thresh_[i]);
 	}
     }//for (int i=0;i<2593;++i)
 
@@ -760,13 +687,11 @@ void HcalRecHitMonitor::fillNevents(void)
     {
       if (HO_occupancy_[i]>0)
 	{
-	  h_HOOccupancy->setBinContent(i+1,h_HOOccupancy->getBinContent(i+1)+HO_occupancy_[i]);
-	  HO_occupancy_[i]=0;
+	  h_HOOccupancy->Fill(i,HO_occupancy_[i]);
 	}
       if (HO_occupancy_thresh_[i]>0)
 	{
-	  h_HOThreshOccupancy->setBinContent(i+1,h_HOThreshOccupancy->getBinContent(i+1)+HO_occupancy_thresh_[i]);
-	  HO_occupancy_thresh_[i]=0;
+	  h_HOThreshOccupancy->Fill(i,HO_occupancy_thresh_[i]);
 	}
     }//  for (int i=0;i<2161;++i)
 
@@ -774,24 +699,109 @@ void HcalRecHitMonitor::fillNevents(void)
     {
       if (HF_occupancy_[i]>0)
 	{
-	  h_HFOccupancy->setBinContent(i+1,h_HFOccupancy->getBinContent(i+1)+HF_occupancy_[i]);
-	  HF_occupancy_[i]=0;
+	  h_HFOccupancy->Fill(i,HF_occupancy_[i]);
 	}
       if (HF_occupancy_thresh_[i]>0)
 	{
-	  h_HFThreshOccupancy->setBinContent(i+1,h_HFThreshOccupancy->getBinContent(i+1)+HF_occupancy_thresh_[i]);
-	  HF_occupancy_thresh_[i]=0;
+	  h_HFThreshOccupancy->Fill(i,HF_occupancy_thresh_[i]);
 	}
     }//  for (int i=0;i<2161;++i)
 
-
+  zeroCounters();
 
   if (fVerbosity>0)
-    cout <<"<HcalRecHitMonitor::fillNevents_problemCells> FILLING REC HIT CELL PLOTS"<<endl;
-  
+    cout <<"<HcalRecHitMonitor::fillNevents_problemCells> FILLED REC HIT CELL PLOTS"<<endl;
+    
   if (showTiming)
     {
       cpu_timer.stop();  cout <<"TIMER:: HcalRecHitMonitor FILLNEVENTS -> "<<cpu_timer.cpuTime()<<endl;
     }
 
 } // void HcalRecHitMonitor::fillNevents(void)
+
+
+void HcalRecHitMonitor::zeroCounters(void)
+{
+  // Set all histogram counters back to zero
+
+  // TH2F counters
+  for (int i=0;i<ETABINS;++i)
+    {
+      for (int j=0;j<PHIBINS;++j)
+	{
+	  for (int k=0;k<6;++k)
+	    {
+	      occupancy_[i][j][k]=0;
+	      occupancy_thresh_[i][j][k]=0;
+	      energy_[i][j][k]=0;
+	      energy_thresh_[i][j][k]=0;
+	      time_[i][j][k]=0;
+	      time_thresh_[i][j][k]=0;
+	    }
+	} // for (int j=0;j<PHIBINS;++j)
+    } // for (int i=0;i<ETABINS;++i)
+
+  // TH1F counters
+  
+  // energy
+  for (int i=0;i<200;++i)
+    {
+      HBenergy_[i]=0;
+      HBenergy_thresh_[i]=0;
+      HEenergy_[i]=0;
+      HEenergy_thresh_[i]=0;
+      HOenergy_[i]=0;
+      HOenergy_thresh_[i]=0;
+      HFenergy_[i]=0;
+      HFenergy_thresh_[i]=0;
+      HFenergyLong_[i]=0;
+      HFenergyLong_thresh_[i]=0;
+      HFenergyShort_[i]=0;
+      HFenergyShort_thresh_[i]=0;
+    }
+
+  // time
+  for (int i=0;i<(TIME_MAX-TIME_MIN);++i)
+    {
+      HBtime_[i]=0;
+      HBtime_thresh_[i]=0;
+      HEtime_[i]=0;
+      HEtime_thresh_[i]=0;
+      HOtime_[i]=0;
+      HOtime_thresh_[i]=0;
+      HFtime_[i]=0;
+      HFtime_thresh_[i]=0;
+      HFtimeLong_[i]=0;
+      HFtimeLong_thresh_[i]=0;
+      HFtimeShort_[i]=0;
+      HFtimeShort_thresh_[i]=0;
+    }
+
+  // occupancy
+  for (int i=0;i<2593;++i)
+    {
+      HB_occupancy_[i]=0;
+      HE_occupancy_[i]=0;
+      HB_occupancy_thresh_[i]=0;
+      HE_occupancy_thresh_[i]=0;
+      if (i<=2160)
+	{
+	  HO_occupancy_[i]=0;
+	  HO_occupancy_thresh_[i]=0;
+	}
+      if (i<=1728)
+	{
+	  HF_occupancy_[i]=0;
+	  HF_occupancy_thresh_[i]=0;
+	}
+      if (i<=864)
+	{
+	  HFlong_occupancy_[i] =0;
+	  HFshort_occupancy_[i]=0;
+	  HFlong_occupancy_thresh_[i] =0;
+	  HFshort_occupancy_thresh_[i]=0;
+	}
+    } // for (int i=0;i<2592;++i)
+
+  return;
+} //void HcalRecHitMonitor::zeroCounters(void)
