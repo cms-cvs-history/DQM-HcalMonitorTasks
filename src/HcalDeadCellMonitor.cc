@@ -1333,7 +1333,10 @@ void HcalDeadCellMonitor::fillNevents_occupancy(void)
   int mydepth=0;
   int ieta=0;
   int iphi=0;
-
+  for (int h=0;h<6;++h)
+    {
+      UnoccupiedDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
+    }
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
       ieta=eta-int((etaBins_-2)/2);
@@ -1368,7 +1371,6 @@ void HcalDeadCellMonitor::fillNevents_occupancy(void)
 		  else //reset counter
 		    occupancy[eta][phi][mydepth]=0;
 		} // for (int subdet=1;subdet<=4;++subdet)
-
 	    } // for (int depth=1;depth<=4;++depth)
 	} // for (int phi=0;...)
     } // for (int eta=0;...)
@@ -1403,6 +1405,9 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
   int mydepth=0;
   int ieta=0;
   int iphi=0;
+  
+  for (int h=0;h<6;++h)
+    BelowPedestalDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
       ieta=eta-int((etaBins_-2)/2);
@@ -1448,7 +1453,6 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
 		  //reset counter -- shouldn't be necessary (counter should already be 0).
 		  abovepedestal[eta][phi][mydepth]=0;
 		} // for (int subdet=1;subdet<=4;++subdet)
-	      
 	    } // for (int depth=1;depth<=4;++depth)
 	} // for (int phi=0;...)
     } // for (int eta=0;...)
@@ -1481,6 +1485,12 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
   int mydepth=0;
   int ieta=0;
   int iphi=0;
+  
+  for (int h=0;h<6;++h)
+    {
+      UnoccupiedRecHitsByDepth[h]->setBinContent(0,0,ievt_);
+      BelowEnergyThresholdCellsByDepth[h]->setBinContent(0,0,ievt_);
+    }
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
       ieta=eta-int((etaBins_-2)/2);
@@ -1563,6 +1573,9 @@ void HcalDeadCellMonitor::fillNevents_neighbor(void)
   if (fVerbosity>0)
     std::cout <<"<HcalDeadCellMonitor::fillNevents_neighbor> FILLING BELOW-NEIGHBOR-ENERGY PLOTS"<<std::endl;
 
+  for (int h=0;h<6;++h)
+    BelowNeighborsDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
+
   int mydepth=0;
   int ieta=0;
   int iphi=0;
@@ -1644,9 +1657,7 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
 	  sumproblemvalue=0;
 	  for (int mydepth=0;mydepth<6;++mydepth)
 	    {
-	      // total bad fraction is sum of fractions from individual tests
-	      // (eventually, do we want to be more careful about how we handle this, in case checkNevents is
-	      //  drastically different for the different tests?)
+	      // problem value is sum of problems over all tests for a given depth
 	      problemvalue=0;
 	      if (deadmon_test_occupancy_)
 		{
