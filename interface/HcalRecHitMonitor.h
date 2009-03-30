@@ -13,8 +13,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2009/03/27 19:59:55 $
-  * $Revision: 1.22 $
+  * $Date: 2009/03/28 13:58:18 $
+  * $Revision: 1.20.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -163,6 +163,11 @@ class HcalRecHitMonitor: public HcalBaseMonitor {
   MonitorElement* h_HFThreshTime;
   MonitorElement* h_HFOccupancy;
   MonitorElement* h_HFThreshOccupancy;
+
+  MonitorElement* h_HBEnergy_1D;
+  MonitorElement* h_HEEnergy_1D;
+  MonitorElement* h_HOEnergy_1D;
+  MonitorElement* h_HFEnergy_1D;
 
   bool HBpresent_, HEpresent_, HOpresent_, HFpresent_;
 };
