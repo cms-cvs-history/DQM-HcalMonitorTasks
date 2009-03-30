@@ -142,68 +142,81 @@ void HcalDeadCellMonitor::setup(const edm::ParameterSet& ps,
 
       // Set up plots for each failure mode of dead cells
       stringstream units; // We'll need to set the titles individually, rather than passing units to setupDepthHists2D (since this also would affect the name of the histograms)
-      m_dbe->setCurrentFolder(baseFolder_+"/dead_unoccupied_digi");
-      //units<<"("<<deadmon_checkNevents_<<" consec. events)";
-      setupDepthHists2D(UnoccupiedDeadCellsByDepth,
-			"Dead Cells with No Digis","");
-      //setMinMaxHists2D(UnoccupiedDeadCellsByDepth,0.,1.);
+      if (deadmon_test_occupancy_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/dead_unoccupied_digi");
+	  //units<<"("<<deadmon_checkNevents_<<" consec. events)";
+	  setupDepthHists2D(UnoccupiedDeadCellsByDepth,
+			    "Dead Cells with No Digis","");
+	  //setMinMaxHists2D(UnoccupiedDeadCellsByDepth,0.,1.);
+	}
+      
+      if (deadmon_test_rechit_occupancy_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/dead_unoccupied_rechit");
+	  setupDepthHists2D(UnoccupiedRecHitsByDepth,
+			    "Dead Cells with No Rec Hits","");
+	  //setMinMaxHists2D(UnoccupiedRecHitsByDepth,0.,1.);
+	}
 
-      m_dbe->setCurrentFolder(baseFolder_+"/dead_unoccupied_rechit");
-      setupDepthHists2D(UnoccupiedRecHitsByDepth,
-			"Dead Cells with No Rec Hits","");
-      //setMinMaxHists2D(UnoccupiedRecHitsByDepth,0.,1.);
+      if (deadmon_test_pedestal_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/dead_pedestaltest");
+	  setupDepthHists2D(BelowPedestalDeadCellsByDepth,"Dead Cells Failing Pedestal Test","");
+	  //setMinMaxHists2D(BelowPedestalDeadCellsByDepth,0.,1.);
+	  // set more descriptive titles for pedestal plots
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 1 -- HB < ped + "<<HBnsigma_<<" #sigma, HF < ped + "<<HFnsigma_<<" #sigma";
+	  BelowPedestalDeadCellsByDepth[0]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 2 -- HB < ped + "<<HBnsigma_<<" #sigma, HF < ped + "<<HFnsigma_<<" #sigma";
+	  BelowPedestalDeadCellsByDepth[1]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 3 -- HE < ped + "<<HEnsigma_<<" #sigma";
+	  BelowPedestalDeadCellsByDepth[2]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 4 -- HO < ped + "<<HOnsigma_<<" #sigma, ZDC TBD";
+	  BelowPedestalDeadCellsByDepth[3]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 1 -- HE < ped + "<<HEnsigma_<<" #sigma";
+	  BelowPedestalDeadCellsByDepth[4]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells Failing Pedestal Test Depth 2 -- HE < ped + "<<HEnsigma_<<" #sigma";
+	  BelowPedestalDeadCellsByDepth[5]->setTitle(units.str().c_str());
+	  units.str("");
+	}
+      if (deadmon_test_neighbor_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/dead_neighbortest");
+	  setupDepthHists2D(BelowNeighborsDeadCellsByDepth,"Dead Cells Failing Neighbor Test","");
+	}
 
-      m_dbe->setCurrentFolder(baseFolder_+"/dead_pedestaltest");
-      setupDepthHists2D(BelowPedestalDeadCellsByDepth,"Dead Cells Failing Pedestal Test","");
-      //setMinMaxHists2D(BelowPedestalDeadCellsByDepth,0.,1.);
-      // set more descriptive titles for pedestal plots
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 1 -- HB < ped + "<<HBnsigma_<<" #sigma, HF < ped + "<<HFnsigma_<<" #sigma";
-      BelowPedestalDeadCellsByDepth[0]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 2 -- HB < ped + "<<HBnsigma_<<" #sigma, HF < ped + "<<HFnsigma_<<" #sigma";
-      BelowPedestalDeadCellsByDepth[1]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 3 -- HE < ped + "<<HEnsigma_<<" #sigma";
-      BelowPedestalDeadCellsByDepth[2]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 4 -- HO < ped + "<<HOnsigma_<<" #sigma, ZDC TBD";
-      BelowPedestalDeadCellsByDepth[3]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 1 -- HE < ped + "<<HEnsigma_<<" #sigma";
-      BelowPedestalDeadCellsByDepth[4]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells Failing Pedestal Test Depth 2 -- HE < ped + "<<HEnsigma_<<" #sigma";
-      BelowPedestalDeadCellsByDepth[5]->setTitle(units.str().c_str());
-      units.str("");
-
-      m_dbe->setCurrentFolder(baseFolder_+"/dead_neighbortest");
-      setupDepthHists2D(BelowNeighborsDeadCellsByDepth,"Dead Cells Failing Neighbor Test","");
-      //setMinMaxHists2D(BelowNeighborsDeadCellsByDepth,0.,1.);
-
-      m_dbe->setCurrentFolder(baseFolder_+"/dead_energytest");
-      setupDepthHists2D(BelowEnergyThresholdCellsByDepth,"Dead Cells Failing Energy Threshold Test","");
-      //setMinMaxHists2D(BelowEnergyThresholdCellsByDepth,0.,1.);
-      // set more descriptive titles for threshold plots
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 1 -- HB <"<<HBenergyThreshold_<<" GeV, HF <"<<HFenergyThreshold_<<" GeV";
-      BelowEnergyThresholdCellsByDepth[0]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 2 -- HB <"<<HBenergyThreshold_<<" GeV, HF <"<<HFenergyThreshold_<<" GeV";
-      BelowEnergyThresholdCellsByDepth[1]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 3 -- HE <"<<HEenergyThreshold_<<" GeV";
-      BelowEnergyThresholdCellsByDepth[2]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 4 -- HO <"<<HOenergyThreshold_<<" GeV, ZDC TBD";
-      BelowEnergyThresholdCellsByDepth[3]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 1 -- HE <"<<HEenergyThreshold_<<" GeV";
-      BelowEnergyThresholdCellsByDepth[4]->setTitle(units.str().c_str());
-      units.str("");
-      units<<"Dead Cells with Consistent Low Energy Depth 2 -- HE <"<<HEenergyThreshold_<<" GeV";
-      BelowEnergyThresholdCellsByDepth[5]->setTitle(units.str().c_str());
-      units.str("");
+      if (deadmon_test_energy_)
+	{
+	  m_dbe->setCurrentFolder(baseFolder_+"/dead_energytest");
+	  setupDepthHists2D(BelowEnergyThresholdCellsByDepth,"Dead Cells Failing Energy Threshold Test","");
+	  //setMinMaxHists2D(BelowEnergyThresholdCellsByDepth,0.,1.);
+	  // set more descriptive titles for threshold plots
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 1 -- HB <"<<HBenergyThreshold_<<" GeV, HF <"<<HFenergyThreshold_<<" GeV";
+	  BelowEnergyThresholdCellsByDepth[0]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 2 -- HB <"<<HBenergyThreshold_<<" GeV, HF <"<<HFenergyThreshold_<<" GeV";
+	  BelowEnergyThresholdCellsByDepth[1]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 3 -- HE <"<<HEenergyThreshold_<<" GeV";
+	  BelowEnergyThresholdCellsByDepth[2]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 4 -- HO <"<<HOenergyThreshold_<<" GeV, ZDC TBD";
+	  BelowEnergyThresholdCellsByDepth[3]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 1 -- HE <"<<HEenergyThreshold_<<" GeV";
+	  BelowEnergyThresholdCellsByDepth[4]->setTitle(units.str().c_str());
+	  units.str("");
+	  units<<"Dead Cells with Consistent Low Energy Depth 2 -- HE <"<<HEenergyThreshold_<<" GeV";
+	  BelowEnergyThresholdCellsByDepth[5]->setTitle(units.str().c_str());
+	  units.str("");
+	}
 
       if (deadmon_makeDiagnostics_)
 	{
@@ -573,7 +586,7 @@ void HcalDeadCellMonitor::fillDeadHistosAtEndRun()
   if (deadmon_test_occupancy_ && ievt_%deadmon_checkNevents_>0) fillNevents_occupancy();
   if (deadmon_test_pedestal_  && ievt_%deadmon_checkNevents_ >0) fillNevents_pedestal();
   if (deadmon_test_neighbor_  && ievt_%deadmon_checkNevents_ >0) fillNevents_neighbor();
-  if (deadmon_test_energy_    && ievt_%deadmon_checkNevents_   >0) fillNevents_energy();
+  if ((deadmon_test_energy_ || deadmon_test_rechit_occupancy_)    && ievt_%deadmon_checkNevents_   >0) fillNevents_energy();
   if (deadmon_test_occupancy_ || deadmon_test_pedestal_ || 
       deadmon_test_neighbor_  || deadmon_test_energy_)  
    {
@@ -1321,7 +1334,7 @@ void HcalDeadCellMonitor::processEvent_digi( const HBHEDigiCollection& hbhedigi,
 void HcalDeadCellMonitor::fillNevents_occupancy(void)
 {
   // Fill Histograms showing digi cells with no occupancy
-
+  if (!deadmon_test_occupancy_) return; // extra protection here against calling histograms than don't exist
   if (showTiming)
     {
       cpu_timer.reset(); cpu_timer.start();
@@ -1333,9 +1346,9 @@ void HcalDeadCellMonitor::fillNevents_occupancy(void)
   int mydepth=0;
   int ieta=0;
   int iphi=0;
-  for (int h=0;h<6;++h)
+  for (unsigned int h=0;h<UnoccupiedDeadCellsByDepth.size();++h)
     {
-      UnoccupiedDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
+      if (UnoccupiedDeadCellsByDepth[h]) UnoccupiedDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
     }
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
@@ -1366,7 +1379,7 @@ void HcalDeadCellMonitor::fillNevents_occupancy(void)
 			std::cout <<"DEAD CELL; NO OCCUPANCY: subdet = "<<subdet<<", eta = "<<ieta<<", phi = "<<iphi<<" depth = "<<depth<<" mydepth = "<<mydepth<<std::endl;
 		      
 		      // no digi was found for the N events; Fill cell as bad for all N events (N = deadmon_checkNevents_);
-		      UnoccupiedDeadCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
+		      if (UnoccupiedDeadCellsByDepth[mydepth]) UnoccupiedDeadCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
 		    }
 		  else //reset counter
 		    occupancy[eta][phi][mydepth]=0;
@@ -1394,6 +1407,7 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
 {
   // Fill Histograms showing digi cells below pedestal values
 
+  if (!deadmon_test_pedestal_) return;
   if (showTiming)
     {
       cpu_timer.reset(); cpu_timer.start();
@@ -1406,7 +1420,7 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
   int ieta=0;
   int iphi=0;
   
-  for (int h=0;h<6;++h)
+  for (unsigned int h=0;h<BelowPedestalDeadCellsByDepth.size();++h)
     BelowPedestalDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
@@ -1449,7 +1463,7 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
 		  if (fVerbosity>0) std::cout <<"DEAD CELL; BELOW PEDESTAL THRESHOLD = "<<subdet<<" eta = "<<ieta<<", phi = "<<iphi<<" depth = "<<depth+1<<std::endl;
 
 		  // no digi was found for the N events; fill as bad for all N events
-		  BelowPedestalDeadCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
+		  if (BelowPedestalDeadCellsByDepth[mydepth]) BelowPedestalDeadCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
 		  //reset counter -- shouldn't be necessary (counter should already be 0).
 		  abovepedestal[eta][phi][mydepth]=0;
 		} // for (int subdet=1;subdet<=4;++subdet)
@@ -1472,7 +1486,7 @@ void HcalDeadCellMonitor::fillNevents_pedestal(void)
 
 void HcalDeadCellMonitor::fillNevents_energy(void)
 {
-  // Fill Histograms showing rec hits with low energy
+  // Fill Histograms showing unoccupied rechits, or rec hits with low energy
 
   if (showTiming)
     {
@@ -1486,11 +1500,11 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
   int ieta=0;
   int iphi=0;
   
-  for (int h=0;h<6;++h)
-    {
-      UnoccupiedRecHitsByDepth[h]->setBinContent(0,0,ievt_);
-      BelowEnergyThresholdCellsByDepth[h]->setBinContent(0,0,ievt_);
-    }
+  for (unsigned int h=0;h<UnoccupiedRecHitsByDepth.size();++h)
+    UnoccupiedRecHitsByDepth[h]->setBinContent(0,0,ievt_);
+  for (unsigned int h=0;h<BelowEnergyThresholdCellsByDepth.size();++h)
+    BelowEnergyThresholdCellsByDepth[h]->setBinContent(0,0,ievt_);
+
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
       ieta=eta-int((etaBins_-2)/2);
@@ -1516,7 +1530,7 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
 		  
 		  if (rechit_occupancy[eta][phi][mydepth]==0 && deadmon_test_rechit_occupancy_) // no rechits found; 
 		    {
-		      UnoccupiedRecHitsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
+		      if (UnoccupiedRecHitsByDepth[mydepth]) UnoccupiedRecHitsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
 		      aboveenergy[eta][phi][mydepth]=0; // shouldn't be necessary
 		      continue;
 		    }
@@ -1535,9 +1549,9 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
 		  // Cell is below energy for all 'checkNevents_' consecutive events; update histogram
 		  // BinContent starts at 1, not 0 (offset by 0)
 		  // Offset by another 1 due to empty bins at edges
-
-		  BelowEnergyThresholdCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
-
+		  
+		  if (BelowEnergyThresholdCellsByDepth[mydepth]) BelowEnergyThresholdCellsByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
+		  
 		} // for (int subdet=1;subdet<=4;++subdet)
 	      // reset counters
 	      aboveenergy[eta][phi][mydepth]=0;
@@ -1545,8 +1559,8 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
 	    } // for (int depth=1;depth<=4;++depth)
 	} // for (int phi=0;...)
     } // for (int eta=0;...)
-    FillUnphysicalHEHFBins(UnoccupiedRecHitsByDepth);
-    FillUnphysicalHEHFBins(BelowEnergyThresholdCellsByDepth);
+  if (deadmon_test_rechit_occupancy_) FillUnphysicalHEHFBins(UnoccupiedRecHitsByDepth);
+  if (deadmon_test_energy_) FillUnphysicalHEHFBins(BelowEnergyThresholdCellsByDepth);
   if (showTiming)
     {
       cpu_timer.stop();  std::cout <<"TIMER:: HcalDeadCellMonitor FILLNEVENTS_ENERGY -> "<<cpu_timer.cpuTime()<<std::endl;
@@ -1573,7 +1587,7 @@ void HcalDeadCellMonitor::fillNevents_neighbor(void)
   if (fVerbosity>0)
     std::cout <<"<HcalDeadCellMonitor::fillNevents_neighbor> FILLING BELOW-NEIGHBOR-ENERGY PLOTS"<<std::endl;
 
-  for (int h=0;h<6;++h)
+  for (unsigned int h=0;h<BelowNeighborsDeadCellsByDepth.size();++h)
     BelowNeighborsDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
 
   int mydepth=0;
@@ -1608,7 +1622,7 @@ void HcalDeadCellMonitor::fillNevents_neighbor(void)
 		  if (belowneighbors[eta][phi][mydepth]>0)
 		    {
 		      if (fVerbosity>2) std::cout <<"DEAD CELL; BELOW NEIGHBORS = "<<subdet<<" eta = "<<ieta<<", phi = "<<iphi<<" depth = "<<depth+1<<std::endl;
-		      BelowNeighborsDeadCellsByDepth[mydepth]->Fill(ieta,iphi,belowneighbors[eta][phi][mydepth]);
+		      if (BelowNeighborsDeadCellsByDepth[mydepth]) BelowNeighborsDeadCellsByDepth[mydepth]->Fill(ieta,iphi,belowneighbors[eta][phi][mydepth]);
 		      //reset counter
 		      belowneighbors[eta][phi][mydepth]=0;
 		    } // if (belowneighbors[eta][phi][mydepth]>0)

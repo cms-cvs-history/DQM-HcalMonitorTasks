@@ -93,7 +93,7 @@ void HcalRecHitMonitor::setup(const edm::ParameterSet& ps,
       setupDepthHists2D(OccupancyByDepth,"Rec Hit Occupancy","");
       setupDepthHists2D(TimeByDepth,"Rec Hit Average Time","nS");
 
-      m_dbe->setCurrentFolder(baseFolder_+"/rechit_energy/sumplots");
+      m_dbe->setCurrentFolder(baseFolder_+"/rechit_info/sumplots");
       setupDepthHists2D(SumEnergyByDepth,"Rec Hit Summed Energy","GeV");
       setupDepthHists2D(SumTimeByDepth,"Rec Hit Summed Time","nS");
       
