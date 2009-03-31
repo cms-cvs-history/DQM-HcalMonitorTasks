@@ -111,6 +111,10 @@ void HcalRecHitMonitor::setup(const edm::ParameterSet& ps,
       h_HEEnergy_1D=m_dbe->book1D("HE_energy_1D","HE Average Energy Per Rec Hit",1000,-5,5);
       h_HOEnergy_1D=m_dbe->book1D("HO_energy_1D","HO Average Energy Per Rec Hit",1000,-5,5);
       h_HFEnergy_1D=m_dbe->book1D("HF_energy_1D","HF Average Energy Per Rec Hit",1000,-5,5);
+      h_HBEnergy_1D->setAxisTitle("Energy (GeV)", 1);
+      h_HEEnergy_1D->setAxisTitle("Energy (GeV)", 1);
+      h_HOEnergy_1D->setAxisTitle("Energy (GeV)", 1);
+      h_HFEnergy_1D->setAxisTitle("Energy (GeV)", 1);
 
       if (rechit_makeDiagnostics_)
 	{
