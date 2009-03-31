@@ -545,13 +545,19 @@ void HcalRecHitMonitor::fillNevents(void)
     ProblemRecHitsByDepth[i]->setBinContent(0,0,ievt_);
 
   // Clear contents of 1D plots
-  for (int i=0;i<1000;++i)
+  /*
+    for (int i=0;i<1000;++i)
     {
       h_HBEnergy_1D->setBinContent(i+1,0);
       h_HEEnergy_1D->setBinContent(i+1,0);
       h_HOEnergy_1D->setBinContent(i+1,0);
       h_HFEnergy_1D->setBinContent(i+1,0);
     }
+  */
+  h_HBEnergy_1D->Reset();
+  h_HEEnergy_1D->Reset();
+  h_HOEnergy_1D->Reset();
+  h_HFEnergy_1D->Reset();
 
   // Fill Occupancy & Average Energy,Time plots
   if (ievt_>0)

@@ -375,7 +375,6 @@ void HcalDeadCellMonitor::createMaps(const HcalDbService& cond)
 	    } // for (int depth=1;...)
 	} // for (int phi ...)
     } // for (int ieta...)
-  
   return;
 } // void HcalDeadCellMonitor::createMaps
 
@@ -1064,6 +1063,7 @@ void HcalDeadCellMonitor::processEvent_digi( const HBHEDigiCollection& hbhedigi,
       maxbin=0;
       ADCsum=0;
       const HBHEDataFrame digi = (const HBHEDataFrame)(*j);
+      if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
       ieta=digi.id().ieta();
       iphi=digi.id().iphi();
       depth=digi.id().depth();
@@ -1159,7 +1159,7 @@ void HcalDeadCellMonitor::processEvent_digi( const HBHEDigiCollection& hbhedigi,
 	  maxbin=0;
 	  ADCsum=0;
 	  const HODataFrame digi = (const HODataFrame)(*j);
-	  
+	  if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
 	  ieta=digi.id().ieta();
 	  iphi=digi.id().iphi();
 	  depth=digi.id().depth();
@@ -1236,7 +1236,7 @@ void HcalDeadCellMonitor::processEvent_digi( const HBHEDigiCollection& hbhedigi,
 	  maxbin=0;
 	  ADCsum=0;
 	  const HFDataFrame digi = (const HFDataFrame)(*j);
-
+	  if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
 	  ieta=digi.id().ieta();
 	  iphi=digi.id().iphi();
 	  depth=digi.id().depth();

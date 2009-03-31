@@ -1109,6 +1109,8 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
       maxbin=0;
       ADCsum=0;
       const HBHEDataFrame digi = (const HBHEDataFrame)(*j);
+      if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
+
       if (!checkHB_ && digi.id().subdet()==HcalBarrel) continue;
       if (!checkHE_ && digi.id().subdet()==HcalEndcap) continue;
  
@@ -1189,7 +1191,8 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	  maxbin=0;
 	  ADCsum=0;
 	  const HODataFrame digi = (const HODataFrame)(*j);
-	  
+	  if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
+
 	  ieta=digi.id().ieta();
 	  iphi=digi.id().iphi();
 	  depth=digi.id().depth();
@@ -1261,6 +1264,7 @@ void HcalHotCellMonitor::processEvent_pedestal( const HBHEDigiCollection& hbhedi
 	  maxbin=0;
 	  ADCsum=0;
 	  const HFDataFrame digi = (const HFDataFrame)(*j);
+	  if (!digi.id().validDetId(digi.id().subdet(),digi.id().ieta(),digi.id().iphi(),digi.id().depth())) continue;
 
 	  ieta=digi.id().ieta();
 	  iphi=digi.id().iphi();
