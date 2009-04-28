@@ -50,7 +50,9 @@ void HcalDeadCellMonitor::setup(const edm::ParameterSet& ps,
   
   // Set checkNevents values
   deadmon_checkNevents_ = ps.getUntrackedParameter<int>("DeadCellMonitor_checkNevents",checkNevents_);
-   
+  // increases rate at which neverpresent tests are run
+  deadmon_neverpresent_prescale_     = ps.getUntrackedParameter<int>("DeadCellMonitor_neverpresent_prescale",1);  
+
   // Set which dead cell checks will be performed
   /* Dead cells can be defined in three ways:
      1)  never present -- digi is never present in run
@@ -561,13 +563,14 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
   
   // Fill problem cells every [checkNevents_]
 
-  if (ievt_>0 && ievt_%deadmon_checkNevents_==0)
+  int scalefactor=deadmon_checkNevents_/deadmon_neverpresent_prescale_;
+  if (ievt_>0 && ievt_%scalefactor==0)
     {
       if (deadmon_test_neverpresent_) fillNevents_neverpresent();
       if (deadmon_test_occupancy_) fillNevents_occupancy();
       if (deadmon_test_energy_) fillNevents_energy();
       fillNevents_problemCells();
-      zeroCounters(); // reset for next round of checks
+      if (ievt_%deadmon_checkNevents_==0) zeroCounters(); // reset for next round of checks
     }
 
   return;
@@ -653,7 +656,7 @@ void HcalDeadCellMonitor::processEvent_HOdigi(HODigiCollection::const_iterator j
   iphi=digi.id().iphi();
   depth=digi.id().depth();
   if (!digi.id().validDetId(digi.id().subdet(),ieta,iphi,depth)) return;
- ++occupancy[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1];
+  ++occupancy[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1];
   present[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1]=true;
   return;
 } //void HcalDeadCellMonitor::processEvent_HOdigi(HODigiCollection::const_iterator j)
@@ -670,7 +673,7 @@ void HcalDeadCellMonitor::processEvent_HFdigi(HFDigiCollection::const_iterator j
   iphi=digi.id().iphi();
   depth=digi.id().depth();
   if (!digi.id().validDetId(digi.id().subdet(),ieta,iphi,depth)) return;
- ++occupancy[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1];
+  ++occupancy[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1];
   present[static_cast<int>(ieta+(etaBins_-2)/2)][iphi-1][depth-1]=true;
   return;
 } //void HcalDeadCellMonitor::processEvent_HFdigi(HFDigiCollection::const_iterator j)
@@ -759,7 +762,7 @@ void HcalDeadCellMonitor::fillNevents_neverpresent(void)
     {
       cpu_timer.reset(); cpu_timer.start();
     }
-   
+
    if (fVerbosity>0)
      std::cout <<"<HcalDeadCellMonitor::fillNevents_neverpresent> FILLING OCCUPANCY PLOTS"<<std::endl;
    int mydepth=0;
@@ -797,8 +800,8 @@ void HcalDeadCellMonitor::fillNevents_neverpresent(void)
 		      if (fVerbosity>0) 
 			std::cout <<"DEAD CELL; NEVER PRESENT: subdet = "<<subdet<<", eta = "<<ieta<<", phi = "<<iphi<<" depth = "<<depth<<" mydepth = "<<mydepth<<std::endl;
 		      
-		      // no digi was found for the N events; Fill cell as bad for all N events (N = deadmon_checkNevents_);
-		      if (DigisNeverPresentByDepth[mydepth]) DigisNeverPresentByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_);
+		      // no digi was found for the N events; Fill cell as bad for all N events (N = deadmon_checkNevents_/prescale);
+		      if (DigisNeverPresentByDepth[mydepth]) DigisNeverPresentByDepth[mydepth]->Fill(ieta,iphi,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
 		    }
 		  else  // digi found; this is no longer a dead cell -- erase it
 		    if (DigisNeverPresentByDepth[mydepth]) DigisNeverPresentByDepth[mydepth]->setBinContent(eta+2,phi+2,0);
@@ -826,10 +829,18 @@ void HcalDeadCellMonitor::fillNevents_occupancy(void)
   int mydepth=0;
   int ieta=0;
   int iphi=0;
+
+  // Always fill ievt_ counter with every call, so that we know histogram is being filled
   for (unsigned int h=0;h<UnoccupiedDeadCellsByDepth.size();++h)
     {
       if (UnoccupiedDeadCellsByDepth[h]) UnoccupiedDeadCellsByDepth[h]->setBinContent(0,0,ievt_);
     }
+
+  // Only run fills of histogram when ievt%checkNevents=0
+  if ((ievt_%deadmon_checkNevents_)!=0)
+    return;
+
+
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
       ieta=eta-int((etaBins_-2)/2);
@@ -900,6 +911,10 @@ void HcalDeadCellMonitor::fillNevents_energy(void)
   
   for (unsigned int h=0;h<BelowEnergyThresholdCellsByDepth.size();++h)
     BelowEnergyThresholdCellsByDepth[h]->setBinContent(0,0,ievt_);
+
+  // Only run fills of histogram when ievt%checkNevents=0
+  if ((ievt_%deadmon_checkNevents_)!=0)
+    return;
 
   for (int eta=0;eta<(etaBins_-2);++eta)
     {
@@ -991,7 +1006,6 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
   unsigned int belowenergyHO=0;
   unsigned int belowenergyHF=0;
   unsigned int belowenergyZDC=0;
-  
 
   int mydepth=0;
 
@@ -1022,8 +1036,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
 		    mydepth=mydepth+4;
 		  // now check which dead cell tests failed; increment counter if any failed
 		  if ((deadmon_test_neverpresent_ && present[eta][phi][mydepth]==0) ||
-		      (deadmon_test_occupancy_ && occupancy[eta][phi][mydepth]==0) ||
-		      (deadmon_test_energy_ && aboveenergy[eta][phi][mydepth]==0))
+		      (deadmon_test_occupancy_ && occupancy[eta][phi][mydepth]==0 && (ievt_%deadmon_checkNevents_)==0) ||
+		      (deadmon_test_energy_ && aboveenergy[eta][phi][mydepth]==0  && (ievt_%deadmon_checkNevents_)==0))
 		    {
 		      if (subdet==1) ++deadHB;
 		      else if (subdet==2) ++deadHE;
@@ -1039,7 +1053,7 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
 		      else if (subdet==4) ++neverpresentHF;
 		      // handle ZDC elsewhere -- in its own loop?
 		    }
-		  if ((deadmon_test_occupancy_ && occupancy[eta][phi][mydepth]==0))
+		  if ((deadmon_test_occupancy_ && occupancy[eta][phi][mydepth]==0 && (ievt_%deadmon_checkNevents_)==0))
 		    {
 		      if (subdet==1) ++unoccupiedHB;
 		      else if (subdet==2) ++unoccupiedHE;
@@ -1047,7 +1061,7 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
 		      else if (subdet==4) ++unoccupiedHF;
 		      // handle ZDC elsewhere -- in its own loop?
 		    }
-		  if ((deadmon_test_energy_ & aboveenergy[eta][phi][mydepth]==0))
+		  if ((deadmon_test_energy_ & aboveenergy[eta][phi][mydepth]==0 && (ievt_%deadmon_checkNevents_)==0))
 		    {
 		      if (subdet==1) ++belowenergyHB;
 		      else if (subdet==2) ++belowenergyHE;
@@ -1060,34 +1074,39 @@ void HcalDeadCellMonitor::fillNevents_problemCells(void)
 	} // phi loop
     } //eta loop
   
-  
+
+
  // Fill with number of problem cells found on this pass
-  NumberOfDeadCellsHB->Fill(deadHB,deadmon_checkNevents_);
-  NumberOfDeadCellsHE->Fill(deadHE,deadmon_checkNevents_);
-  NumberOfDeadCellsHO->Fill(deadHO,deadmon_checkNevents_);
-  NumberOfDeadCellsHF->Fill(deadHF,deadmon_checkNevents_);
-  NumberOfDeadCellsZDC->Fill(deadZDC,deadmon_checkNevents_);
-  NumberOfDeadCells->Fill(deadHB+deadHE+deadHO+deadHF+deadZDC,deadmon_checkNevents_);
+  if (ievt_%deadmon_checkNevents_==0)
+    {
+      NumberOfDeadCellsHB->Fill(deadHB,deadmon_checkNevents_);
+      NumberOfDeadCellsHE->Fill(deadHE,deadmon_checkNevents_);
+      NumberOfDeadCellsHO->Fill(deadHO,deadmon_checkNevents_);
+      NumberOfDeadCellsHF->Fill(deadHF,deadmon_checkNevents_);
+      NumberOfDeadCellsZDC->Fill(deadZDC,deadmon_checkNevents_);
+      NumberOfDeadCells->Fill(deadHB+deadHE+deadHO+deadHF+deadZDC,deadmon_checkNevents_);
 
-  NumberOfNeverPresentCellsHB->Fill(neverpresentHB,deadmon_checkNevents_);
-  NumberOfNeverPresentCellsHE->Fill(neverpresentHE,deadmon_checkNevents_);
-  NumberOfNeverPresentCellsHO->Fill(neverpresentHO,deadmon_checkNevents_);
-  NumberOfNeverPresentCellsHF->Fill(neverpresentHF,deadmon_checkNevents_);
-  NumberOfNeverPresentCellsZDC->Fill(neverpresentZDC,deadmon_checkNevents_);
-  NumberOfNeverPresentCells->Fill(neverpresentHB+neverpresentHE+neverpresentHO+neverpresentHF+neverpresentZDC,deadmon_checkNevents_);
+      NumberOfUnoccupiedCellsHE->Fill(unoccupiedHE,deadmon_checkNevents_);
+      NumberOfUnoccupiedCellsHO->Fill(unoccupiedHO,deadmon_checkNevents_);
+      NumberOfUnoccupiedCellsHF->Fill(unoccupiedHF,deadmon_checkNevents_);
+      NumberOfUnoccupiedCellsZDC->Fill(unoccupiedZDC,deadmon_checkNevents_);
+      NumberOfUnoccupiedCells->Fill(unoccupiedHB+unoccupiedHE+unoccupiedHO+unoccupiedHF+unoccupiedZDC,deadmon_checkNevents_);
+      
+      NumberOfBelowEnergyCellsHB->Fill(belowenergyHB,deadmon_checkNevents_);
+      NumberOfBelowEnergyCellsHE->Fill(belowenergyHE,deadmon_checkNevents_);
+      NumberOfBelowEnergyCellsHO->Fill(belowenergyHO,deadmon_checkNevents_);
+      NumberOfBelowEnergyCellsHF->Fill(belowenergyHF,deadmon_checkNevents_);
+      NumberOfBelowEnergyCellsZDC->Fill(belowenergyZDC,deadmon_checkNevents_);
+      NumberOfBelowEnergyCells->Fill(belowenergyHB+belowenergyHE+belowenergyHO+belowenergyHF+belowenergyZDC,deadmon_checkNevents_);
+    }
 
-  NumberOfUnoccupiedCellsHE->Fill(unoccupiedHE,deadmon_checkNevents_);
-  NumberOfUnoccupiedCellsHO->Fill(unoccupiedHO,deadmon_checkNevents_);
-  NumberOfUnoccupiedCellsHF->Fill(unoccupiedHF,deadmon_checkNevents_);
-  NumberOfUnoccupiedCellsZDC->Fill(unoccupiedZDC,deadmon_checkNevents_);
-  NumberOfUnoccupiedCells->Fill(unoccupiedHB+unoccupiedHE+unoccupiedHO+unoccupiedHF+unoccupiedZDC,deadmon_checkNevents_);
-
-  NumberOfBelowEnergyCellsHB->Fill(belowenergyHB,deadmon_checkNevents_);
-  NumberOfBelowEnergyCellsHE->Fill(belowenergyHE,deadmon_checkNevents_);
-  NumberOfBelowEnergyCellsHO->Fill(belowenergyHO,deadmon_checkNevents_);
-  NumberOfBelowEnergyCellsHF->Fill(belowenergyHF,deadmon_checkNevents_);
-  NumberOfBelowEnergyCellsZDC->Fill(belowenergyZDC,deadmon_checkNevents_);
-  NumberOfBelowEnergyCells->Fill(belowenergyHB+belowenergyHE+belowenergyHO+belowenergyHF+belowenergyZDC,deadmon_checkNevents_);
+  // Neverpresent cell algorithm gets called more often; fill with smaller value
+  NumberOfNeverPresentCellsHB->Fill(neverpresentHB,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
+  NumberOfNeverPresentCellsHE->Fill(neverpresentHE,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
+  NumberOfNeverPresentCellsHO->Fill(neverpresentHO,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
+  NumberOfNeverPresentCellsHF->Fill(neverpresentHF,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
+  NumberOfNeverPresentCellsZDC->Fill(neverpresentZDC,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
+  NumberOfNeverPresentCells->Fill(neverpresentHB+neverpresentHE+neverpresentHO+neverpresentHF+neverpresentZDC,deadmon_checkNevents_/deadmon_neverpresent_prescale_);
 
   for (int eta=0;eta<(etaBins_-2);++eta)
     {

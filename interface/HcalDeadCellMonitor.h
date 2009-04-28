@@ -14,8 +14,8 @@
 
 /** \class HcalDeadCellMonitor
   *
-  * $Date: 2009/03/31 14:03:00 $
-  * $Revision: 1.26 $
+  * $Date: 2009/04/15 11:35:07 $
+  * $Revision: 1.26.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -75,6 +75,7 @@ class HcalDeadCellMonitor: public HcalBaseMonitor {
   void fillNevents_problemCells();
 
   int deadmon_checkNevents_;  // specify how often to check is cell is dead
+  int deadmon_neverpresent_prescale_;
   bool deadmon_makeDiagnostics_;
 
   // Booleans to control which of the three dead cell checking routines are used
