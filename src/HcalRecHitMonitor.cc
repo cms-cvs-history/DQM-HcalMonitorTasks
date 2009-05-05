@@ -107,10 +107,10 @@ void HcalRecHitMonitor::setup(const edm::ParameterSet& ps,
       setupDepthHists2D(SumTimeThreshByDepth,"Above Threshold Rec Hit Summed Time","nS");
 
       m_dbe->setCurrentFolder(baseFolder_+"/rechit_1D_plots");
-      h_HBEnergy_1D=m_dbe->book1D("HB_energy_1D","HB Average Energy Per Rec Hit",1000,-5,5);
-      h_HEEnergy_1D=m_dbe->book1D("HE_energy_1D","HE Average Energy Per Rec Hit",1000,-5,5);
-      h_HOEnergy_1D=m_dbe->book1D("HO_energy_1D","HO Average Energy Per Rec Hit",1000,-5,5);
-      h_HFEnergy_1D=m_dbe->book1D("HF_energy_1D","HF Average Energy Per Rec Hit",1000,-5,5);
+      h_HBEnergy_1D=m_dbe->book1D("HB_energy_1D","HB Average Energy Per Rec Hit",200,-5,5);
+      h_HEEnergy_1D=m_dbe->book1D("HE_energy_1D","HE Average Energy Per Rec Hit",200,-5,5);
+      h_HOEnergy_1D=m_dbe->book1D("HO_energy_1D","HO Average Energy Per Rec Hit",600,-15,15);
+      h_HFEnergy_1D=m_dbe->book1D("HF_energy_1D","HF Average Energy Per Rec Hit",200,-5,5);
       h_HBEnergy_1D->setAxisTitle("Energy (GeV)", 1);
       h_HEEnergy_1D->setAxisTitle("Energy (GeV)", 1);
       h_HOEnergy_1D->setAxisTitle("Energy (GeV)", 1);
@@ -574,14 +574,14 @@ void HcalRecHitMonitor::fillNevents(void)
 	      iphi=phi+1;
 	      for (int mydepth=0;mydepth<6;++mydepth)
 		{
-		  OccupancyByDepth[mydepth]->setBinContent(ieta+2,iphi+2,occupancy_[eta][phi][mydepth]);
-		  OccupancyThreshByDepth[mydepth]->setBinContent(ieta+2,iphi+2,occupancy_thresh_[eta][phi][mydepth]);
+		  OccupancyByDepth[mydepth]->setBinContent(eta+2,phi+2,occupancy_[eta][phi][mydepth]);
+		  OccupancyThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,occupancy_thresh_[eta][phi][mydepth]);
 		  OccupancyByDepth[mydepth]->setBinContent(0,0,ievt_);
 		  OccupancyThreshByDepth[mydepth]->setBinContent(0,0,ievt_);
-		  SumEnergyByDepth[mydepth]->setBinContent(ieta+2,iphi+2,energy_[eta][phi][mydepth]);
-		  SumEnergyThreshByDepth[mydepth]->setBinContent(ieta+2,iphi+2,energy_thresh_[eta][phi][mydepth]);
-		  SumTimeByDepth[mydepth]->setBinContent(ieta+2,iphi+2,time_[eta][phi][mydepth]);
-		  SumTimeThreshByDepth[mydepth]->setBinContent(ieta+2,iphi+2,time_thresh_[eta][phi][mydepth]);
+		  SumEnergyByDepth[mydepth]->setBinContent(eta+2,phi+2,energy_[eta][phi][mydepth]);
+		  SumEnergyThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,energy_thresh_[eta][phi][mydepth]);
+		  SumTimeByDepth[mydepth]->setBinContent(eta+2,phi+2,time_[eta][phi][mydepth]);
+		  SumTimeThreshByDepth[mydepth]->setBinContent(eta+2,phi+2,time_thresh_[eta][phi][mydepth]);
 
 		  // This won't work with offline DQM, since tasks get split
 		  if (occupancy_[eta][phi][mydepth]>0)
