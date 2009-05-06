@@ -13,8 +13,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2009/03/27 19:59:55 $
-  * $Revision: 1.37 $
+  * $Date: 2009/05/01 14:06:09 $
+  * $Revision: 1.39 $
   * \author W. Fisher - FNAL
   * \author J. Temple - Univ. of Maryland
   */
@@ -62,10 +62,11 @@ public:
   void processEvent(const HBHEDigiCollection& hbhe,
 		    const HODigiCollection& ho,
 		    const HFDigiCollection& hf,
+		    const ZDCDigiCollection& zdc,
 		    const HcalDbService& cond,
 		    const HcalUnpackerReport& report);
   void reset();
-  void setSubDetectors(bool hb, bool he, bool ho, bool hf);
+  void setSubDetectors(bool hb, bool he, bool ho, bool hf,bool zdc);
 private:  ///Methods
 
   void zeroCounters();
@@ -135,8 +136,10 @@ private:
   int diginum[DIGI_NUM];
  
 
+  // ZDC stuff
 
-  DigiHists hbHists, heHists, hfHists, hoHists;
+
+  DigiHists hbHists, heHists, hfHists, hoHists, zdcHists;
 
  
 };

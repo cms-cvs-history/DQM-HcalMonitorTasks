@@ -287,21 +287,21 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     meDCCErrorAndWarnConditions_->setBinLabel(30, "729", 1);
     meDCCErrorAndWarnConditions_->setBinLabel(31, "730", 1);
     meDCCErrorAndWarnConditions_->setBinLabel(32, "731", 1);
-    meDCCErrorAndWarnConditions_->setBinLabel( 1, "MisM S14", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 2, "MisM S13", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 3, "MisM S12", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 4, "MisM S11", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 5, "MisM S10", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 6, "MisM S9", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 7, "MisM S8", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 8, "MisM S7", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel( 9, "MisM S6", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(10, "MisM S5", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(11, "MisM S4", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(12, "MisM S3", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(13, "MisM S2", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(14, "MisM S1", 2);
-    meDCCErrorAndWarnConditions_->setBinLabel(15, "MisM S0(top)", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 1, "S0  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 2, "S1  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 3, "S2  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 4, "S3  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 5, "S4  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 6, "S5  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 7, "S6  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 8, "S7  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel( 9, "S8  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(10, "S9  MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(11, "S10 MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(12, "S11 MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(13, "S12 MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(14, "S13 MisM", 2);
+    meDCCErrorAndWarnConditions_->setBinLabel(15, "S14 MisM", 2);
     meDCCErrorAndWarnConditions_->setBinLabel(16, "TTS_OFW", 2);
     meDCCErrorAndWarnConditions_->setBinLabel(17, "TTS_BSY", 2);
     meDCCErrorAndWarnConditions_->setBinLabel(18, "TTS_SYN", 2);
@@ -314,7 +314,7 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     meDCCErrorAndWarnConditions_->setBinLabel(25, "TTC_DoubEr", 2);
 
     type = "DCC Ev Fragment Size Distribution";
-    meFEDRawDataSizes_=m_dbe->book1D(type,type,1200,-0.5,12000.5);
+    meFEDRawDataSizes_=m_dbe->book1D(type,type,12000,-0.5,12000.5);
     meFEDRawDataSizes_->setAxisTitle("# of bytes",1);
     meFEDRawDataSizes_->setAxisTitle("# of Event Fragments",2);
 
@@ -362,7 +362,7 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     type = "Event Fragment Size for each FED";
     meEvFragSize_ = m_dbe->bookProfile(type,type,32,699.5,731.5,100,-1000.0,12000.0,"");
     type = "All Evt Frag Sizes";
-    meEvFragSize2_ =  m_dbe->book2D(type,type,64,699.5,731.5, 120,0,12000);
+    meEvFragSize2_ =  m_dbe->book2D(type,type,64,699.5,731.5, 2000,0,12000);
 
     type = "Num Event Frags by FED";
     meFEDId_=m_dbe->book1D(type, type, 32, 699.5, 731.5); //Show over & underflow stats.
@@ -374,6 +374,10 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     meSpigotFormatErrors_->setAxisTitle("# of Events",2);
 
     m_dbe->setCurrentFolder(baseFolder_ + "/DCC Plots/ZZ DCC Expert Plots");
+
+//    type = "DCC Version Num";
+//    meDCCVersion_ = m_dbe->bookProfile(type,type, 32, 699.5, 731.5, 256, -0.5, 255.5);
+//    meDCCVersion_ ->setAxisTitle("FED ID", 1);
 
     type = "Common Data Format violations";
     meCDFErrorFound_ = m_dbe->book2D(type,type,32,699.5,731.5,10,0.5,10.5);
@@ -559,7 +563,7 @@ void HcalDataFormatMonitor::setup(const edm::ParameterSet& ps,
     meCrate17HTRErr_ = m_dbe->book2D(type,type,40,-0.25,19.75,maxbits,-0.5,maxbits-0.5);
     meCrate17HTRErr_ ->setAxisTitle("Slot #",1);
     labelHTRBits(meCrate17HTRErr_,2);
-    
+
     // Firmware version
     type = "HTR Firmware Version";
     //  Maybe change to Profile histo eventually
@@ -626,6 +630,22 @@ void HcalDataFormatMonitor::processEvent(const FEDRawDataCollection& rawraw,
 
   lastEvtN_ = -1;
   lastBCN_ = -1;
+  
+  // Fill event counters (underflow bins of histograms)
+  // This is the only way we can make these histograms appear in online DQM!
+  // Weird!  -- Jeff, 4/27/09
+  meDCC_DataIntegrityCheck_->Fill(-1,-1,1);
+  meChannSumm_DataIntegrityCheck_->Fill(-1,-1,1);
+  meHalfHTR_DataIntegrityCheck_->Fill(-1,-1,1);
+  for (int f=0; f<NUMDCCS; f++)
+    meChann_DataIntegrityCheck_[f]->Fill(-1,-1,1);
+
+  meDCC_DataIntegrityCheck_->Fill(-1,-1,1);
+  meChannSumm_DataIntegrityCheck_->Fill(-1,-1,1);
+  meHalfHTR_DataIntegrityCheck_->Fill(-1,-1,1);
+  for (int f=0; f<NUMDCCS; f++)      
+    meChann_DataIntegrityCheck_[f]->Fill(-1,-1,1);
+
 
   // Loop over all FEDs reporting the event, unpacking if good.
   for (vector<int>::const_iterator i=fedUnpackList_.begin();i!=fedUnpackList_.end(); i++) {
@@ -692,6 +712,9 @@ void HcalDataFormatMonitor::unpack(const FEDRawData& raw,
   meFEDRawDataSizes_->Fill(EvFragLength);
   meEvFragSize_ ->Fill(dccid, EvFragLength);
   meEvFragSize2_ ->Fill(dccid, EvFragLength);
+  
+  //  int DCCVersion=dccHeader->getDCCVersion();
+  //  meDCCVersion_ -> Fill(dccid,
 
   //DataIntegrity histogram bins
   int bin=0; 
@@ -1068,7 +1091,7 @@ void HcalDataFormatMonitor::unpack(const FEDRawData& raw,
     qie_end=(HcalQIESample*)(daq_last+1); // one beyond last..
 
     int lastcapid=-1;
-    int lastfibchan =0, samplecounter=0;
+    int lastfibchan =-1, samplecounter=-1;
     int channum=0; // Valid: [1,24]
     channDIM_x=0;  
 
@@ -1078,58 +1101,54 @@ void HcalDataFormatMonitor::unpack(const FEDRawData& raw,
       bool yeah = (qie_work->raw()==0xFFFF);
       if (yeah)  // filler word
 	continue;
-      channAOK=true;
-      // Beginning digitized hit of this Half-HTR?
-      if (qie_work==qie_begin) {
+      //Beginning a channel's samples?
+      if (qie_work->fiberAndChan() != lastfibchan) { //new channel starting
+	if (qie_work!=qie_begin) { //Wrap up the previous channel if there is one
+	  //Check the last digi for number of timeslices
+	  if ((samplecounter != htr.getNDD()) &&
+	      (samplecounter != 1)             ) {
+	    ++ChannSumm_DataIntegrityCheck_[chsummDIM_x][chsummDIM_y+1];
+	    ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y];
+	    channAOK=false;}
+	  if (channAOK) 
+	    ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y+1];
+	}
+	//..and setup for this new channel
 	channum= (3* (qie_work->fiber() -1)) + qie_work->fiberChan();  
 	channDIM_x = (channum*3)+1;
 	lastcapid=qie_work->capid();
-	samplecounter=1;}
-      // or the first TS of this channel's DAQ data?
-      else if (qie_work->fiberAndChan() != lastfibchan) {
-	channum= (3* (qie_work->fiber() - 1)) + qie_work->fiberChan();
-	channDIM_x = (channum*3)+1;
-	//Check the last digi for number of timeslices
-	if ((samplecounter != htr.getNDD()) &&
-	    (samplecounter != 1)             ) {
-	  ++ChannSumm_DataIntegrityCheck_[chsummDIM_x][chsummDIM_y+1];
-	  ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y];
-	  channAOK=false;}
-	samplecounter=1;}
+	samplecounter=1;
+	channAOK=true;}
       else { //precision samples not the first timeslice
 	int hope = lastcapid +1;
 	if (hope==4) hope = 0;
 	if (qie_work->capid() != hope){
 	  ++ChannSumm_DataIntegrityCheck_[chsummDIM_x+1][chsummDIM_y+1];
 	  ++Chann_DataIntegrityCheck_[dcc_][channDIM_x+1][channDIM_y];
-	  ++ChannSumm_DataIntegrityCheck_[chsummDIM_x+1][chsummDIM_y+1];
-	  ++Chann_DataIntegrityCheck_[dcc_][channDIM_x+1][channDIM_y];
 	  channAOK=false;}
 	samplecounter++;}
-        
-      //For every precision data sample in Hcal:
-
-      // FEE - Front End Error
-      if (!(qie_work->dv()) || qie_work->er()) {
+      //For every sample, whether the first of the channel or not.
+      if (!(qie_work->dv()) || qie_work->er()) {      // FEE - Front End Error
 	++DCC_DataIntegrityCheck_[bin][4]; 
 	++ChannSumm_DataIntegrityCheck_[chsummDIM_x+1][chsummDIM_y+2];
 	++Chann_DataIntegrityCheck_[dcc_][channDIM_x+1][channDIM_y+1];
 	channAOK=false;}
     }
-
-    //Summarize
-    if (!channAOK) chsummAOK=false;
-    else 
+    //Wrap up the last channel
+    //Check the last digi for number of timeslices
+    if ((samplecounter != htr.getNDD()) &&
+	(samplecounter != 1)             ) {
+      ++ChannSumm_DataIntegrityCheck_[chsummDIM_x][chsummDIM_y+1];
+      ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y];
+      channAOK=false;}
+    if (channAOK) 
       ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y+1];
+    //Summarize all this spigot's channels
+    if   (!channAOK) chsummAOK=false;
+    else ++Chann_DataIntegrityCheck_[dcc_][channDIM_x][channDIM_y+1];
 
     if (chsummAOK) //better if every event? Here, every half-HTR's event....
       ++ChannSumm_DataIntegrityCheck_[chsummDIM_x][chsummDIM_y+2];
-
-    // Prepare for the next round...
-    lastfibchan=qie_work->fiberAndChan();
-
-    if ( !(htr.getErrorsWord() >> 8) & 0x00000001) 
-      fillzoos(14,dccid);
 
     if (dccid==723 && spigot==3) { //the ZDC spigot
       //const unsigned short* zdcRAW =  htr.getRawData();

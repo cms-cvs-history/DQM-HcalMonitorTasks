@@ -34,8 +34,8 @@
 
 /** \class Hcaldataformatmonitor
  *
- * $Date: 2009/03/15 22:37:59 $
- * $Revision: 1.40 $
+ * $Date: 2009/04/27 16:02:50 $
+ * $Revision: 1.42 $
  * \author W. Fisher - FNAL
  */
 class HcalDataFormatMonitor: public HcalBaseMonitor {
@@ -64,6 +64,15 @@ class HcalDataFormatMonitor: public HcalBaseMonitor {
   std::map<pair <int,int> , std::vector<HcalDetId> > ::iterator thisHTR;
 
  private: 
+  //There's no way this fixes the problem.
+  int dummy_rcdix;
+  int dummy_rcdiy;
+  int dummy_hhdix;
+  int dummy_hhdiy;
+  int dummy_csdix;
+  int dummy_cix  ;
+  int dummy_ciy  ;
+
   //backstage accounting mechanisms for the ProblemMap
   bool problemfound[ETABINS][PHIBINS][DEPTHBINS];     // HFd1,2 at 'depths' 3,4 to avoid collision with HE
   uint64_t problemcount[ETABINS][PHIBINS][DEPTHBINS]; // HFd1,2 at 'depths' 3,4 to avoid collision with HE
