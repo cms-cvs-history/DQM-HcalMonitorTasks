@@ -1647,10 +1647,12 @@ void HcalHotCellMonitor::fillNevents_problemCells(void)
 	      // last checkNevents.
 	      
 	      problemvalue = min((double)ievt_, problemvalue);
-	      ProblemHotCellsByDepth[mydepth]->setBinContent(eta+2,phi+2,problemvalue);
+	      if (problemvalue>hotmon_minErrorFlag_)
+		ProblemHotCellsByDepth[mydepth]->setBinContent(eta+2,phi+2,problemvalue);
 	      ProblemHotCellsByDepth[mydepth]->setBinContent(0,0,ievt_); // set underflow bin to total number of events (used for normalization)
 	    } // for (int mydepth=0;mydepth<6;...)
 	  sumproblemvalue=min((double)ievt_,sumproblemvalue);
+	  if (sumproblemvalue>hotmon_minErrorFlag_)
 	  ProblemHotCells->setBinContent(eta+2,phi+2,sumproblemvalue);
 	  ProblemHotCells->setBinContent(0,0,ievt_);
 	} // loop on phi=0;phi<72
