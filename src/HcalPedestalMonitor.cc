@@ -671,6 +671,7 @@ void HcalPedestalMonitor::fillDBValues(const HcalDbService& cond)
   double temp_fC=0;
 
   int ieta=-9999;
+  int iphi=-9999;
   for (int subdet=1; subdet<=4;++subdet)
     {
       for (int depth=0;depth<4;++depth)
@@ -681,6 +682,7 @@ void HcalPedestalMonitor::fillDBValues(const HcalDbService& cond)
 	      if (ieta==-9999) continue;
 	      for (int phi=0;phi<ADCPedestalMean.depth[depth]->getNbinsY();++phi)
 		{
+		  iphi=phi+1;
 		  if (!validDetId((HcalSubdetector)(subdet), ieta, phi+1, depth+1)) continue;
 		  HcalDetId detid((HcalSubdetector)(subdet), ieta, phi+1, depth+1);
 		  ADC_ped=0;
@@ -739,20 +741,21 @@ void HcalPedestalMonitor::fillDBValues(const HcalDbService& cond)
 
 		  if (fVerbosity>1)
 		    {
-		      std::cout <<"<HcalPedestalMonitor::fillDBValues> HcalDet ID = "<<(HcalSubdetector)subdet<<": ("<<ieta<<", "<<phi+1<<", "<<depth<<")"<<endl;
+		      std::cout <<"<HcalPedestalMonitor::fillDBValues> HcalDet ID = "<<(HcalSubdetector)subdet<<": ("<<ieta<<", "<<iphi<<", "<<depth<<")"<<endl;
 		      std::cout <<"\tADC pedestal = "<<ADC_ped<<" +/- "<<ADC_width<<endl;
 		      std::cout <<"\tfC pedestal = "<<fC_ped<<" +/- "<<fC_width<<endl;
 		    }
 		  // Shift HF by -/+1 when filling eta-phi histograms
+		  int zside=0;
 		  if (subdet==4)
 		    {
-		      if (ieta<0) ieta--;
-		      else ieta++;
+		      if (ieta<0) zside=-1;
+		      else zside=1;
 		    }
-		  ADC_PedestalFromDBByDepth.depth[depth]->Fill(ieta,phi+1,ADC_ped);
-		  ADC_WidthFromDBByDepth.depth[depth]->Fill(ieta, phi+1, ADC_width);
-		  fC_PedestalFromDBByDepth.depth[depth]->Fill(ieta,phi+1,fC_ped);
-		  fC_WidthFromDBByDepth.depth[depth]->Fill(ieta, phi+1, fC_width);
+		  ADC_PedestalFromDBByDepth.depth[depth]->Fill(ieta+zside,iphi,ADC_ped);
+		  ADC_WidthFromDBByDepth.depth[depth]->Fill(ieta+zside, iphi, ADC_width);
+		  fC_PedestalFromDBByDepth.depth[depth]->Fill(ieta+zside,iphi,fC_ped);
+		  fC_WidthFromDBByDepth.depth[depth]->Fill(ieta+zside, iphi, fC_width);
 		} // iphi loop
 	    } // ieta loop
 	} //depth loop
