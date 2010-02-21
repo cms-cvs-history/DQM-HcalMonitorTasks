@@ -4,7 +4,8 @@
 #include "DataFormats/FEDRawData/interface/FEDTrailer.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
-#include "FWCore/Framework/interface/TriggerNames.h"
+#include "FWCore/Common/interface/TriggerNames.h" 
+
 #include "DataFormats/FEDRawData/interface/FEDHeader.h"
 //#include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
 //#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
@@ -135,10 +136,12 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw, edm::Trigg
 	   meTrigFrac_->setBinContent(l+1,nAcc[l]/(float)nAcc_Total);
 	 }
      }
+   
+   
      
   bool processevent=false;
   if (orAcc) processevent=true;
-  
+
   if (!processevent) return;
 
   meBXtriggered_->Fill(bxNum+0.001,1);
