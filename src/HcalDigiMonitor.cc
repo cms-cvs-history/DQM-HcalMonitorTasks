@@ -74,13 +74,30 @@ void HcalDigiMonitor::cleanup()
   if (!enableCleanup_) return;
   if (dbe_)
     {
-      // check on removeContents; is this sufficient, or do we need to list all MEs by hand?
-      // Also, do we need to descend into subdirectories?
+      // removeContents doesn't remove subdirectories
       dbe_->setCurrentFolder(subdir_);
       dbe_->removeContents();
-    }
-  return;
-} // void HcalRecHitMonitor::clearME()
+      dbe_->setCurrentFolder(subdir_+"digi_parameters");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/bad_digi_occupancy");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/1D_digi_plots");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/badcapID");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/data_invalid_error");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/bad_reportUnpackerErrors");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/baddigisize");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"digi_info");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/badfibBCNoff");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"good_digis/1D_digi_plots");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"good_digis/digi_occupancy");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis/bad_digi_occupancy");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"bad_digis");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"good_digis/");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"digi_info/HB");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"digi_info/HE");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"digi_info/HO");  dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"digi_info/HF");  dbe_->removeContents();
+    } // if(dbe_)
+
+} // void HcalDigiMonitor::cleanup();
 
 
 void HcalDigiMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
