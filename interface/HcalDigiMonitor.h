@@ -8,7 +8,6 @@
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
-#include "DQM/HcalMonitorTasks/interface/HcalEtaPhiHists.h"
 #include <cmath>
 
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
@@ -20,8 +19,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2010/02/18 20:42:44 $
-  * $Revision: 1.00 $
+  * $Date: 2010/02/25 13:45:22 $
+  * $Revision: 1.56.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -92,13 +91,6 @@ public:
   void periodicReset();
 
 private:  ///Methods, variables accessible only within class code
-
-  void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
-    {
-      hh.setup(dbe_, Name, Units);
-      return;
-    }
-
 
   void fill_Nevents();
   void zeroCounters();

@@ -72,6 +72,14 @@ protected:
   // LumiOutOfOrder
   bool LumiInOrder(int lumisec);
 
+  void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
+  {
+    hh.setup(dbe_, Name, Units);
+    return;
+  }
+
+
+
   // IsAllowedCalibType
   bool IsAllowedCalibType();
   int currenttype_;
