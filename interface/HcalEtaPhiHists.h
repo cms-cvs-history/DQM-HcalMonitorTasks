@@ -6,6 +6,9 @@
 
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
+#include "DataFormats/DetId/interface/DetId.h"
+#include "DataFormats/HcalDetId/interface/HcalDetId.h"
+#include "DQMServices/Core/interface/DQMStore.h"
 
 #include <iostream>
 
@@ -641,5 +644,6 @@ inline void FillUnphysicalHEHFBins(MonitorElement* hh)
 
   return;
 } // FillUnphysicalHEHFBins(std::vector<MonitorElement*> &hh)
+
 
 #endif
