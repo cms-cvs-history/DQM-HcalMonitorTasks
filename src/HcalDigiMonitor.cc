@@ -21,6 +21,7 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
   ievt_=0;
   skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
+  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
 
   digiLabel_     = ps.getParameter<string>("digiLabel");
   shapeThresh_   = ps.getParameter<int>("shapeThresh");
@@ -675,7 +676,6 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	  // Check for digi error bits
 	  if (digi_checkdverr_)
 	    {
-	      //cout <<"CHECK DV"<<endl;
 	      if(digi.sample(i).er()) err=(err|0x2);
 	      if(!digi.sample(i).dv()) err=(err|0x2);
 	    }
@@ -755,10 +755,8 @@ void HcalDigiMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 void HcalDigiMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 					   const edm::EventSetup& c)
 {
-  //if (LBprocessed_==true) return;
   if (LumiInOrder(lumiSeg.luminosityBlock())==false) return;
   fill_Nevents();
-  //LBprocessed_ = true;
   return;
 }
 
