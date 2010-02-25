@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-hcalDigiDQMonitor=cms.EDAnalyzer("HcalDigiDQMonitor",
+hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                  # base class stuff
                                  debug                  = cms.int32(0),
                                  online                 = cms.bool(False),
