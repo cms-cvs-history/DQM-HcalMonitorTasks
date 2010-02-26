@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/23 11:25:00 $
- * $Revision: 1.00 $
+ * $Date: 2010/02/25 13:44:17 $
+ * $Revision: 1.1.2.1 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -38,6 +38,11 @@ HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
   levt_=0;
   tevt_=0;
   currenttype_=-1;
+  HBpresent_=false;
+  HEpresent_=false;
+  HOpresent_=false;
+  HFpresent_=false;
+
 } //HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
 
 // destructor
@@ -137,6 +142,7 @@ bool HcalBaseDQMonitor::IsAllowedCalibType()
     return true;
   MonitorElement* me = dbe_->get((prefixME_+"DQM Job Status/CURRENT_EVENT_TYPE").c_str());
   if (me) currenttype_=me->getIntValue();
+  else return true; // is current type can't be determined, assume event is allowed
 
   if (debug_>2) std::cout <<"HcalBaseDQMonitor::IsAllowedCalibType  checking if calibration type = "<<currenttype_<<" is allowed...";
   for (std::vector<int>::size_type i=0;i<AllowedCalibTypes_.size();++i)
