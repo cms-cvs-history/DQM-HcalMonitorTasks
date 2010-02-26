@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/26 10:59:23 $
- * $Revision: 1.1.2.2 $
+ * $Date: 2010/02/26 14:52:40 $
+ * $Revision: 1.1.2.3 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -23,16 +23,17 @@ HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
   mergeRuns_             = ps.getParameter<bool>("mergeRuns");
   enableCleanup_         = ps.getParameter<bool>("enableCleanup");
   debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getParameter<string>("subSystemFolder"); // Hcal
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","Test/");
+  subdir_                = ps.getParameter<string>("TaskFolder"); // Test
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
   AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
   NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
   
   ievt_=0;
   levt_=0;
@@ -138,13 +139,20 @@ bool HcalBaseDQMonitor::LumiInOrder(int lumisec)
 
 bool HcalBaseDQMonitor::IsAllowedCalibType()
 {
+  if (debug_>2) std::cout <<"<HcalBaseDQMonitor::IsAllowedCalibType>"<<std::endl;
   if (AllowedCalibTypes_.size()==0)
-    return true;
+    {
+      if (debug_>2) std::cout <<"\tNo calib types specified by user; All events allowed"<<std::endl;
+      return true;
+    }
   MonitorElement* me = dbe_->get((prefixME_+"DQM Job Status/CURRENT_EVENT_TYPE").c_str());
   if (me) currenttype_=me->getIntValue();
-  else return true; // is current type can't be determined, assume event is allowed
-
-  if (debug_>2) std::cout <<"HcalBaseDQMonitor::IsAllowedCalibType  checking if calibration type = "<<currenttype_<<" is allowed...";
+  else 
+    {
+      if (debug_>2) std::cout <<"\tCalib Type cannot be determined from HcalMonitorModule"<<std::endl;
+      return true; // is current type can't be determined, assume event is allowed
+    }
+  if (debug_>2) std::cout <<"\tHcalBaseDQMonitor::IsAllowedCalibType  checking if calibration type = "<<currenttype_<<" is allowed...";
   for (std::vector<int>::size_type i=0;i<AllowedCalibTypes_.size();++i)
     {
       if (AllowedCalibTypes_[i]==currenttype_)
@@ -181,26 +189,27 @@ void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   if (meIevt_) meIevt_->Fill(ievt_);
   if (meLevt_) meLevt_->Fill(levt_);
 
+
   MonitorElement* me;
   if (HBpresent_==false)
     {
       me = dbe_->get((prefixME_+"DQM Job Status/HBpresent"));
-      if (me->getIntValue()>0) HBpresent_=true;
+      if (me==0 || me->getIntValue()>0) HBpresent_=true;
     }
   if (HEpresent_==false)
     {
       me = dbe_->get((prefixME_+"DQM Job Status/HEpresent"));
-      if (me->getIntValue()>0) HEpresent_=true;
+      if (me==0 || me->getIntValue()>0) HEpresent_=true;
     }
   if (HOpresent_==false)
     {
       me = dbe_->get((prefixME_+"DQM Job Status/HOpresent"));
-      if (me->getIntValue()>0) HOpresent_=true;
+      if (me==0 || me->getIntValue()>0) HOpresent_=true;
     }
   if (HFpresent_==false)
     {
       me = dbe_->get((prefixME_+"DQM Job Status/HOpresent"));
-      if (me->getIntValue()>0) HFpresent_=true;
+      if (me ==0 || me->getIntValue()>0) HFpresent_=true;
     }
 
 

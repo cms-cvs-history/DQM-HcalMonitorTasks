@@ -1,7 +1,5 @@
 #include "DQM/HcalMonitorTasks/interface/HcalHotCellMonitor.h"
 
-#define OUT if(fverbosity_)std::cout
-
 using namespace std;
 using namespace edm;
 
@@ -207,8 +205,14 @@ void HcalHotCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
   if (test_neighbor_ || makeDiagnostics_)
     {
       SetupEtaPhiHists(AboveNeighborsHotCellsByDepth,"Hot Cells Failing Neighbor Test","");
-      //setMinMaxHists2D(AboveNeighborsHotCellsByDepth,0.,1.);
-    }
+      if (makeDiagnostics_)
+	{
+	  d_HBenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHB","HB Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HEenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHE","HE Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HOenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHO","HO Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HFenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHF","HF Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	}
+    } // if (test_neighbor_ || makeDiagnostics_)
   return;
 } //void HcalHotCellMonitor::beginRun(...)
 
@@ -348,8 +352,11 @@ void HcalHotCellMonitor::processEvent_rechitenergy( const HBHERecHitCollection& 
      int depth = id.depth();
 
      if (test_neighbor_ || makeDiagnostics_)
+       {
+	 if (debug_>1 && HBHEiter==hbheHits.begin()) 
+	   std::cout <<"\tHcalHotCellMonitor::processEvent_rechitenergy>  Calling processHit_rechitNeighbors..."<<std::endl;
 	 processHit_rechitNeighbors(HBHEiter, hbheHits, HBHENeighborParams_);
-     
+       }
      if (id.subdet()==HcalBarrel)
        {
 	 if (en>=HBenergyThreshold_)
@@ -467,6 +474,14 @@ void HcalHotCellMonitor::processEvent_rechitenergy( const HBHERecHitCollection& 
  if (en>params.maxEnergy)
    {
      aboveneighbors[CalcEtaBin(id.subdet(),ieta,depth)][iphi-1][depth-1];
+     if (makeDiagnostics_)
+       {
+	 // fill overflow bin when energy > max threshold
+	 if       (id.subdet()==HcalBarrel)  d_HBenergyVsNeighbor->Fill(1000);
+	 else if  (id.subdet()==HcalEndcap)  d_HEenergyVsNeighbor->Fill(1000);
+	 else if  (id.subdet()==HcalOuter)   d_HOenergyVsNeighbor->Fill(1000);
+	 else if  (id.subdet()==HcalForward) d_HFenergyVsNeighbor->Fill(1000);
+       }
      return;
    }
      
@@ -505,7 +520,19 @@ void HcalHotCellMonitor::processEvent_rechitenergy( const HBHERecHitCollection& 
  // Case 1:  Not enough good neighbors found
  if (neighborsfound==0)
    return;
+
  // Case 2:  energy/(avg. neighbor energy) too large for cell to be considered hot
+ if (makeDiagnostics_)
+   {
+     int myval=enNeighbor/en*50;
+     if (myval<0) myval=0;
+     if (myval>499) myval=499;
+     if (enNeighbor/en<0 || enNeighbor/en>=10) return;
+     if       (id.subdet()==HcalBarrel)  ++hbVsNeighbor[myval];
+     else if  (id.subdet()==HcalEndcap)  ++heVsNeighbor[myval];
+     else if  (id.subdet()==HcalOuter)   ++hoVsNeighbor[myval];
+     else if  (id.subdet()==HcalForward) ++hfVsNeighbor[myval];
+   }
  if ((1.*enNeighbor/en)>params.HotEnergyFrac && en>0 && enNeighbor>0)
    return;
  // Case 3:  Tests passed; cell marked as hot
@@ -681,6 +708,20 @@ void HcalHotCellMonitor::fillNevents_neighbor(void)
 	} // for (int eta=0;...)
     } // for (unsigned int depth=0;...)
   FillUnphysicalHEHFBins(AboveNeighborsHotCellsByDepth);
+
+  if (!makeDiagnostics_) return;
+  for (int i=0;i<500;++i)
+    {
+      d_HBenergyVsNeighbor->Fill(i/50.,hbVsNeighbor[i]);
+      hbVsNeighbor[i]=0;
+      d_HEenergyVsNeighbor->Fill(i/50.,heVsNeighbor[i]);
+      heVsNeighbor[i]=0;
+      d_HOenergyVsNeighbor->Fill(i/50.,hoVsNeighbor[i]);
+      hoVsNeighbor[i]=0;
+      d_HFenergyVsNeighbor->Fill(i/50.,hfVsNeighbor[i]);
+      hfVsNeighbor[i]=0;
+    }
+
   return;
 
 } // void HcalHotCellMonitor::fillNevents_neighbor(void)
@@ -800,6 +841,14 @@ void HcalHotCellMonitor::zeroCounters(void)
             }
         }
     }
+
+  for (int i=0;i<500;++i)
+    {
+      hbVsNeighbor[i]=0;
+      heVsNeighbor[i]=0;
+      hoVsNeighbor[i]=0;
+      hfVsNeighbor[i]=0;
+    }
   return;
 
 } // void HcalHotCellMonitor::zeroCounters()
@@ -837,7 +886,7 @@ void HcalHotCellMonitor::periodicReset()
 {
 
   // first reset base class objects
-  //FIXHcalBaseMonitor::periodicReset();
+  //FIX HcalBaseMonitor::periodicReset();
 
   // then reset the temporary histograms
   zeroCounters();
