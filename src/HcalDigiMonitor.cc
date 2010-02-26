@@ -319,16 +319,11 @@ void HcalDigiMonitor::setupSubdetHists(DigiHists& hist, std::string subdet)
 
 void HcalDigiMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
-  // Base Monitor analyze function evaluates 'event allowed'
-  // (meaning lumi blocks in order, and calibration is of correct type
-  HcalBaseDQMonitor::analyze(e,s);
-  if (!eventAllowed_) return;
-  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
-
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(e.luminosityBlock())==false) return;
+  
   // Now get collections we need
-  
-  bool digiOK=true;
-  
+
   // try to get digis
   edm::Handle<HBHEDigiCollection> hbhe_digi;
   edm::Handle<HODigiCollection> ho_digi;
@@ -336,36 +331,37 @@ void HcalDigiMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(digiLabel_,hbhe_digi)))
     {
-      digiOK=false;
       LogWarning("HcalDigiMonitor")<< digiLabel_<<" hbhe_digi not available";
       return;
     }
   
   if (!(e.getByLabel(digiLabel_,hf_digi)))
     {
-      digiOK=false;
       LogWarning("HcalDigiMonitor")<< digiLabel_<<" hf_digi not available";
       return;
     }
   if (!(e.getByLabel(digiLabel_,ho_digi)))
     {
-      digiOK=false;
       LogWarning("HcalDigiMonitor")<< digiLabel_<<" ho_digi not available";
       return;
     }
   edm::Handle<HcalUnpackerReport> report;  
   if (!(e.getByLabel(digiLabel_,report)))
     {
-      digiOK=false;
       LogWarning("HcalDigiMonitor")<< digiLabel_<<" unpacker report not available";
       return;
     }
+
+  // all objects grabbed; event is good
+  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+
+  HcalBaseDQMonitor::analyze(e,s); // base class increments ievt_, etc. counters
 
   // Digi collection was grabbed successfully; process the Event
   processEvent(*hbhe_digi, *ho_digi, *hf_digi, *conditions_,
 	       *report, e.orbitNumber(),e.bunchCrossing());
 
-}
+} //void HcalDigiMonitor::analyze(...)
 
 void HcalDigiMonitor::processEvent(const HBHEDigiCollection& hbhe,
 				   const HODigiCollection& ho,

@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/25 13:44:17 $
- * $Revision: 1.1.2.1 $
+ * $Date: 2010/02/26 10:59:23 $
+ * $Revision: 1.1.2.2 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -166,7 +166,7 @@ void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   ++tevt_;
   if (meTevt_) meTevt_->Fill(tevt_);
   // skip out of order lumi events
-  if (this->LumiInOrder(e.luminosityBlock())==false && skipOutOfOrderLS_==true) 
+  if (this->LumiInOrder(e.luminosityBlock())==false)
     {
       eventAllowed_=false;
       return;

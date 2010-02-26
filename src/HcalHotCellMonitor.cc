@@ -264,13 +264,9 @@ void HcalHotCellMonitor::done()
 
 void HcalHotCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
-  // Base Monitor analyze function evaluates 'event allowed'
-  // (meaning lumi blocks in order, and calibration is of correct type
-  HcalBaseDQMonitor::analyze(e,s);
-  if (!eventAllowed_) return;
-  if (debug_>1) std::cout <<"\t<HcalHotCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
 
-  bool rechitOK=true;
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(e.luminosityBlock())==false) return;
 
   // try to get rechits
   edm::Handle<HBHERecHitCollection> hbhe_rechit;
@@ -279,23 +275,24 @@ void HcalHotCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(hbheRechitLabel_,hbhe_rechit)))
     {
-      rechitOK=false;
       LogWarning("HcalHotCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
       return;
     }
 
   if (!(e.getByLabel(hfRechitLabel_,hf_rechit)))
     {
-      rechitOK=false;
       LogWarning("HcalHotCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
       return;
     }
   if (!(e.getByLabel(hoRechitLabel_,ho_rechit)))
     {
-      rechitOK=false;
       LogWarning("HcalHotCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
+
+  // Good event found; increment counter (via base class analyze method)
+  if (debug_>1) std::cout <<"\t<HcalHotCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+  HcalBaseDQMonitor::analyze(e,s);
 
   processEvent(*hbhe_rechit, *ho_rechit, *hf_rechit);
 
