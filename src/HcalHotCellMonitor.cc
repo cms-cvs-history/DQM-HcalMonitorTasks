@@ -13,10 +13,10 @@ HcalHotCellMonitor::HcalHotCellMonitor(const edm::ParameterSet& ps)
   enableCleanup_         = ps.getParameter<bool>("enableCleanup");
   debug_                 = ps.getParameter<int>("debug");
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getParameter<string>("subSystemFolder");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","HotCellMonitor_Hcal/");
+  subdir_                = ps.getParameter<string>("TaskFolder"); // HotCellMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
@@ -291,8 +291,9 @@ void HcalHotCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
     }
 
   // Good event found; increment counter (via base class analyze method)
-  if (debug_>1) std::cout <<"\t<HcalHotCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+
   HcalBaseDQMonitor::analyze(e,s);
+if (debug_>1) std::cout <<"\t<HcalHotCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
 
   processEvent(*hbhe_rechit, *ho_rechit, *hf_rechit);
 

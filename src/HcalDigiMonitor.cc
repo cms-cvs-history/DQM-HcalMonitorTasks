@@ -10,11 +10,10 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   mergeRuns_             = ps.getParameter<bool>("mergeRuns");
   enableCleanup_         = ps.getParameter<bool>("enableCleanup");
   debug_                 = ps.getParameter<int>("debug");
-  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getParameter<string>("subSystemFolder");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DigiMonitor_Hcal/");
+  subdir_                = ps.getParameter<string>("TaskFolder"); // DigiMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
@@ -22,6 +21,7 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   ievt_=0;
   skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
   NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
   digiLabel_     = ps.getParameter<string>("digiLabel");
   shapeThresh_   = ps.getParameter<int>("shapeThresh");
