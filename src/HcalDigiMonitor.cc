@@ -23,7 +23,7 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-  digiLabel_     = ps.getParameter<string>("digiLabel");
+  digiLabel_     = ps.getParameter<edm::InputTag>("digiLabel");
   shapeThresh_   = ps.getParameter<int>("shapeThresh");
   //shapeThresh_ is used for plotting pulse shapes for all digis with ADC sum > shapeThresh_;
   shapeThreshHB_ = ps.getParameter<int>("shapeThreshHB");
