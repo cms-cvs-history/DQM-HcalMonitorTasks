@@ -1,11 +1,12 @@
 #ifndef DQM_HCALMONITORTASKS_HCALRECHITMONITOR_H
 #define DQM_HCALMONITORTASKS_HCALRECHITMONITOR_H
 
-#include "DQM/HcalMonitorTasks/interface/HcalBaseMonitor.h"
-#include "DQMServices/Core/interface/DQMStore.h"
-#include "DQMServices/Core/interface/MonitorElement.h"
+#include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
 #include "CondFormats/HcalObjects/interface/HcalChannelStatus.h"
 #include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
+
+#include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
+
 
 #include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
@@ -28,24 +29,29 @@
   */
 
 
-class HcalRecHitMonitor: public HcalBaseMonitor {
+class HcalRecHitMonitor: public HcalBaseDQMonitor {
 
  public:
-  HcalRecHitMonitor();
+  HcalRecHitMonitor(const edm::ParameterSet& ps);
+
 
   ~HcalRecHitMonitor();
 
-  void setup(const edm::ParameterSet& ps, DQMStore* dbe);
-  void beginRun();
-  void done();
-  void clearME(); // overrides base class function
+  void setup();
+  void beginRun(const edm::Run& run, const edm::EventSetup& c);
+  void endRun(const edm::Run& run, const edm::EventSetup& c);
+  void endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
+			  const edm::EventSetup& c);
+  void endJob();
+  void cleanup();
   void reset();
   void zeroCounters();
  
+ void analyze(const edm::Event&, const edm::EventSetup&);
+
   void processEvent(const HBHERecHitCollection& hbHits,
                     const HORecHitCollection& hoHits,
                     const HFRecHitCollection& hfHits,
-		    int CalibType,
 		    int BCN,
 		    const edm::Event& iEvent
 		    );
@@ -56,22 +62,16 @@ class HcalRecHitMonitor: public HcalBaseMonitor {
 			    bool passedHLT,
 			    bool BPTX,
 			    int BCN);
-			    
 
-  void endLuminosityBlock();
  private:
   
   void fill_Nevents();
-
-  int rechit_checkNevents_;  // specify how often to fill histograms
 
   double energyThreshold_;
   double HBenergyThreshold_;
   double HEenergyThreshold_;
   double HOenergyThreshold_;
   double HFenergyThreshold_;
-
-  double rechit_minErrorFlag_; // minimum error rate needed to dump out bad bin info 
 
   HcalLogicalMap* logicalMap;
 
@@ -207,6 +207,11 @@ class HcalRecHitMonitor: public HcalBaseMonitor {
 
   MonitorElement* h_LumiPlot_MinTime_vs_MinHT;
   bool HBpresent_, HEpresent_, HOpresent_, HFpresent_;
+
+  edm::InputTag hbheRechitLabel_, hoRechitLabel_, hfRechitLabel_;
+  edm::InputTag l1gtLabel_;
+  std::vector <int> L1TriggerBits_;
+  std::vector <int> BPTXBits_;
 };
 
 #endif
