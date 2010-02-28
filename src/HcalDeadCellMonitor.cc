@@ -177,44 +177,44 @@ void HcalDeadCellMonitor::setup()
 		       name.str(),
 		       "");
       name.str("");
-      name<<"HB HE HF Depth 1 Dead Cells with No Digis for 1 Full Luminosity Block"; 
+      name<<"HB HE HF Depth 1 Dead Cells with No Digis for at least 1 Full Luminosity Block"; 
       RecentMissingDigisByDepth.depth[0]->setTitle(name.str().c_str());
 
       name.str("");
-      name<<"HB HE HF Depth 2 Dead Cells with No Digis for 1 Full Luminosity Block";
+      name<<"HB HE HF Depth 2 Dead Cells with No Digis for at least 1 Full Luminosity Block";
       RecentMissingDigisByDepth.depth[1]->setTitle(name.str().c_str());
 
       name.str("");
-      name<<"HE Depth 3 Dead Cells with No Digis for 1 Full Luminosity Block";
+      name<<"HE Depth 3 Dead Cells with No Digis for at least 1 Full Luminosity Block";
       RecentMissingDigisByDepth.depth[2]->setTitle(name.str().c_str());
 
       name.str("");
-      name<<"HO Depth 4 Dead Cells with No Digis for 1 Full Luminosity Block";
+      name<<"HO Depth 4 Dead Cells with No Digis for at least 1 Full Luminosity Block";
       RecentMissingDigisByDepth.depth[3]->setTitle(name.str().c_str());
       name.str("");
 
       // 1D plots count number of bad cells
-      name<<"Total Number of Hcal Digis Unoccupied for 1 Full Luminosity Block"; 
+      name<<"Total Number of Hcal Digis Unoccupied for at least 1 Full Luminosity Block"; 
       NumberOfRecentMissingDigis=dbe_->bookProfile("Problem_RecentMissingDigis_HCAL_vs_LS",
 						    name.str(),
 						    NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
       name.str("");
-      name<<"Total Number of HB Digis Unoccupied for 1 Full LS vs LS;Lumi Section; Dead Cells";
+      name<<"Total Number of HB Digis Unoccupied for at least 1 Full LS vs LS;Lumi Section; Dead Cells";
       NumberOfRecentMissingDigisHB=dbe_->bookProfile("Problem_RecentMissingDigis_HB_vs_LS",
 						      name.str(),
 						      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
       name.str("");
-      name<<"Total Number of HE Digis Unoccupied for 1 Full LS vs LS;Lumi Section; Dead Cells";
+      name<<"Total Number of HE Digis Unoccupied for at least 1 Full LS vs LS;Lumi Section; Dead Cells";
       NumberOfRecentMissingDigisHE=dbe_->bookProfile("Problem_RecentMissingDigis_HE_vs_LS",
 						      name.str(),
 						      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
       name.str("");
-      name<<"Total Number of HO Digis Unoccupied for 1 Full LS vs LS;Lumi Section; Dead Cells";
+      name<<"Total Number of HO Digis Unoccupied for at least 1 Full LS vs LS;Lumi Section; Dead Cells";
       NumberOfRecentMissingDigisHO=dbe_->bookProfile("Problem_RecentMissingDigis_HO_vs_LS",
 						      name.str(),
 						      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
       name.str("");
-      name<<"Total Number of HF Digis Unoccupied for 1 Full LS vs LS;Lumi Section; Dead Cells";
+      name<<"Total Number of HF Digis Unoccupied for at least 1 Full LS vs LS;Lumi Section; Dead Cells";
       NumberOfRecentMissingDigisHF=dbe_->bookProfile("Problem_RecentMissingDigis_HF_vs_LS",
 						      name.str(),
 						      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
