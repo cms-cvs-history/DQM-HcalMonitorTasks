@@ -30,7 +30,7 @@ HcalHotCellMonitor::HcalHotCellMonitor(const edm::ParameterSet& ps)
 
   // Hot Cell-specific tests
   minEvents_      = ps.getParameter<int>("minEvents");
-  minErrorFlag_   = ps.getParameter<double>("minErrorFlag");
+  minErrorFlag_   = ps.getUntrackedParameter<double>("minErrorFlag",1);
 
   // Set which hot cell checks will be performed
   test_persistent_         = ps.getParameter<bool>("test_persistent"); // true by default
@@ -102,7 +102,7 @@ void HcalHotCellMonitor::setup()
   dbe_->setCurrentFolder(subdir_);
 
   MonitorElement* me;
-  me=dbe_->bookFloat("minErrorFlagRate");
+  me=dbe_->bookFloat("minErrorFractionPerLumiSection");
   me->Fill(minErrorFlag_);
   // Create plots of problems vs LB
 
@@ -133,7 +133,7 @@ void HcalHotCellMonitor::setup()
   // Set up plots for each failure mode of hot cells
   stringstream units; // We'll need to set the titles individually, rather than passing units to SetupEtaPhiHists (since this also would affect the name of the histograms)
 
-  dbe_->setCurrentFolder(subdir_+"/hot_rechit_above_threshold");
+  dbe_->setCurrentFolder(subdir_+"hot_rechit_above_threshold");
   me=dbe_->bookInt("HotCellAboveThresholdTestEnabled");
   me->Fill(0);
 
@@ -160,7 +160,7 @@ void HcalHotCellMonitor::setup()
       units.str("");
     }
 
-  dbe_->setCurrentFolder(subdir_+"/hot_rechit_always_above_threshold");
+  dbe_->setCurrentFolder(subdir_+"hot_rechit_always_above_threshold");
   me=dbe_->bookInt("PersistentHotCellTestEnabled");
   me->Fill(0);
   if (test_persistent_)
@@ -188,7 +188,7 @@ void HcalHotCellMonitor::setup()
       units.str("");
     }
   
-  dbe_->setCurrentFolder(subdir_+"/hot_neighbortest");
+  dbe_->setCurrentFolder(subdir_+"hot_neighbortest");
   me=dbe_->bookInt("NeighborTestEnabled");
   me->Fill(0);
   if (test_neighbor_)
@@ -886,7 +886,7 @@ void HcalHotCellMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
 void HcalHotCellMonitor::endJob()
 {
   if (debug_>0) std::cout <<"HcalHotCellMonitor::endJob()"<<std::endl;
-  if (1<0) cleanup(); // when do we force cleanup?
+  if (enableCleanup_) cleanup(); // when do we force cleanup?
 }
 
 void HcalHotCellMonitor::cleanup()
@@ -898,11 +898,11 @@ void HcalHotCellMonitor::cleanup()
       // removeContents doesn't remove subdirectories
       dbe_->setCurrentFolder(subdir_);
       dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"/hot_rechit_above_threshold");
+      dbe_->setCurrentFolder(subdir_+"hot_rechit_above_threshold");
       dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"/hot_rechit_always_above_threshold");
+      dbe_->setCurrentFolder(subdir_+"hot_rechit_always_above_threshold");
       dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"/hot_neighbortest");
+      dbe_->setCurrentFolder(subdir_+"hot_neighbortest");
       dbe_->removeContents();
     }
 } // cleanup
