@@ -23,8 +23,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/02/18 20:42:07 $
-  * $Revision: 1.45 $
+  * $Date: 2010/02/28 17:51:19 $
+  * $Revision: 1.46.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -72,6 +72,12 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   double HEenergyThreshold_;
   double HOenergyThreshold_;
   double HFenergyThreshold_;
+
+  double ETThreshold_;
+  double HBETThreshold_;
+  double HEETThreshold_;
+  double HOETThreshold_;
+  double HFETThreshold_;
 
   HcalLogicalMap* logicalMap;
 
@@ -130,6 +136,11 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
 
   // Diagnostic plots
 
+  MonitorElement* h_rechitieta;
+  MonitorElement* h_rechitiphi;
+  MonitorElement* h_rechitieta_thresh;
+  MonitorElement* h_rechitiphi_thresh;
+
   MonitorElement* h_HBsizeVsLS;
   MonitorElement* h_HEsizeVsLS;
   MonitorElement* h_HOsizeVsLS;
@@ -173,6 +184,10 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
 
   double collisionHFthresh_;
   double collisionHEthresh_;
+  double collisionHFETthresh_;
+  double collisionHEETthresh_;
+
+  double timediffThresh_;
 
   MonitorElement* h_HFtimedifference;
   MonitorElement* h_HFenergydifference;

@@ -36,9 +36,19 @@ HcalRecHitMonitor::HcalRecHitMonitor(const edm::ParameterSet& ps)
   HEenergyThreshold_     = ps.getUntrackedParameter<double>("HE_energyThreshold",energyThreshold_);
   HOenergyThreshold_     = ps.getUntrackedParameter<double>("HO_energyThreshold",energyThreshold_);
   HFenergyThreshold_     = ps.getUntrackedParameter<double>("HF_energyThreshold",energyThreshold_);
+  
+  ETThreshold_       = ps.getParameter<double>("ETThreshold");
+  HBETThreshold_     = ps.getUntrackedParameter<double>("HB_ETThreshold",ETThreshold_);
+  HEETThreshold_     = ps.getUntrackedParameter<double>("HE_ETThreshold",ETThreshold_);
+  HOETThreshold_     = ps.getUntrackedParameter<double>("HO_ETThreshold",ETThreshold_);
+  HFETThreshold_     = ps.getUntrackedParameter<double>("HF_ETThreshold",ETThreshold_);
+
+  timediffThresh_    = ps.getParameter<double>("collisiontimediffThresh");
 
   collisionHFthresh_ = ps.getParameter<double>("collisionHFthresh");
   collisionHEthresh_ = ps.getParameter<double>("collisionHEthresh");
+  collisionHFETthresh_ = ps.getParameter<double>("collisionHFETthresh");
+  collisionHEETthresh_ = ps.getParameter<double>("collisionHEETthresh");
 
 } //constructor
 
@@ -70,12 +80,50 @@ void HcalRecHitMonitor::setup()
   dbe_->setCurrentFolder(subdir_);
 
   dbe_->setCurrentFolder(subdir_+"rechit_parameters");
+  dbe_->setCurrentFolder(subdir_+"rechit_parameters/thresholds");
+  MonitorElement* THR=dbe_->bookFloat("HB_Rechit_Energy_Threshold");
+  THR->Fill(HBenergyThreshold_);
+  THR=dbe_->bookFloat("HE_Rechit_Energy_Threshold");
+  THR->Fill(HEenergyThreshold_);
+  THR=dbe_->bookFloat("HO_Rechit_Energy_Threshold");
+  THR->Fill(HOenergyThreshold_);
+  THR=dbe_->bookFloat("HF_Rechit_Energy_Threshold");
+  THR->Fill(HFenergyThreshold_);
+  THR=dbe_->bookFloat("HB_Rechit_ET_Threshold");
+  THR->Fill(HBETThreshold_);
+  THR=dbe_->bookFloat("HE_Rechit_ET_Threshold");
+  THR->Fill(HEETThreshold_);
+  THR=dbe_->bookFloat("HO_Rechit_ET_Threshold");
+  THR->Fill(HOETThreshold_);
+  THR=dbe_->bookFloat("HF_Rechit_ET_Threshold");
+  THR->Fill(HFETThreshold_);
+  dbe_->setCurrentFolder(subdir_+"rechit_parameters/collision_parameters");
+  THR=dbe_->bookFloat("Minimum_HF_energy_for_luminosityplots");
+  THR->Fill(collisionHFthresh_);
+  THR=dbe_->bookFloat("Minimum_HF_ET_for_luminosityplots");
+  THR->Fill(collisionHFETthresh_);
+  THR=dbe_->bookFloat("Minimum_HE_energy_for_luminosityplots");
+  THR->Fill(collisionHEthresh_);
+  THR=dbe_->bookFloat("Minimum_HE_ET_for_luminosityplots");
+  THR->Fill(collisionHEETthresh_);
+  THR=dbe_->bookFloat("Maximum_HFM_HFP_time_difference_for_luminosityplots");
+  THR->Fill(timediffThresh_);
+
+
   // Add parameter MEs here;
+
   //MonitorElement *me;
   
   dbe_->setCurrentFolder(subdir_+"rechit_info");
 
   SetupEtaPhiHists(OccupancyByDepth,"RecHit Occupancy","");;
+  
+  h_rechitieta = dbe_->book1D("HcalRecHitIeta",
+			      "Hcal RecHit ieta",
+			      83,-41.5,41.5);
+  h_rechitiphi = dbe_->book1D("HcalRecHitIphi",
+			      "Hcal RecHit iphi",
+			      72,0.5,72.5);
   
   h_HFtimedifference = dbe_->book1D("HFweightedtimeDifference",
 				    "Energy-Weighted time difference between HF+ and HF-",
@@ -131,7 +179,7 @@ void HcalRecHitMonitor::setup()
   
   dbe_->setCurrentFolder(subdir_+"luminosityplots");
   h_LumiPlot_EventsPerLS=dbe_->book1D("EventsPerLS",
-				      "Number of Events with HF+ and HF- HT>1 GeV vs LS",
+				      "Number of Events with HF+ and HF- HT>1 GeV vs LS (HFM-HFP time cut)",
 				      NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
   h_LumiPlot_EventsPerLS_notimecut=dbe_->book1D("EventsPerLS_notimecut",
 						"Number of Events with HF+ and HF- HT>1 GeV (no time cut) vs LS",
@@ -157,10 +205,10 @@ void HcalRecHitMonitor::setup()
 					 "BX # of all events",
 					 3600,0,3600);
   h_LumiPlot_BX_goodevents = dbe_->book1D("BX_goodevents",
-					  "BX # of good events",
+					  "BX # of good events (HFM & HFP HT>1 & HFM-HFP time cut)",
 					  3600,0,3600);
   h_LumiPlot_BX_goodevents_notimecut = dbe_->book1D("BX_goodevents_notimecut",
-						    "BX # of good events (no time cut)",
+						    "BX # of good events (HFM,HFP HT>1, no time cut)",
 						    3600,0,3600);
   
   dbe_->setCurrentFolder(subdir_+"rechit_info/sumplots");
@@ -169,15 +217,15 @@ void HcalRecHitMonitor::setup()
   SetupEtaPhiHists(SumTimeByDepth,"RecHit Summed Time","nS");
 
   dbe_->setCurrentFolder(subdir_+"rechit_info_threshold");
+  h_rechitieta_thresh = dbe_->book1D("HcalRecHitIeta_thresh",
+			      "Hcal RecHit ieta above energy and ET threshold",
+			      83,-41.5,41.5);
+  h_rechitiphi_thresh = dbe_->book1D("HcalRecHitIphi_thresh",
+			      "Hcal RecHit iphi above energy and ET threshold",
+			      72,0.5,72.5);
+  
+
   SetupEtaPhiHists(OccupancyThreshByDepth,"Above Threshold RecHit Occupancy","");
-  MonitorElement* THR=dbe_->bookFloat("HB_Rechit_Energy_Threshold");
-  THR->Fill(HBenergyThreshold_);
-  THR=dbe_->bookFloat("HE_Rechit_Energy_Threshold");
-  THR->Fill(HEenergyThreshold_);
-  THR=dbe_->bookFloat("HO_Rechit_Energy_Threshold");
-  THR->Fill(HOenergyThreshold_);
-  THR=dbe_->bookFloat("HF_Rechit_Energy_Threshold");
-  THR->Fill(HFenergyThreshold_);
 
   dbe_->setCurrentFolder(subdir_+"rechit_info_threshold/sumplots");
   SetupEtaPhiHists(SumEnergyThreshByDepth,"Above Threshold RecHit Summed Energy","GeV");
@@ -649,6 +697,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       int iphi = id.iphi();
       int depth = id.depth();
       HcalSubdetector subdet = id.subdet();
+      double fEta=fabs(0.5*(theHFEtaBounds[abs(ieta)-29]+theHFEtaBounds[abs(ieta)-28]));
+
       int calcEta = CalcEtaBin(subdet,ieta,depth);
       int rbxindex=logicalMap->getHcalFrontEndId(HBHEiter->detid()).rbxIndex();
       int rm= logicalMap->getHcalFrontEndId(HBHEiter->detid()).rm();
@@ -690,7 +740,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  energy_[calcEta][iphi-1][depth-1]+=en;
           energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_[calcEta][iphi-1][depth-1]+=ti;
-	  if (en>=HBenergyThreshold_)
+	  if (en>=HBenergyThreshold_ && en/cosh(fEta)>HBETThreshold_) 
 	    {
 	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
@@ -714,14 +764,14 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
       else if (subdet==HcalEndcap)
 	{
-	  if (en>collisionHEthresh_ && ieta>0)
+	  if (en>collisionHEthresh_ && en/cosh(fEta)>collisionHEETthresh_ && ieta>0)
 	    {
 	      en_HEP+=en;
 	      time_HEP+=ti*en;
 	      rawtime_HEP+=ti;
 	      hepocc++;
 	    }
-	  else if (en>collisionHEthresh_ && ieta<0)
+	  else if (en>collisionHEthresh_ && en/cosh(fEta)>collisionHEETthresh_ && ieta<0)
 	    {
 	      en_HEM+=en;
 	      time_HEM+=ti*en;
@@ -752,7 +802,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  energy_[calcEta][iphi-1][depth-1]+=en;
           energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_[calcEta][iphi-1][depth-1]+=ti;
-	  if (en>=HEenergyThreshold_)
+	  if (en>=HEenergyThreshold_ && en/cosh(fEta)>HBETThreshold_)
 	    {
 	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
@@ -804,7 +854,6 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     {
       if (hepocc >0 && hemocc>0)
 	{
-	  //cout <<"hepocc = "<<hepocc<<"  hemocc = "<<hemocc<<endl;
 	  h_HEnotBPTXrawenergydifference->Fill(en_HEP/hepocc-en_HEM/hemocc);
 	  h_HEnotBPTXrawtimedifference->Fill(rawtime_HEP/hepocc-rawtime_HEM/hemocc);
 	}
@@ -844,6 +893,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       int iphi = id.iphi();
       int depth = id.depth();
       int calcEta = CalcEtaBin(HcalOuter,ieta,depth);
+      double fEta=fabs(0.5*(theHFEtaBounds[abs(ieta)-29]+theHFEtaBounds[abs(ieta)-28]));
       int rbxindex=logicalMap->getHcalFrontEndId(HOiter->detid()).rbxIndex();
       int rm= logicalMap->getHcalFrontEndId(HOiter->detid()).rm();
       
@@ -867,7 +917,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
       time_[calcEta][iphi-1][depth-1]+=ti;
       
-      if (en>=HOenergyThreshold_)
+      if (en>=HOenergyThreshold_  && en/cosh(fEta)>HOETThreshold_)
 	{
 	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
@@ -913,7 +963,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       int ieta = id.ieta();
       int iphi = id.iphi();
       int depth = id.depth();
-      double fEta=0.5*(theHFEtaBounds[abs(ieta)-29]+theHFEtaBounds[abs(ieta)-28]);
+
+      double fEta=fabs(0.5*(theHFEtaBounds[abs(ieta)-29]+theHFEtaBounds[abs(ieta)-28]));
       int calcEta = CalcEtaBin(HcalForward,ieta,depth);
 
       if (ieta>0)
@@ -935,14 +986,14 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  EtMinus+=en/cosh(fEta);
 	}
 
-      if (en>collisionHFthresh_ && ieta>0)
+      if (en>collisionHFthresh_ && en/cosh(fEta)>collisionHFETthresh_ && ieta>0)
 	{
 	  en_HFP+=en;
 	  time_HFP+=ti*en;
 	  rawtime_HFP+=ti;
 	  hfpocc++;
 	}
-      else if (en>collisionHFthresh_ && ieta<0)
+      else if (en>collisionHFthresh_ && en/cosh(fEta)>collisionHFETthresh_ && ieta<0)
 	{
 	  en_HFM+=en;
 	  time_HFM+=ti*en;
@@ -981,7 +1032,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
 
       //if (en/cosh(etaBounds[abs(ieta)-29]/area[abs(ieta)-29])>=HFenergyThreshold_)
-      if (en>=HFenergyThreshold_)
+      if (en>=HFenergyThreshold_ && en/cosh(fEta)>=HFETThreshold_)
 	{
 	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
@@ -1016,19 +1067,22 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(eMinus,ePlus);
   h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(tMinus,tPlus);
 
-  if (tPlus>25 && tMinus>25 &&  EtMinus>1 && EtPlus>1)
+
+  if (EtMinus>1 && 
+      EtPlus>-1 && 
+      fabs(en_HFP/hfpocc-en_HFM/hfmocc)<timediffThresh_
+      )
     {
       h_LumiPlot_EventsPerLS->Fill(currentLS);
       h_LumiPlot_BX_goodevents->Fill(BCN);
     }
+
   if (EtMinus>1 && EtPlus>1)
     {
       h_LumiPlot_EventsPerLS_notimecut->Fill(currentLS);
       h_LumiPlot_BX_goodevents_notimecut->Fill(BCN);
     }
 
-  //if (hfpocc > 0 && hfmocc>0)
-  // cout <<"HF time difference = "<<rawtime_HFP/hfpocc <<" - "<<rawtime_HFM/hfmocc<<" = "<<(rawtime_HFP/hfpocc-rawtime_HFM/hfmocc)<<endl;
   if (Online_ && passedHLT && BPTX==true)
     {
       if (hfpocc >0 && hfmocc>0)
@@ -1041,8 +1095,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	h_HFrawtimedifference->Fill(2500);
       else if (hfmocc>0)
 	h_HFrawtimedifference->Fill(-2500);
-	 
-      //cout <<"HF occ + = "<<hfpocc<<"  - = "<<hfmocc<<endl;
+
       if (en_HFP !=0 && en_HFM != 0)
 	{
 	  h_HFtimedifference->Fill((time_HFP/en_HFP)-(time_HFM/en_HFM));
@@ -1114,14 +1167,31 @@ void HcalRecHitMonitor::fill_Nevents(void)
     }
 
   // Fill Occupancy & Sum Energy, Time plots
+  int myieta=-1;
   if (ievt_>0)
     {
       for (int mydepth=0;mydepth<4;++mydepth)
 	{
 	  for (int eta=0;eta<OccupancyByDepth.depth[mydepth]->getNbinsX();++eta)
 	    {
+	      myieta=eta-42;
+	      if (myieta<-29)
+		++myieta;
+	      else if (myieta>29)
+		--myieta;
+	      
 	      for (int phi=0;phi<72;++phi)
 		{
+		  if (occupancy_[eta][phi][mydepth]>0)
+		    {
+		      h_rechitieta->Fill(myieta,occupancy_[eta][phi][mydepth]);
+		      h_rechitiphi->Fill(phi+1,occupancy_[eta][phi][mydepth]);
+		    }
+		  if (occupancy_thresh_[eta][phi][mydepth]>0)
+		    {
+		      h_rechitieta_thresh->Fill(myieta,occupancy_thresh_[eta][phi][mydepth]);
+		      h_rechitiphi_thresh->Fill(phi+1,occupancy_thresh_[eta][phi][mydepth]);
+		    }
 		  OccupancyByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,occupancy_[eta][phi][mydepth]);
 		  OccupancyThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,occupancy_thresh_[eta][phi][mydepth]);
 		  SumEnergyByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,energy_[eta][phi][mydepth]);
