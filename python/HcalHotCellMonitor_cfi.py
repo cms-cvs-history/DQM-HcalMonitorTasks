@@ -4,7 +4,7 @@ hcalHotCellMonitor=cms.EDAnalyzer("HcalHotCellMonitor",
                                   # base class stuff
                                   debug                  = cms.int32(0),
                                   online                 = cms.bool(False),
-                                  AllowedCalibTypes      = cms.vint32(),
+                                  AllowedCalibTypes      = cms.vint32(0), # by default, don't include calibration events
                                   mergeRuns              = cms.bool(False),
                                   enableCleanup          = cms.bool(False),
                                   subSystemFolder        = cms.string("Hcal/"),
@@ -26,7 +26,7 @@ hcalHotCellMonitor=cms.EDAnalyzer("HcalHotCellMonitor",
 
                                   # Threshold requirements
                                   minEvents       = cms.int32(200),
-                                  minErrorFlag    = cms.double(0.05),
+                                  minErrorFlag    = cms.untracked.double(1.), # fraction of a lumi section for which a channel must be above threshold to be considered a problem in LS plots
                                   energyThreshold = cms.double(10.),
                                   energyThreshold_HF = cms.untracked.double(20.),
                                   # other subdetector thresholds are also untracked

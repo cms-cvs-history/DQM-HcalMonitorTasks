@@ -4,7 +4,7 @@ hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                  # base class stuff
                                  debug                  = cms.int32(0),
                                  online                 = cms.bool(False),
-                                 AllowedCalibTypes      = cms.vint32(),
+                                 AllowedCalibTypes      = cms.vint32(0), # by default, don't include calibratin events
                                  mergeRuns              = cms.bool(False),
                                  enableCleanup          = cms.bool(False),
                                  subSystemFolder        = cms.string("Hcal/"),
@@ -13,7 +13,7 @@ hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                  NLumiBlocks            = cms.int32(4000),
                                  
                                  # Digi Monitor Info
-                                 digiLabel              = cms.string("hcalDigis"),
+                                 digiLabel              = cms.InputTag("hcalDigis"),
                                  shapeThresh            = cms.int32(50),
                                  shapeThreshHB          = cms.int32(50),
                                  shapeThreshHE          = cms.int32(50),
