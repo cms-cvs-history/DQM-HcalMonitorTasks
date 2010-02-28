@@ -15,11 +15,11 @@
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalUnpacker.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
+
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
-#include "DQMServices/Core/interface/DQMStore.h"
-#include "DQMServices/Core/interface/MonitorElement.h"
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"
 #include "DataFormats/FEDRawData/interface/FEDTrailer.h"
+
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
@@ -30,8 +30,8 @@
 
 /** \class HcalDataIntegrityTask
  *
- * $Date: 2009/07/31 20:32:33 $
- * $Revision: 1.3 $
+ * $Date: 2010/02/28 16:12:33 $
+ * $Revision: 1.3.4.1 $
  * \author J. Temple -- University of Maryland
  * copied from W. Fisher/J. St. John's DataFormat code
  */

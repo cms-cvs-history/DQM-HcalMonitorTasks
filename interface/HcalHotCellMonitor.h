@@ -13,8 +13,8 @@
 
 /** \class HcalHotCellMonitor
   *
-  * $Date: 2010/02/05 18:54:18 $
-  * $Revision: 1.37 $
+  * $Date: 2010/02/25 20:02:11 $
+  * $Revision: 1.37.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -106,18 +106,14 @@ class HcalHotCellMonitor: public HcalBaseDQMonitor {
   float rechit_energy_sum[85][72][4];
   
   // Diagnostic plots
-  MonitorElement* d_HBrechitenergy;
-  MonitorElement* d_HErechitenergy;
-  MonitorElement* d_HOrechitenergy;
-  MonitorElement* d_HFrechitenergy;
- 
   MonitorElement* d_HBenergyVsNeighbor;
   MonitorElement* d_HEenergyVsNeighbor;
   MonitorElement* d_HOenergyVsNeighbor;
   MonitorElement* d_HFenergyVsNeighbor;
-
-  EtaPhiHists  d_avgrechitenergymap;
-  EtaPhiHists  d_avgrechitoccupancymap;
+  int hbVsNeighbor[500];
+  int heVsNeighbor[500];
+  int hoVsNeighbor[500];
+  int hfVsNeighbor[500];
 
   hotNeighborParams HBHENeighborParams_, HONeighborParams_, HFNeighborParams_;
 

@@ -19,8 +19,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2010/02/25 13:45:22 $
-  * $Revision: 1.56.2.1 $
+  * $Date: 2010/02/25 20:02:48 $
+  * $Revision: 1.56.2.2 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -88,7 +88,7 @@ public:
 
   void endRun(const edm::Run& run, const edm::EventSetup& c);
   void endJob();
-  void periodicReset();
+  void reset();
 
 private:  ///Methods, variables accessible only within class code
 
@@ -187,7 +187,7 @@ private:  ///Methods, variables accessible only within class code
 
   DigiHists hbHists, heHists, hfHists, hoHists;
 
-  std::string digiLabel_;
+  edm::InputTag digiLabel_;
 
   edm::ESHandle<HcalDbService> conditions_;
 
