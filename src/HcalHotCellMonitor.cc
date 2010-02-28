@@ -96,15 +96,6 @@ void HcalHotCellMonitor::setup()
   // Call base class setup
   HcalBaseDQMonitor::setup();
 
-} // void HcalHotCellMonitor::setup(...)
-
-void HcalHotCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
-{
-  if (debug_>1) std::cout <<"HcalHotCellMonitor::beginRun"<<std::endl;
-  HcalBaseDQMonitor::beginRun(run,c);
-  zeroCounters();
-  if (!dbe_) return;
-
   if (debug_>1)
     std::cout <<"<HcalHotCellMonitor::setup>  Setting up histograms"<<std::endl;
 
@@ -213,13 +204,47 @@ void HcalHotCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 	  d_HFenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHF","HF Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
 	}
     } // if (test_neighbor_ || makeDiagnostics_)
+
+  this->reset();
+} // void HcalHotCellMonitor::setup(...)
+
+void HcalHotCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
+{
+  if (debug_>1) std::cout <<"HcalHotCellMonitor::beginRun"<<std::endl;
+  HcalBaseDQMonitor::beginRun(run,c);
+
+  if (tevt_==0) this->setup(); // set up histograms if they have not been created before
+  if (mergeRuns_==false)
+    this->reset();
+
   return;
 } //void HcalHotCellMonitor::beginRun(...)
 
 
 /* --------------------------- */
 
-void HcalHotCellMonitor::reset(){}  // reset function is empty for now
+void HcalHotCellMonitor::reset()
+{
+  HcalBaseDQMonitor::reset();
+  zeroCounters();
+
+  // now reset all the MonitorElements
+
+  // resetting eta-phi histograms
+  if (test_neighbor_)
+    AboveNeighborsHotCellsByDepth.Reset();
+  if (test_energy_ || makeDiagnostics_)
+    AboveEnergyThresholdCellsByDepth.Reset();
+  if (test_persistent_)
+    AbovePersistentThresholdCellsByDepth.Reset();
+  if (makeDiagnostics_)
+    {
+      d_HBenergyVsNeighbor->Reset();
+      d_HEenergyVsNeighbor->Reset();
+      d_HOenergyVsNeighbor->Reset();
+      d_HFenergyVsNeighbor->Reset();
+    }
+}  // reset function is empty for now
 
 
 
@@ -899,7 +924,7 @@ void HcalHotCellMonitor::periodicReset()
   if (test_energy_ || makeDiagnostics_)
     AboveEnergyThresholdCellsByDepth.Reset();
   if (test_persistent_)
-  AbovePersistentThresholdCellsByDepth.Reset();
+    AbovePersistentThresholdCellsByDepth.Reset();
 
   return;
 }

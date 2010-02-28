@@ -1,16 +1,102 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDataIntegrityTask.h"
-#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
-#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
-#include "DQMServices/Core/interface/DQMStore.h"
-#include "DQMServices/Core/interface/MonitorElement.h"
 
-HcalDataIntegrityTask::HcalDataIntegrityTask() 
+using namespace std;
+using namespace edm;
+
+HcalDataIntegrityTask::HcalDataIntegrityTask(const ParameterSet& ps) 
 {
+
+  Online_                = ps.getParameter<bool>("online");
+  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
+  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
+  debug_                 = ps.getParameter<int>("debug");
+  prefixME_              = ps.getParameter<string>("subSystemFolder"); // Hcal
+  if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
+    prefixME_.append("/");
+  subdir_                = ps.getParameter<string>("TaskFolder"); // Test
+  if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
+    subdir_.append("/");
+  subdir_=prefixME_+subdir_;
+  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
+  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
+
+  // Specific Data Integrity Task parameters
+  inputLabelRawData_     = ps.getParameter<edm::InputTag>("RawDataLabel");
+  inputLabelReport_      = ps.getParameter<edm::InputTag>("UnpackerReportLabel");
+
+} // HcalDataIntegrityTask::HcalDataIntegrityTask()
+
+HcalDataIntegrityTask::~HcalDataIntegrityTask() {}
+
+void HcalDataIntegrityTask::reset()
+{
+  if (debug_>0)  std::cout <<"HcalDataIntegrityTask::reset()"<<std::endl;
+  HcalBaseDQMonitor::reset();
+  fedEntries_->Reset();
+  fedFatal_->Reset();
+  fedNonFatal_->Reset();
+
+}
+
+void HcalDataIntegrityTask::cleanup()
+{
+  if(dbe_)
+    {
+      dbe_->setCurrentFolder(subdir_);
+      dbe_->removeContents();
+    }
+
+} // void HcalDataIntegrityTask::cleanup()
+
+
+void HcalDataIntegrityTask::beginRun(const edm::Run& run, const edm::EventSetup& c)
+{
+
+  if (debug_>0) std::cout <<"HcalDataIntegrityTask::beginRun():  task =  '"<<subdir_<<"'"<<endl;
+
+  HcalBaseDQMonitor::beginRun(run, c);
+  if (mergeRuns_ && tevt_>0) return;
+
+  if (debug_>1)  std::cout<<"\t<HcalDataIntegrityTask::getting eMap..."<<std::endl;
+  edm::ESHandle<HcalDbService> pSetup;
+  c.get<HcalDbRecord>().get( pSetup );
+  readoutMap_=pSetup->getHcalMapping();
+
+  if (tevt_==0) // create histograms, if they haven't been created already
+    this->setup();
+  // Clear histograms at the start of each run if not merging runs
+  if (mergeRuns_==false)
+  this->reset();
+
+} // beginRun(const edm::Run& run, const edm::EventSetup& c)
+
+
+void HcalDataIntegrityTask::setup()
+{
+  // Setup Creates all necessary histograms
+  HcalBaseDQMonitor::setup();
+  
   //Initialize phatmap to a vector of vectors of uint64_t 0
   static size_t iphirange = IPHIMAX - IPHIMIN;
   static size_t ietarange = IETAMAX - IETAMIN;
- 
+  
   std::vector<uint64_t> phatv (iphirange + 1, 0);
+  
+  if (debug_>0) std::cout <<"<HcalDataIntegrityTask::setup>  Clearing old vectors"<<std::endl;
+  // Clear any old vectors
+  phatmap.clear();
+  HBmap.clear();
+  HEmap.clear();
+  HFmap.clear();
+  HOmap.clear();
+  problemhere.clear();
+  problemHB.clear();
+  problemHE.clear();
+  problemHF.clear();
+  problemHO.clear();
+
   // ... nothing goes at ieta=0, so an extra bin goes there.
   phatmap = vector< vector < uint64_t> > ( ietarange + 1, phatv);
   HBmap   = vector< vector < uint64_t> > ( ietarange + 1, phatv);
@@ -25,29 +111,9 @@ HcalDataIntegrityTask::HcalDataIntegrityTask()
   problemHF   = vector< vector <bool> > ( ietarange + 1, probvect);
   problemHO   = vector< vector <bool> > ( ietarange + 1, probvect);
 
-} // HcalDataIntegrityTask::HcalDataIntegrityTask()
-
-HcalDataIntegrityTask::~HcalDataIntegrityTask() {}
-
-void HcalDataIntegrityTask::reset(){}
-
-void HcalDataIntegrityTask::clearME()
-{
-  if(m_dbe){
-    m_dbe->setCurrentFolder(baseFolder_);
-    m_dbe->removeContents();
-  }
-}
 
 
-void HcalDataIntegrityTask::setup(const edm::ParameterSet& ps,
-				  DQMStore* dbe)
-{
-  HcalBaseMonitor::setup(ps,dbe);
-  
-  baseFolder_ = rootFolder_+"HcalDataIntegrityTask";
-
-  if(fVerbosity) 
+  if(debug_>1) 
     std::cout << "About to pushback fedUnpackList_" << std::endl;
 
   // Use this in CMSSW_3_0_X and above:
@@ -56,44 +122,67 @@ void HcalDataIntegrityTask::setup(const edm::ParameterSet& ps,
        i<=FEDNumbering::MAXHCALFEDID;
        ++i)
     {
-      if(fVerbosity) std::cout << "[DFMon:]Pushback for fedUnpackList_: " << i <<std::endl;
+      if(debug_>1) std::cout << "[DFMon:]Pushback for fedUnpackList_: " << i <<std::endl;
       fedUnpackList_.push_back(i);
     }
 
-  prtlvl_ = ps.getUntrackedParameter<int>("dfPrtLvl");
-
-  if ( m_dbe ) 
+  if ( dbe_ ) 
     {
       
-      if (fVerbosity)
-	std::cout <<"SET TO HCAL/FEDIntegrity"<<std::endl;
+      if (debug_>1)
+	std::cout <<"\t<HcalDataIntegrityTask> Setting folder to "<<subdir_<<std::endl;
 
-      m_dbe->setCurrentFolder("Hcal/FEDIntegrity/");
-      meEVT_ = m_dbe->bookInt("Data Integrity Task Event Number");
-      meEVT_->Fill(ievt_);
-      meTOTALEVT_ = m_dbe->bookInt("Data Integrity Task Total Events Processed");
-      meTOTALEVT_->Fill(tevt_);
+      dbe_->setCurrentFolder(subdir_);
+      
+      fedEntries_ = dbe_->book1D("FEDEntries","# entries per HCAL FED",32,700,732);
+      fedFatal_ = dbe_->book1D("FEDFatal","# fatal errors HCAL FED",32,700,732);
+      fedNonFatal_ = dbe_->book1D("FEDNonFatal","# non-fatal errors HCAL FED",32,700,732);
+    } // if (dbe_)
 
-      fedEntries_ = m_dbe->book1D("FEDEntries","# entries per HCAL FED",32,700,732);
-      fedFatal_ = m_dbe->book1D("FEDFatal","# fatal errors HCAL FED",32,700,732);
-      fedNonFatal_ = m_dbe->book1D("FEDNonFatal","# non-fatal errors HCAL FED",32,700,732);
-    } // if (m_dbe)
-
-
+  this->reset(); // clear all histograms at start
   return;
 }
+
+void HcalDataIntegrityTask::analyze(edm::Event const&e, edm::EventSetup const&s)
+{
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(e.luminosityBlock())==false) return;
+  
+  // Now get the collections we need
+  
+  edm::Handle<FEDRawDataCollection> rawraw;
+  
+  // Trying new getByLabel
+  if (!(e.getByLabel(inputLabelRawData_,rawraw)))
+    {
+      LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<inputLabelRawData_<<" not available";
+      return;
+    }
+  
+  edm::Handle<HcalUnpackerReport> report;
+  if (!(e.getByLabel(inputLabelReport_,report)))
+    {
+      LogWarning("HcalDataIntegrityTask")<<" UnpackerReport with label "<<inputLabelReport_<<" \not available";
+      return;
+    }
+  
+  // Collections were found; increment counters
+  HcalBaseDQMonitor::analyze(e,s);
+
+  processEvent(*rawraw, *report, *readoutMap_);
+}
+
+
 
 void HcalDataIntegrityTask::processEvent(const FEDRawDataCollection& rawraw, 
 					 const HcalUnpackerReport& report, 
 					 const HcalElectronicsMap& emap){
   
-  if(!m_dbe) 
+  if(!dbe_) 
     { 
       std::cout<<"HcalDataIntegrityTask::processEvent DQMStore not instantiated!!!"<<std::endl;  
       return;
     }
-  
-  HcalBaseMonitor::processEvent();
 
   // Loop over all FEDs reporting the event, unpacking if good.
   for (vector<int>::const_iterator i=fedUnpackList_.begin();i!=fedUnpackList_.end(); i++) 
@@ -215,4 +304,5 @@ void HcalDataIntegrityTask::unpack(const FEDRawData& raw,
   return;
 } // void HcalDataIntegrityTask::unpack()
 
+DEFINE_ANOTHER_FWK_MODULE(HcalDataIntegrityTask);
 

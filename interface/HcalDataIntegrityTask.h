@@ -12,39 +12,49 @@
 #define  HO_LO_DCC   725
 #define  HO_HI_DCC   731
 
-#include "DQM/HcalMonitorTasks/interface/HcalBaseMonitor.h"
+#include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalUnpacker.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
 #include "DQMServices/Core/interface/DQMStore.h"
 #include "DQMServices/Core/interface/MonitorElement.h"
+#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
+#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
+#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbService.h"
+
+#include <map>
+#include <iostream>
+
 
 /** \class HcalDataIntegrityTask
  *
- * $Date: 2008/11/04 18:57:37 $
- * $Revision: 1.2 $
+ * $Date: 2009/07/31 20:32:33 $
+ * $Revision: 1.3 $
  * \author J. Temple -- University of Maryland
  * copied from W. Fisher/J. St. John's DataFormat code
  */
 
-class HcalDataIntegrityTask: public HcalBaseMonitor 
+class HcalDataIntegrityTask: public HcalBaseDQMonitor 
 {
  public:
-  HcalDataIntegrityTask();
+  HcalDataIntegrityTask(const edm::ParameterSet& ps);
   ~HcalDataIntegrityTask();
   
-  void setup(const edm::ParameterSet& ps, DQMStore* dbe);
+  void setup();
   void processEvent(const FEDRawDataCollection& rawraw, const
 		    HcalUnpackerReport& report, const HcalElectronicsMap& emap);
   void unpack(const FEDRawData& raw, const HcalElectronicsMap& emap);
-  void clearME();
+  void cleanup();
   void reset();
+
+  void beginRun(const edm::Run& run, const edm::EventSetup& c);
+  void analyze(const edm::Event&, const edm::EventSetup&);
 
  public: //Electronics map -> geographic channel map
   std::map<uint32_t, std::vector<HcalDetId> > DCCtoCell;
   std::map<uint32_t, std::vector<HcalDetId> > ::iterator thisDCC;
-  std::map<pair <int,int> , std::vector<HcalDetId> > HTRtoCell;
-  std::map<pair <int,int> , std::vector<HcalDetId> > ::iterator thisHTR;
 
  private: 
   //backstage accounting mechanisms for the ProblemMap
@@ -66,9 +76,9 @@ class HcalDataIntegrityTask: public HcalBaseMonitor
   void UpdateMap();
 
   // Data accessors
-  vector<int> fedUnpackList_;
-  vector<int> dccCrate_;
-  vector<HcalSubdetector> dccSubdet_;
+  std::vector<int> fedUnpackList_;
+  std::vector<int> dccCrate_;
+  std::vector<HcalSubdetector> dccSubdet_;
   int firstFED_;
   int lastEvtN_;
   int lastBCN_;
@@ -97,6 +107,11 @@ class HcalDataIntegrityTask: public HcalBaseMonitor
   
   //static member variables 
   static float DIMbin[32];
+  
+  const HcalElectronicsMap*    readoutMap_;
+  edm::InputTag inputLabelRawData_;
+  edm::InputTag inputLabelReport_;
+
 };
 
 // For crate numbers:

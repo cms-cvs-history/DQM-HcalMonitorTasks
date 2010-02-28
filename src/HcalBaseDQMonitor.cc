@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/26 14:52:40 $
- * $Revision: 1.1.2.3 $
+ * $Date: 2010/02/26 19:11:27 $
+ * $Revision: 1.1.2.4 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -34,16 +34,6 @@ HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
   skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
   NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  
-  ievt_=0;
-  levt_=0;
-  tevt_=0;
-  currenttype_=-1;
-  HBpresent_=false;
-  HEpresent_=false;
-  HOpresent_=false;
-  HFpresent_=false;
-
 } //HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
 
 // destructor
@@ -58,17 +48,29 @@ void HcalBaseDQMonitor::beginJob(void)
 
   if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginJob():  task =  '"<<subdir_<<"'"<<endl;
   dbe_ = Service<DQMStore>().operator->();
+
+  ievt_=0;
+  levt_=0;
+  tevt_=0;
+  currenttype_=-1;
+  HBpresent_=false;
+  HEpresent_=false;
+  HOpresent_=false;
+  HFpresent_=false;
+
+
 } // beginJob()
 
 void HcalBaseDQMonitor::endJob(void)
 {
-
+  if (enableCleanup_)
+    cleanup();
 } // endJob()
 
 void HcalBaseDQMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 {
   if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginRun():  task =  '"<<subdir_<<"'"<<endl;
-  if (mergeRuns_) return;
+  if (mergeRuns_ && tevt_>0) return;
   this->setup();
   this->reset();
 } // beginRun(const edm::Run& run, const edm::EventSetup& c)
@@ -80,7 +82,7 @@ void HcalBaseDQMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
 
 void HcalBaseDQMonitor::reset(void)
 {
-  if (debug_>0) std::cout <<"HcalBaseDQMonitor::reset:  task = "<<subdir_<<std::endl;
+  if (debug_>0) std::cout <<"HcalBaseDQMonitor::reset():  task = "<<subdir_<<std::endl;
   if (meIevt_) meIevt_->Fill(-1);
   ievt_=0;
   if (meLevt_) meLevt_->Fill(-1);
@@ -157,17 +159,17 @@ bool HcalBaseDQMonitor::IsAllowedCalibType()
     {
       if (AllowedCalibTypes_[i]==currenttype_)
 	{
-	  if (debug_>2) std::cout <<"\t Type allowed!"<<endl;
+	  if (debug_>2) std::cout <<"\t Type allowed!"<<std::endl;
 	  return true;
 	}
     }
-  if (debug_>2) std::cout <<"\t Type not allowed!"<<endl;
+  if (debug_>2) std::cout <<"\t Type not allowed!"<<std::endl;
   return false;
 } // bool HcalBaseDQMonitor::IsAllowedCalibType()
 
 void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
 {
-  if (debug_>2) std::cout <<"\t<HcalBaseDQMonitor::analyze>  event = "<<ievt_<<endl;
+  if (debug_>2) std::cout <<"\t<HcalBaseDQMonitor::analyze>  event = "<<ievt_<<std::endl;
   eventAllowed_=true; // assume event is allowed
 
   // fill with total events seen (this differs from ievent, which is total # of good events)

@@ -109,7 +109,7 @@ void HcalDigiMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
 void HcalDigiMonitor::endJob()
 {
   if (debug_>0) std::cout <<"HcalDigiMonitor::endJob()"<<std::endl;
-  if (1<0) cleanup(); // when do we force cleanup?
+  if (enableCleanup_) cleanup(); // when do we force cleanup?
 }
 
 
@@ -117,17 +117,6 @@ void HcalDigiMonitor::setup()
 {
   // Call base class setup
   HcalBaseDQMonitor::setup();
-  return;
-} // void HcalDigiMonitor::setup()
-
-void HcalDigiMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
-{
-  HcalBaseDQMonitor::beginRun(run,c);
-  zeroCounters();
-
-  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::beginRun> Getting conditions from DB!"<<std::endl;
-  c.get<HcalDbRecord>().get(conditions_);
-  
   if (!dbe_) return;
 
   /******* Set up all histograms  ********/
@@ -169,7 +158,6 @@ void HcalDigiMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
   ProblemsVsLB_HF=dbe_->bookProfile("HF Bad Quality Digis vs LB","HF Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
 				     0,10000);
-  
   
   if (makeDiagnostics_) // not yet used
     {
@@ -272,6 +260,20 @@ void HcalDigiMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
   setupSubdetHists(hoHists,"HO");
   setupSubdetHists(hfHists,"HF");
 
+  this->reset();
+  return;
+} // void HcalDigiMonitor::setup()
+
+void HcalDigiMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
+{
+  HcalBaseDQMonitor::beginRun(run,c);
+  if (mergeRuns_ && tevt_>0) return; // don't reset counters if merging runs
+
+  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::setup> Getting conditions from DB!"<<std::endl;
+  c.get<HcalDbRecord>().get(conditions_);
+
+  if (tevt_==0) this->setup(); // create all histograms; not necessary if merging runs together
+  if (mergeRuns_==false) this->reset(); // call reset at start of all runs
 } // void HcalDigiMonitor::beginRun()
 
 
@@ -1197,7 +1199,6 @@ void HcalDigiMonitor::zeroCounters()
   return;
 }
 
-
 void HcalDigiMonitor::UpdateHists(DigiHists& h)
 {
   // call update command for all histograms (should make them update when running in online DQM?
@@ -1220,7 +1221,7 @@ void HcalDigiMonitor::UpdateHists(DigiHists& h)
 } //void HcalDigiMonitor::UpdateHists(DigiHists& h)
 
 
-void HcalDigiMonitor::periodicReset()
+void HcalDigiMonitor::reset()
 {
   // reset the temporary histograms
   zeroCounters();
