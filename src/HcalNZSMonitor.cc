@@ -100,7 +100,7 @@ void HcalNZSMonitor::setup()
       meL1evtNumber_->setBinLabel(1, "NO", 1);
       meL1evtNumber_->setBinLabel(2, "YES", 1);
 
-      meIsUS_=dbe_->book1D("Is_Unsuppressed_bit","IsUnsuppressed bit",2,0,2);
+      meIsUS_=dbe_->book1D("IsUnsuppressed_bit","IsUnsuppressed bit",2,0,2);
       meIsUS_->setBinLabel(1,"NO",1);
       meIsUS_->setBinLabel(2,"YES",1);
 
@@ -265,3 +265,4 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
 
 } //void HcalNZSMonitor::processEvent(...)
 
+DEFINE_ANOTHER_FWK_MODULE(HcalNZSMonitor);
