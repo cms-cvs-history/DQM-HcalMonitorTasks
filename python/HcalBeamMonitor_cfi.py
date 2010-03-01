@@ -2,24 +2,24 @@ import FWCore.ParameterSet.Config as cms
 
 hcalBeamMonitor=cms.EDAnalyzer("HcalBeamMonitor",
                                # base class stuff
-                               debug                  = cms.int32(0),
-                               online                 = cms.bool(False),
-                               AllowedCalibTypes      = cms.vint32(0),
-                               mergeRuns              = cms.bool(False),
-                               enableCleanup          = cms.bool(False),
-                               subSystemFolder        = cms.string("Hcal/"),
-                               TaskFolder             = cms.string("BeamMonitor_Hcal/"),
-                               skipOutOfOrderLS       = cms.bool(True),
-                               NLumiBlocks            = cms.int32(4000),
+                               debug                  = cms.untracked.int32(0),
+                               online                 = cms.untracked.bool(False),
+                               AllowedCalibTypes      = cms.untracked.vint32(0),
+                               mergeRuns              = cms.untracked.bool(False),
+                               enableCleanup          = cms.untracked.bool(False),
+                               subSystemFolder        = cms.untracked.string("Hcal/"),
+                               TaskFolder             = cms.untracked.string("BeamMonitor_Hcal/"),
+                               skipOutOfOrderLS       = cms.untracked.bool(True),
+                               NLumiBlocks            = cms.untracked.int32(4000),
                                
                                # BeamMonitor-specific Info
                                
                                # Input collections
-                               hbheRechitLabel        = cms.InputTag("hbhereco"),
-                               hoRechitLabel          = cms.InputTag("horeco"),
-                               hfRechitLabel          = cms.InputTag("hfreco"),
-                               digiLabel              = cms.InputTag("hcalDigis"),
+                               hbheRechitLabel        = cms.untracked.InputTag("hbhereco"),
+                               hoRechitLabel          = cms.untracked.InputTag("horeco"),
+                               hfRechitLabel          = cms.untracked.InputTag("hfreco"),
+                               digiLabel              = cms.untracked.InputTag("hcalDigis"),
 
-                               minEvents              = cms.int32(500),
-                               lumiqualitydir         = cms.string("")
+                               minEvents              = cms.untracked.int32(500),
+                               lumiqualitydir         = cms.untracked.string("")
                                )

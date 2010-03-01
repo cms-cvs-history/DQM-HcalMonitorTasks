@@ -2,34 +2,34 @@ import FWCore.ParameterSet.Config as cms
 
 hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                  # base class stuff
-                                 debug                  = cms.int32(0),
-                                 online                 = cms.bool(False),
-                                 AllowedCalibTypes      = cms.vint32(0), # by default, don't include calibration events
-                                 mergeRuns              = cms.bool(False),
-                                 enableCleanup          = cms.bool(False),
-                                 subSystemFolder        = cms.string("Hcal/"),
-                                 TaskFolder             = cms.string("DigiMonitor_Hcal/"),
-                                 skipOutOfOrderLS       = cms.bool(False),
-                                 NLumiBlocks            = cms.int32(4000),
+                                 debug                  = cms.untracked.int32(0),
+                                 online                 = cms.untracked.bool(False),
+                                 AllowedCalibTypes      = cms.untracked.vint32(0), # by default, don't include calibration events
+                                 mergeRuns              = cms.untracked.bool(False),
+                                 enableCleanup          = cms.untracked.bool(False),
+                                 subSystemFolder        = cms.untracked.string("Hcal/"),
+                                 TaskFolder             = cms.untracked.string("DigiMonitor_Hcal/"),
+                                 skipOutOfOrderLS       = cms.untracked.bool(False),
+                                 NLumiBlocks            = cms.untracked.int32(4000),
                                  
                                  # Digi Monitor Info
-                                 digiLabel              = cms.InputTag("hcalDigis"),
-                                 shapeThresh            = cms.int32(50),
-                                 shapeThreshHB          = cms.int32(50),
-                                 shapeThreshHE          = cms.int32(50),
-                                 shapeThreshHO          = cms.int32(50),
-                                 shapeThreshHF          = cms.int32(50),
+                                 digiLabel              = cms.untracked.InputTag("hcalDigis"),
+                                 shapeThresh            = cms.untracked.int32(50),
+                                 shapeThreshHB          = cms.untracked.int32(50),
+                                 shapeThreshHE          = cms.untracked.int32(50),
+                                 shapeThreshHO          = cms.untracked.int32(50),
+                                 shapeThreshHF          = cms.untracked.int32(50),
                                  
                                  # problem checks
-                                 checkForMissingDigis   = cms.bool(False),
-                                 checkCapID             = cms.bool(True),
-                                 checkDigiSize          = cms.bool(True),
-                                 checkADCsum            = cms.bool(True),
-                                 checkDVerr             = cms.bool(True),
-                                 minDigiSize            = cms.int32(10),
-                                 maxDigiSize            = cms.int32(10),
+                                 checkForMissingDigis   = cms.untracked.bool(False),
+                                 checkCapID             = cms.untracked.bool(True),
+                                 checkDigiSize          = cms.untracked.bool(True),
+                                 checkADCsum            = cms.untracked.bool(True),
+                                 checkDVerr             = cms.untracked.bool(True),
+                                 minDigiSize            = cms.untracked.int32(10),
+                                 maxDigiSize            = cms.untracked.int32(10),
                                  
                                  # block orbit test
-                                 shutOffOrbitTest       = cms.bool(False),
-                                 ExpectedOrbitMessageTime = cms.int32(3559)
+                                 shutOffOrbitTest       = cms.untracked.bool(False),
+                                 ExpectedOrbitMessageTime = cms.untracked.int32(3559)
                                  )

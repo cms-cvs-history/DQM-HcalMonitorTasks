@@ -6,7 +6,7 @@ from DQM.HcalMonitorTasks.HcalHotCellMonitor_cfi       import *
 from DQM.HcalMonitorTasks.HcalDeadCellMonitor_cfi      import *
 from DQM.HcalMonitorTasks.HcalRecHitMonitor_cfi        import *
 from DQM.HcalMonitorTasks.HcalNZSMonitor_cfi           import *
-from DQM.HcalMonitorTasks.HcalBeamMonitor_cfi           import *
+from DQM.HcalMonitorTasks.HcalBeamMonitor_cfi          import *
 
 
 

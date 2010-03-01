@@ -2,33 +2,33 @@ import FWCore.ParameterSet.Config as cms
 
 hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
                                  # base class stuff
-                                 debug                  = cms.int32(0),
-                                 online                 = cms.bool(False),
-                                 AllowedCalibTypes      = cms.vint32(0),  # by default, don't include calibration events
-                                 mergeRuns              = cms.bool(False),
-                                 enableCleanup          = cms.bool(False),
-                                 subSystemFolder        = cms.string("Hcal/"),
-                                 TaskFolder             = cms.string("RecHitMonitor_Hcal/"),
-                                 skipOutOfOrderLS       = cms.bool(False),
-                                 NLumiBlocks            = cms.int32(4000),
+                                 debug                  = cms.untracked.int32(0),
+                                 online                 = cms.untracked.bool(False),
+                                 AllowedCalibTypes      = cms.untracked.vint32(0),  # by default, don't include calibration events
+                                 mergeRuns              = cms.untracked.bool(False),
+                                 enableCleanup          = cms.untracked.bool(False),
+                                 subSystemFolder        = cms.untracked.string("Hcal/"),
+                                 TaskFolder             = cms.untracked.string("RecHitMonitor_Hcal/"),
+                                 skipOutOfOrderLS       = cms.untracked.bool(False),
+                                 NLumiBlocks            = cms.untracked.int32(4000),
 
                                  # variables specific to HcalRecHitMonitor
                                  
                                  # Input collections
-                                 hbheRechitLabel              = cms.InputTag("hbhereco"),
-                                 hoRechitLabel                = cms.InputTag("horeco"),
-                                 hfRechitLabel                = cms.InputTag("hfreco"),
+                                 hbheRechitLabel              = cms.untracked.InputTag("hbhereco"),
+                                 hoRechitLabel                = cms.untracked.InputTag("horeco"),
+                                 hfRechitLabel                = cms.untracked.InputTag("hfreco"),
                                  
-                                 L1GTLabel                    = cms.InputTag("l1GtUnpack"),
+                                 L1GTLabel                    = cms.untracked.InputTag("l1GtUnpack"),
 
-                                 L1TriggerBits                = cms.vint32(8,9,10), # passes L1 if any of the bits are true
-                                 BPTXBits                     = cms.vint32(4), # passes BPTX if any of the bits are true
+                                 L1TriggerBits                = cms.untracked.vint32(8,9,10), # passes L1 if any of the bits are true
+                                 BPTXBits                     = cms.untracked.vint32(4), # passes BPTX if any of the bits are true
 
-                                 energyThreshold              = cms.double(2.),
-                                 ETThreshold                  = cms.double(0.),
-                                 collisionHFthresh            = cms.double(3.),
-                                 collisionHFETthresh          = cms.double(3.),
-                                 collisionHEthresh            = cms.double(3.),
-                                 collisionHEETthresh          = cms.double(3.),
-                                 collisiontimediffThresh     = cms.double(10.),
+                                 energyThreshold              = cms.untracked.double(2.),
+                                 ETThreshold                  = cms.untracked.double(0.),
+                                 collisionHFthresh            = cms.untracked.double(3.),
+                                 collisionHFETthresh          = cms.untracked.double(3.),
+                                 collisionHEthresh            = cms.untracked.double(3.),
+                                 collisionHEETthresh          = cms.untracked.double(3.),
+                                 collisiontimediffThresh      = cms.untracked.double(10.),
                                  )
