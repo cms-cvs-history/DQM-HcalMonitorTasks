@@ -1,45 +1,74 @@
 #include "DQM/HcalMonitorTasks/interface/HcalNZSMonitor.h"
-#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
-#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
-#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
-#include "DQMServices/Core/interface/DQMStore.h"
-#include "DQMServices/Core/interface/MonitorElement.h"
-#include "FWCore/Common/interface/TriggerNames.h" 
 
-#include "DataFormats/FEDRawData/interface/FEDHeader.h"
-//#include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
-//#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+using namespace std;
+using namespace edm;
+HcalNZSMonitor::HcalNZSMonitor(const edm::ParameterSet& ps) 
+{
+  Online_                = ps.getParameter<bool>("online");
+  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
+  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
+  debug_                 = ps.getParameter<int>("debug");
+  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
+    prefixME_.append("/");
+  subdir_                = ps.getParameter<string>("TaskFolder"); // DigiMonitor_Hcal
+  if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
+    subdir_.append("/");
+  subdir_=prefixME_+subdir_;
+  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
+  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-HcalNZSMonitor::HcalNZSMonitor() {
+  triggers_=ps.getParameter<vector<string> >("nzsHLTnames"); //["HLT_HcalPhiSym","HLT_HcalNZS_8E29]
+  period_=ps.getParameter<int>("NZSeventPeriod"); //4096
+  rawdataLabel_          = ps.getParameter<edm::InputTag>("RawDataLabel");
+  hltresultsLabel_       = ps.getParameter<edm::InputTag>("HLTResultsLabel");
 
 } 
 
 HcalNZSMonitor::~HcalNZSMonitor() {}
 
-void HcalNZSMonitor::reset(){}
+void HcalNZSMonitor::reset()
+{
+  meFEDsizeVsLumi_->Reset();
+  meFEDsizesNZS_->Reset();
+  meL1evtNumber_->Reset();
+  meIsUS_->Reset();
+  meBXtriggered_->Reset();
+  meTrigFrac_->Reset();
+  meFullCMSdataSize_->Reset();
+} // void HcalNZSMonitor::reset()
 
-void HcalNZSMonitor::clearME(){
-  if(m_dbe){
-    m_dbe->setCurrentFolder(baseFolder_);
-    m_dbe->removeContents();
-  }
+void HcalNZSMonitor::cleanup()
+{
+  if(dbe_)
+    {
+      dbe_->setCurrentFolder(subdir_);
+      dbe_->removeContents();
+    }
+}//void HcalNZSMonitor::cleanup()
 
-}
 
-void HcalNZSMonitor::setup(const edm::ParameterSet& ps,
-				  DQMStore* dbe){
-  HcalBaseMonitor::setup(ps,dbe);
+void HcalNZSMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
+{
+  if (debug_>1) std::cout <<"HcalNZSMonitor::beginRun"<<std::endl;
+  HcalBaseDQMonitor::beginRun(run,c);
+
+  if (tevt_==0) this->setup(); // set up histograms if they have not been created before
+  if (mergeRuns_==false)
+    this->reset();
+
+  return;
+
+} // void HcalNZSMonitor::beginRun(...)
+
+
+void HcalNZSMonitor::setup()
+{
+  HcalBaseDQMonitor::setup();
   
-  vector<string> names;
-  names.push_back(string("HLT_HcalPhiSym"));
-  names.push_back(string("HLT_HcalNZS_8E29"));
-
-  triggers_=ps.getUntrackedParameter<vector<string> >("NZSMonitor_nzsHLTnames",names);
-  period_=ps.getUntrackedParameter<int>("NZSMonitor_NZSeventPeriod",4096);
-  
-  baseFolder_ = rootFolder_+"NZSMonitor";
-
-  if(fVerbosity) cout << "About to pushback fedUnpackList_" << endl;
+  if(debug_>1) std::cout << "<HcalNZSMonitor::setup> About to pushback fedUnpackList_" << std::endl;
 
   for (int i=FEDNumbering::MINHCALFEDID; i<=FEDNumbering::MAXHCALFEDID; i++)
     {
@@ -51,54 +80,88 @@ void HcalNZSMonitor::setup(const edm::ParameterSet& ps,
   nAndAcc=0;
   nAcc_Total=0;
   
-  if (m_dbe)
+  if (debug_>1) std::cout <<"<HcalNZSMonitor::setup>  Creating histograms"<<std::endl;
+  if (dbe_)
     {
-      string type;
-      m_dbe->setCurrentFolder(baseFolder_);
+      dbe_->setCurrentFolder(subdir_);
       
-      meFEDsizesNZS_=m_dbe->bookProfile("FED sizes","FED sizes",32,699.5,731.5,100,-1000.0,12000.0,"");
+      meFEDsizesNZS_=dbe_->bookProfile("FED sizes","FED sizes",32,699.5,731.5,100,-1000.0,12000.0,"");
       meFEDsizesNZS_->setAxisTitle("FED number",1);
       meFEDsizesNZS_->setAxisTitle("average size (KB)",2);
       meFEDsizesNZS_->getTProfile()->SetMarkerStyle(22);
       
-      meFEDsizeVsLumi_=m_dbe->bookProfile("FED size Vs lumi block number","FED size Vs lumi block number",Nlumiblocks_,0.5,Nlumiblocks_+0.5,100,0,10000,"");
-      meFEDsizeVsLumi_->setAxisTitle("lumiblock number",1);
-      meFEDsizeVsLumi_->setAxisTitle("average HCAL FED size (KB)",2);
+      meFEDsizeVsLumi_=dbe_->bookProfile("FED_size_Vs_lumi_block_number",
+					 "FED size Vs lumi block number;lumiblock number;average HCAL FED size (kB)",
+					 NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000,"");
       meFEDsizeVsLumi_->getTProfile()->SetMarkerStyle(22);
 
-      meL1evtNumber_=m_dbe->book1D("Is L1 event number multiple of NZS period","Is L1 event number multiple of NZS period",2,0,2);
+      meL1evtNumber_=dbe_->book1D("Is_L1_event_number_multiple_of_NZS_period",
+				  "Is L1 event number multiple of NZS period",2,0,2);
       meL1evtNumber_->setBinLabel(1, "NO", 1);
       meL1evtNumber_->setBinLabel(2, "YES", 1);
 
-      meIsUS_=m_dbe->book1D("IsUnsupressed bit","IsUnsuppressed bit",2,0,2);
+      meIsUS_=dbe_->book1D("Is_Unsuppressed_bit","IsUnsuppressed bit",2,0,2);
       meIsUS_->setBinLabel(1,"NO",1);
       meIsUS_->setBinLabel(2,"YES",1);
 
-      meBXtriggered_=m_dbe->book1D("Triggered BX number","Triggered BX number",3850,0,3850);
+      meBXtriggered_=dbe_->book1D("Triggered_BX_number","Triggered BX number",3850,0,3850);
       meBXtriggered_->setAxisTitle("BX number",1);
 
-      meTrigFrac_=m_dbe->book1D("HLT accept fractions","HLT accept fractions",triggers_.size()+1,0,triggers_.size()+1);
+      meTrigFrac_=dbe_->book1D("HLT_accept_fractions","HLT accept fractions",triggers_.size()+1,0,triggers_.size()+1);
       for (unsigned int k=0; k<triggers_.size(); k++) meTrigFrac_->setBinLabel(k+1,triggers_[k].c_str(),1);
       meTrigFrac_->setBinLabel(triggers_.size()+1,"AND",1);
 
-      meFullCMSdataSize_=m_dbe->bookProfile("full CMS data size","full CMS data size",Nlumiblocks_,0.5,Nlumiblocks_+0.5,100,0,10000,"");
-      meFullCMSdataSize_->setAxisTitle("lumiblock number",1);
-      meFullCMSdataSize_->setAxisTitle("average FEDRawDataCollection size (KB)",2);
+      meFullCMSdataSize_=dbe_->bookProfile("full_CMS_datasize",
+					   "full CMS data size;lumiblock number;average FEDRawDataCollection size (kB)",
+					   NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000,"");
       meFullCMSdataSize_->getTProfile()->SetMarkerStyle(22);
 
-      meEVT_ = m_dbe->bookInt("NZS Task Event Number");
-      meEVT_->Fill(ievt_);    
-      meTOTALEVT_ = m_dbe->bookInt("NZS Task Total Events Processed");
-      meTOTALEVT_->Fill(tevt_);
-    } // if (m_dbe)
+    } // if (dbe_)
   return;
-}
+} // void HcalNZSMonitor::setup()
 
-void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
-                                  const edm::TriggerResults & trigRes,
-                                  int bxNum,
-                                  const edm::TriggerNames & triggerNames)
+
+void HcalNZSMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(e.luminosityBlock())==false) return;
+  
+  edm::Handle<FEDRawDataCollection> rawraw;
+
+  if (!(e.getByLabel(rawdataLabel_,rawraw)))
+    {
+      LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<rawdataLabel_<<" not available";
+      return;
+    }
+
+  edm::Handle<edm::TriggerResults> hltRes;
+  if (!(e.getByLabel(hltresultsLabel_,hltRes)))
+    {
+      if (debug_>0) LogWarning("HcalNZSMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
+      return;
+    }
+
+  const edm::TriggerNames & triggerNames = e.triggerNames(*hltRes);
+  // Collections were found; increment counters
+  HcalBaseDQMonitor::analyze(e,s);
+
+  processEvent(*rawraw, *hltRes, e.bunchCrossing(), triggerNames);
+
+
+} // void HcalNZSMonitor::analyze(...)
+
+
+void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw, 
+				  edm::TriggerResults trigRes, 
+				  int bxNum, 
+				  const edm::TriggerNames& triggerNames)
+{
+  if(!dbe_) 
+    { 
+      if (debug_>0) std::cout <<"HcalNZSMonitor::processEvent DQMStore not instantiated!!!"<<std::endl;  
+      return;
+    }
+
   const unsigned int nTrig(triggerNames.size());
  
   vector<bool> trigAcc;
@@ -122,11 +185,7 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
 	   nAcc[p]++;
 	 }
      }
-   if (andAcc) 
-     {
-       nAndAcc++;
-       meTrigFrac_->setBinContent(triggers_.size()+1,nAndAcc/(float)nAcc_Total);
-     }
+   
    if (orAcc)
      {
        nAcc_Total++;
@@ -135,23 +194,19 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
 	   meTrigFrac_->setBinContent(l+1,nAcc[l]/(float)nAcc_Total);
 	 }
      }
+
+   if (andAcc) 
+     {
+       nAndAcc++;
+       meTrigFrac_->setBinContent(triggers_.size()+1,nAndAcc/(float)nAcc_Total);
+     }
    
-   
-     
   bool processevent=false;
   if (orAcc) processevent=true;
 
   if (!processevent) return;
 
   meBXtriggered_->Fill(bxNum+0.001,1);
-
-  if(!m_dbe) 
-    { 
-      printf("HcalNZSMonitor::processEvent DQMStore not instantiated!!!\n");  
-      return;
-    }
-
-  HcalBaseMonitor::processEvent();
 
   //calculate full HCAL data size:
   size_t hcalSize=0;
@@ -187,7 +242,7 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
   if (hcalIsZS) meIsUS_->Fill(0,1);
   else meIsUS_->Fill(1,1);
 
-  meFEDsizeVsLumi_->Fill(lumiblock+0.001, hcalSize/1024);
+  meFEDsizeVsLumi_->Fill(currentLS+0.001, hcalSize/1024);
   
   size_t fullSize=0;
   for (int j=0; j<FEDNumbering::MAXFEDID; ++j )
@@ -196,7 +251,7 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
       fullSize+=fedData.size();
     }
 
-  meFullCMSdataSize_->Fill(lumiblock+0.001,fullSize/1024);
+  meFullCMSdataSize_->Fill(currentLS+0.001,fullSize/1024);
   
   // get Trigger FED-Id
   const FEDRawData& fedData = rawraw.FEDData(FEDNumbering::MINTriggerGTPFEDID) ;
@@ -208,14 +263,5 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
  
   return;
 
-}
-
-void HcalNZSMonitor::endLuminosityBlock(void) {
-  if (LBprocessed_==true) return;  // LB already processed
-  UpdateMEs();
-  LBprocessed_=true; 
-  return;
-}
-
-void HcalNZSMonitor::UpdateMEs (void ) {}
+} //void HcalNZSMonitor::processEvent(...)
 
