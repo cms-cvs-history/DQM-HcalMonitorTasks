@@ -11,7 +11,7 @@ HcalNZSMonitor::HcalNZSMonitor(const edm::ParameterSet& ps)
   prefixME_              = ps.getParameter<string>("subSystemFolder");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // DigiMonitor_Hcal
+  subdir_                = ps.getParameter<string>("TaskFolder"); // NZSMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
