@@ -5,9 +5,28 @@ from DQM.HcalMonitorTasks.HcalDataIntegrityTask_cfi    import *
 from DQM.HcalMonitorTasks.HcalHotCellMonitor_cfi       import *
 from DQM.HcalMonitorTasks.HcalDeadCellMonitor_cfi      import *
 from DQM.HcalMonitorTasks.HcalRecHitMonitor_cfi        import *
+from DQM.HcalMonitorTasks.HcalNZSMonitor_cfi           import *
+
 
 
 hcalMonitorTasksDefaultSequence=cms.Sequence(hcalDigiMonitor*
                                              hcalHotCellMonitor*
                                              hcalDeadCellMonitor*
                                              hcalRecHitMonitor)
+
+
+
+hcalMonitorTasksOnlineSequence = cms.Sequence(hcalDigiMonitor*
+                                              hcalHotCellMonitor*
+                                              hcalDeadCellMonitor*
+                                              hcalRecHitMonitor*
+                                              hcalNZSMonitor # add DetDiag in online only?  Noise monitor in offline?  Check
+                                              )
+
+
+hcalMonitorTasksOfflineSequence = cms.Sequence(hcalDigiMonitor*
+                                               hcalHotCellMonitor*
+                                               hcalDeadCellMonitor*
+                                               hcalRecHitMonitor)
+                                              
+
