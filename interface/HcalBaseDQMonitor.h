@@ -38,39 +38,39 @@ public:
 protected:
 
   // Analyze
-  void analyze(const edm::Event& e, const edm::EventSetup& c);
+  virtual void analyze(const edm::Event& e, const edm::EventSetup& c);
 
   // BeginJob
-  void beginJob();
+  virtual void beginJob();
 
   // BeginRun
-  void beginRun(const edm::Run& run, const edm::EventSetup& c);
+  virtual void beginRun(const edm::Run& run, const edm::EventSetup& c);
 
   // Begin LumiBlock
-  void beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
+  virtual void beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
                             const edm::EventSetup& c) ;
 
   // End LumiBlock
-  void endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
+  virtual void endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
                           const edm::EventSetup& c);
 
  // EndJob
-  void endJob(void);
+  virtual void endJob(void);
 
   // EndRun
-  void endRun(const edm::Run& run, const edm::EventSetup& c);
+  virtual void endRun(const edm::Run& run, const edm::EventSetup& c);
 
   // Reset
-  void reset(void);
+  virtual void reset(void);
 
   // cleanup
-  void cleanup(void);
+  virtual void cleanup(void);
 
   // setup
-  void setup(void);
+  virtual void setup(void);
   
   // LumiOutOfOrder
-  bool LumiInOrder(int lumisec);
+  virtual bool LumiInOrder(int lumisec);
 
   void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
   {
@@ -79,7 +79,7 @@ protected:
   }
 
   // IsAllowedCalibType
-  bool IsAllowedCalibType();
+  virtual bool IsAllowedCalibType();
   int currenttype_;
 
   std::vector<int> AllowedCalibTypes_;
