@@ -13,26 +13,26 @@ using namespace edm;
 
 HcalNZSMonitor::HcalNZSMonitor(const edm::ParameterSet& ps) 
 {
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // NZSMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","NZSMonitor_Hcal"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS","false");
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-  triggers_=ps.getParameter<vector<string> >("nzsHLTnames"); //["HLT_HcalPhiSym","HLT_HcalNZS_8E29]
-  period_=ps.getParameter<int>("NZSeventPeriod"); //4096
-  rawdataLabel_          = ps.getParameter<edm::InputTag>("RawDataLabel");
-  hltresultsLabel_       = ps.getParameter<edm::InputTag>("HLTResultsLabel");
+  triggers_=ps.getUntrackedParameter<vector<string> >("nzsHLTnames"); //["HLT_HcalPhiSym","HLT_HcalNZS_8E29]
+  period_=ps.getUntrackedParameter<int>("NZSeventPeriod",4096); //4096
+  rawdataLabel_          = ps.getUntrackedParameter<edm::InputTag>("RawDataLabel");
+  hltresultsLabel_       = ps.getUntrackedParameter<edm::InputTag>("HLTResultsLabel");
 
 } 
 

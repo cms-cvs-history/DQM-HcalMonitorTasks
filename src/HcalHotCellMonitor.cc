@@ -6,39 +6,39 @@ using namespace edm;
 HcalHotCellMonitor::HcalHotCellMonitor(const edm::ParameterSet& ps)
 {
   // Standard information, inherited from base class
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // HotCellMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","HotCellMonitor_Hcal/"); // HotCellMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
 
   // Collection type info
-  hbheRechitLabel_       = ps.getParameter<edm::InputTag>("hbheRechitLabel");
-  hoRechitLabel_         = ps.getParameter<edm::InputTag>("hoRechitLabel");
-  hfRechitLabel_         = ps.getParameter<edm::InputTag>("hfRechitLabel");
+  hbheRechitLabel_       = ps.getUntrackedParameter<edm::InputTag>("hbheRechitLabel");
+  hoRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hoRechitLabel");
+  hfRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hfRechitLabel");
 
   // Hot Cell-specific tests
-  minEvents_      = ps.getParameter<int>("minEvents");
+  minEvents_      = ps.getUntrackedParameter<int>("minEvents");
   minErrorFlag_   = ps.getUntrackedParameter<double>("minErrorFlag",1);
 
   // Set which hot cell checks will be performed
-  test_persistent_         = ps.getParameter<bool>("test_persistent"); // true by default
-  test_neighbor_           = ps.getParameter<bool>("test_neighbor"); // false by default; test disabled
-  test_energy_             = ps.getParameter<bool>("test_energy"); // true by default
+  test_persistent_         = ps.getUntrackedParameter<bool>("test_persistent"); // true by default
+  test_neighbor_           = ps.getUntrackedParameter<bool>("test_neighbor"); // false by default; test disabled
+  test_energy_             = ps.getUntrackedParameter<bool>("test_energy"); // true by default
 
 
   // rechit energy test -- cell must be above threshold value for a number of consecutive events to be considered hot
-  energyThreshold_                = ps.getParameter<double>("energyThreshold");
+  energyThreshold_                = ps.getUntrackedParameter<double>("energyThreshold");
 
   HBenergyThreshold_              = ps.getUntrackedParameter<double>("energyThreshold_HB",energyThreshold_);
   HEenergyThreshold_              = ps.getUntrackedParameter<double>("energyThreshold_HE",energyThreshold_);
@@ -46,7 +46,7 @@ HcalHotCellMonitor::HcalHotCellMonitor(const edm::ParameterSet& ps)
   HFenergyThreshold_              = ps.getUntrackedParameter<double>("energyThreshold_HF",energyThreshold_);
 
   // rechit event-by-event energy test -- cell must be above threshold to be considered hot
-  persistentThreshold_           = ps.getParameter<double>("persistentThreshold");
+  persistentThreshold_           = ps.getUntrackedParameter<double>("persistentThreshold");
 
   HBpersistentThreshold_         = ps.getUntrackedParameter<double>("persistentThreshold_HB",persistentThreshold_);
   HEpersistentThreshold_         = ps.getUntrackedParameter<double>("persistentThreshold_HE",persistentThreshold_);

@@ -18,48 +18,48 @@ using namespace edm;
 HcalRecHitMonitor::HcalRecHitMonitor(const edm::ParameterSet& ps)
 {
   // Common Base Class parameters
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getParameter<string>("subSystemFolder"); // Hcal
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // Test
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","RecHitMonitor_Hcal/"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",false);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-  hbheRechitLabel_       = ps.getParameter<edm::InputTag>("hbheRechitLabel");
-  hoRechitLabel_         = ps.getParameter<edm::InputTag>("hoRechitLabel");
-  hfRechitLabel_         = ps.getParameter<edm::InputTag>("hfRechitLabel");
-  l1gtLabel_             = ps.getParameter<edm::InputTag>("L1GTLabel"); // should be l1GtUnpack
+  hbheRechitLabel_       = ps.getUntrackedParameter<edm::InputTag>("hbheRechitLabel");
+  hoRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hoRechitLabel");
+  hfRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hfRechitLabel");
+  l1gtLabel_             = ps.getUntrackedParameter<edm::InputTag>("L1GTLabel"); // should be l1GtUnpack
 
-  L1TriggerBits_         = ps.getParameter<std::vector<int> >("L1TriggerBits");
-  BPTXBits_              = ps.getParameter<std::vector<int> >("BPTXBits");
+  L1TriggerBits_         = ps.getUntrackedParameter<std::vector<int> >("L1TriggerBits");
+  BPTXBits_              = ps.getUntrackedParameter<std::vector<int> >("BPTXBits");
 
-  energyThreshold_       = ps.getParameter<double>("energyThreshold");
+  energyThreshold_       = ps.getUntrackedParameter<double>("energyThreshold",2);
   HBenergyThreshold_     = ps.getUntrackedParameter<double>("HB_energyThreshold",energyThreshold_);
   HEenergyThreshold_     = ps.getUntrackedParameter<double>("HE_energyThreshold",energyThreshold_);
   HOenergyThreshold_     = ps.getUntrackedParameter<double>("HO_energyThreshold",energyThreshold_);
   HFenergyThreshold_     = ps.getUntrackedParameter<double>("HF_energyThreshold",energyThreshold_);
   
-  ETThreshold_       = ps.getParameter<double>("ETThreshold");
+  ETThreshold_       = ps.getUntrackedParameter<double>("ETThreshold",0);
   HBETThreshold_     = ps.getUntrackedParameter<double>("HB_ETThreshold",ETThreshold_);
   HEETThreshold_     = ps.getUntrackedParameter<double>("HE_ETThreshold",ETThreshold_);
   HOETThreshold_     = ps.getUntrackedParameter<double>("HO_ETThreshold",ETThreshold_);
   HFETThreshold_     = ps.getUntrackedParameter<double>("HF_ETThreshold",ETThreshold_);
 
-  timediffThresh_    = ps.getParameter<double>("collisiontimediffThresh");
+  timediffThresh_    = ps.getUntrackedParameter<double>("collisiontimediffThresh",10.);
 
-  collisionHFthresh_ = ps.getParameter<double>("collisionHFthresh");
-  collisionHEthresh_ = ps.getParameter<double>("collisionHEthresh");
-  collisionHFETthresh_ = ps.getParameter<double>("collisionHFETthresh");
-  collisionHEETthresh_ = ps.getParameter<double>("collisionHEETthresh");
+  collisionHFthresh_ = ps.getUntrackedParameter<double>("collisionHFthresh",3.);
+  collisionHEthresh_ = ps.getUntrackedParameter<double>("collisionHEthresh",3.);
+  collisionHFETthresh_ = ps.getUntrackedParameter<double>("collisionHFETthresh",3.);
+  collisionHEETthresh_ = ps.getUntrackedParameter<double>("collisionHEETthresh",3.);
 
 } //constructor
 

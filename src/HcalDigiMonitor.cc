@@ -8,41 +8,41 @@ using namespace edm;
 // constructor
 HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps) 
 {
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // DigiMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DigiMonitor_Hcal"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-  digiLabel_     = ps.getParameter<edm::InputTag>("digiLabel");
-  shapeThresh_   = ps.getParameter<int>("shapeThresh");
+  digiLabel_     = ps.getUntrackedParameter<edm::InputTag>("digiLabel");
+  shapeThresh_   = ps.getUntrackedParameter<int>("shapeThresh",50);
   //shapeThresh_ is used for plotting pulse shapes for all digis with ADC sum > shapeThresh_;
-  shapeThreshHB_ = ps.getParameter<int>("shapeThreshHB");
-  shapeThreshHE_ = ps.getParameter<int>("shapeThreshHE");
-  shapeThreshHF_ = ps.getParameter<int>("shapeThreshHF");
-  shapeThreshHO_ = ps.getParameter<int>("shapeThreshHO");
+  shapeThreshHB_ = ps.getUntrackedParameter<int>("shapeThreshHB",shapeThresh_);
+  shapeThreshHE_ = ps.getUntrackedParameter<int>("shapeThreshHE",shapeThresh_);
+  shapeThreshHF_ = ps.getUntrackedParameter<int>("shapeThreshHF",shapeThresh_);
+  shapeThreshHO_ = ps.getUntrackedParameter<int>("shapeThreshHO",shapeThresh_);
 
   if (debug_>0)
     std::cout <<"<HcalDigiMonitor> Digi shape ADC threshold set to: >" << shapeThresh_ << std::endl;
   
   // Specify which tests to run when looking for problem digis
-  digi_checkoccupancy_ = ps.getParameter<bool>("checkForMissingDigis"); // off by default -- checked by dead cell monitor
-  digi_checkcapid_     = ps.getParameter<bool>("checkCapID");
-  digi_checkdigisize_  = ps.getParameter<bool>("checkDigiSize");
-  digi_checkadcsum_    = ps.getParameter<bool>("checkADCsum");
-  digi_checkdverr_     = ps.getParameter<bool>("checkDVerr");
-  mindigisize_ = ps.getParameter<int>("minDigiSize");
-  maxdigisize_ = ps.getParameter<int>("maxDigiSize");
+  digi_checkoccupancy_ = ps.getUntrackedParameter<bool>("checkForMissingDigis",false); // off by default -- checked by dead cell monitor
+  digi_checkcapid_     = ps.getUntrackedParameter<bool>("checkCapID",true);
+  digi_checkdigisize_  = ps.getUntrackedParameter<bool>("checkDigiSize",true);
+  digi_checkadcsum_    = ps.getUntrackedParameter<bool>("checkADCsum",true);
+  digi_checkdverr_     = ps.getUntrackedParameter<bool>("checkDVerr",true);
+  mindigisize_ = ps.getUntrackedParameter<int>("minDigiSize",10);
+  maxdigisize_ = ps.getUntrackedParameter<int>("maxDigiSize",10);
 
   if (debug_>1)
     {
@@ -53,8 +53,8 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
       if (digi_checkdverr_) std::cout <<"\tChecking that data valid bit is true and digi error bit is false;\n"<<std::endl;
     }
   
-  shutOffOrbitTest_ = ps.getParameter<bool>("shutOffOrbitTest");
-  DigiMonitor_ExpectedOrbitMessageTime_=ps.getParameter<int>("ExpectedOrbitMessageTime"); // -1 means that orbit mismatches won't be checked
+  shutOffOrbitTest_ = ps.getUntrackedParameter<bool>("shutOffOrbitTest",false);
+  DigiMonitor_ExpectedOrbitMessageTime_=ps.getUntrackedParameter<int>("ExpectedOrbitMessageTime",3559); // -1 means that orbit mismatches won't be checked
 }
 
 // destructor

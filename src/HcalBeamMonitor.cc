@@ -35,33 +35,33 @@ HcalBeamMonitor::HcalBeamMonitor(const edm::ParameterSet& ps):
   ETA_OFFSET_HF(41),
   ETA_BOUND_HF(29)
 {
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // BeamMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","BeamMonitor_Hcal");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
   // Beam Monitor-specific stuff
 
   // Collection type info
-  digiLabel_             =ps.getParameter<edm::InputTag>("digiLabel");
-  hbheRechitLabel_       = ps.getParameter<edm::InputTag>("hbheRechitLabel");
-  hoRechitLabel_         = ps.getParameter<edm::InputTag>("hoRechitLabel");
-  hfRechitLabel_         = ps.getParameter<edm::InputTag>("hfRechitLabel");
+  digiLabel_             =ps.getUntrackedParameter<edm::InputTag>("digiLabel");
+  hbheRechitLabel_       = ps.getUntrackedParameter<edm::InputTag>("hbheRechitLabel");
+  hoRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hoRechitLabel");
+  hfRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hfRechitLabel");
 
   // minimum events required in lumi block for tests to be processed
-  minEvents_       = ps.getParameter<int>("minEvents"); //500
-  lumiqualitydir_ = ps.getParameter<std::string>("lumiqualitydir");
+  minEvents_       = ps.getUntrackedParameter<int>("minEvents",500); 
+  lumiqualitydir_ = ps.getUntrackedParameter<std::string>("lumiqualitydir","");
   if (lumiqualitydir_.size()>0 && lumiqualitydir_.substr(lumiqualitydir_.size()-1,lumiqualitydir_.size())!="/")
     lumiqualitydir_.append("/");
   occThresh_ = ps.getUntrackedParameter<double>("occupancyThresh",0.0625);

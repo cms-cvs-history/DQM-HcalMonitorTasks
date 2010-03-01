@@ -5,32 +5,32 @@ using namespace edm;
 
 HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
 {
-  Online_                = ps.getParameter<bool>("online");
-  mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",false);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  prefixME_              = ps.getParameter<string>("subSystemFolder");
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // DeadCellMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DeadCellMonitor_Hcal"); // DeadCellMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
 
   // DeadCell-specific parameters
 
   // Collection type info
-  digiLabel_             =ps.getParameter<edm::InputTag>("digiLabel");
-  hbheRechitLabel_       = ps.getParameter<edm::InputTag>("hbheRechitLabel");
-  hoRechitLabel_         = ps.getParameter<edm::InputTag>("hoRechitLabel");
-  hfRechitLabel_         = ps.getParameter<edm::InputTag>("hfRechitLabel");
+  digiLabel_             =ps.getUntrackedParameter<edm::InputTag>("digiLabel");
+  hbheRechitLabel_       = ps.getUntrackedParameter<edm::InputTag>("hbheRechitLabel");
+  hoRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hoRechitLabel");
+  hfRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hfRechitLabel");
 
   // minimum number of events required for lumi section-based dead cell checks
-  minDeadEventCount_    = ps.getParameter<int>("minDeadEventCount");
+  minDeadEventCount_    = ps.getUntrackedParameter<int>("minDeadEventCount",1000);
 
   // Set which dead cell checks will be performed
   /* Dead cells can be defined in the following ways:
@@ -44,11 +44,11 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
      and both rechit tests are made only if deadmon_test_rechits_ is true
   */
   
-  deadmon_test_digis_              = ps.getParameter<bool>("test_digis");
-  deadmon_test_rechits_            = ps.getParameter<bool>("test_rechits");
+  deadmon_test_digis_              = ps.getUntrackedParameter<bool>("test_digis",true);
+  deadmon_test_rechits_            = ps.getUntrackedParameter<bool>("test_rechits",false);
 
   // rechit energy test -- cell must be below threshold value for a number of consecutive events to be considered dead
-  energyThreshold_       = ps.getParameter<double>("MissingRechitEnergyThreshold");
+  energyThreshold_       = ps.getUntrackedParameter<double>("MissingRechitEnergyThreshold",0);
   HBenergyThreshold_     = ps.getUntrackedParameter<double>("HB_energyThreshold",energyThreshold_);
   HEenergyThreshold_     = ps.getUntrackedParameter<double>("HE_energyThreshold",energyThreshold_);
   HOenergyThreshold_     = ps.getUntrackedParameter<double>("HO_energyThreshold",energyThreshold_);
