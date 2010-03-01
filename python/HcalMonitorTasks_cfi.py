@@ -6,27 +6,31 @@ from DQM.HcalMonitorTasks.HcalHotCellMonitor_cfi       import *
 from DQM.HcalMonitorTasks.HcalDeadCellMonitor_cfi      import *
 from DQM.HcalMonitorTasks.HcalRecHitMonitor_cfi        import *
 from DQM.HcalMonitorTasks.HcalNZSMonitor_cfi           import *
+from DQM.HcalMonitorTasks.HcalBeamMonitor_cfi           import *
 
 
 
-hcalMonitorTasksDefaultSequence=cms.Sequence(hcalDigiMonitor*
-                                             hcalHotCellMonitor*
-                                             hcalDeadCellMonitor*
-                                             hcalRecHitMonitor)
+hcalMonitorTasksDefaultSequence=cms.Sequence(hcalDigiMonitor
+                                             *hcalHotCellMonitor
+                                             *hcalDeadCellMonitor
+                                             *hcalRecHitMonitor
+                                             *hcalBeamMonitor
+                                             )
 
-
-
-hcalMonitorTasksOnlineSequence = cms.Sequence(hcalDigiMonitor*
-                                              hcalHotCellMonitor*
-                                              hcalDeadCellMonitor*
-                                              hcalRecHitMonitor*
-                                              hcalNZSMonitor # add DetDiag in online only?  Noise monitor in offline?  Check
+hcalMonitorTasksOnlineSequence = cms.Sequence(hcalDigiMonitor
+                                              *hcalHotCellMonitor
+                                              *hcalDeadCellMonitor
+                                              *hcalRecHitMonitor
+                                              *hcalBeamMonitor
+                                              *hcalNZSMonitor # add DetDiag in online only?  Noise monitor in offline?  Check
                                               )
 
 
-hcalMonitorTasksOfflineSequence = cms.Sequence(hcalDigiMonitor*
-                                               hcalHotCellMonitor*
-                                               hcalDeadCellMonitor*
-                                               hcalRecHitMonitor)
+hcalMonitorTasksOfflineSequence = cms.Sequence(hcalDigiMonitor
+                                               *hcalHotCellMonitor
+                                               *hcalDeadCellMonitor
+                                               *hcalRecHitMonitor
+                                               *hcalBeamMonitor
+                                               )
                                               
 
