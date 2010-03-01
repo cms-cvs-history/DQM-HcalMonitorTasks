@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/28 16:12:33 $
- * $Revision: 1.1.2.5 $
+ * $Date: 2010/03/01 13:55:35 $
+ * $Revision: 1.1.2.6 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -89,6 +89,7 @@ void HcalBaseDQMonitor::reset(void)
   levt_=0;
   if (meTevt_) meTevt_->Fill(-1);
   tevt_=0;
+  if (meTevtHist_) meTevtHist_->Reset();
   HBpresent_=false;
   HEpresent_=false;
   HOpresent_=false;
@@ -111,7 +112,8 @@ void HcalBaseDQMonitor::setup(void)
   if (meLevt_) meLevt_->Fill(-1);
   meTevt_ = dbe_->bookInt("EventsProcessed_All");
   if (meTevt_) meTevt_->Fill(-1);
-  
+  meTevtHist_=dbe_->book1D("EventsProcessed_AllHists","Counter of Events Processed By This Task",1,0.5,1.5);
+  if (meTevtHist_) meTevtHist_->Reset();
 } // setup()
 
 
@@ -177,6 +179,7 @@ void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   // fill with total events seen (this differs from ievent, which is total # of good events)
   ++tevt_;
   if (meTevt_) meTevt_->Fill(tevt_);
+  if (meTevtHist_) meTevtHist_->Fill(1);
   // skip out of order lumi events
   if (this->LumiInOrder(e.luminosityBlock())==false)
     {

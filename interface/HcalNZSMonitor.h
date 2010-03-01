@@ -2,20 +2,10 @@
 #define DQM_HCALMONITORTASKS_HCALNZSMONITOR_H
 
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
-#include "EventFilter/HcalRawToDigi/interface/HcalUnpacker.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
-#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
-
+#include "EventFilter/HcalRawToDigi/interface/HcalUnpacker.h"  // need for emap
 #include "DataFormats/FEDRawData/interface/FEDRawDataCollection.h"
-#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
-#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
-#include "DataFormats/FEDRawData/interface/FEDHeader.h"
-
 #include "DataFormats/Common/interface/TriggerResults.h"
-#include "FWCore/Common/interface/TriggerNames.h"
-
-
-#include <math.h>
 
 class HcalNZSMonitor: public HcalBaseDQMonitor 
 {

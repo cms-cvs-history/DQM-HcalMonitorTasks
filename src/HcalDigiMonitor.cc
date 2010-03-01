@@ -1,4 +1,6 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDigiMonitor.h"
+#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+#include <cmath>
 
 using namespace std;
 using namespace edm;

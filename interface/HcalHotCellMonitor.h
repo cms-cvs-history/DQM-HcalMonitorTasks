@@ -6,15 +6,14 @@
 // collection info
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
-#include "DQM/HcalMonitorTasks/interface/HcalEtaPhiHists.h"
 
 #include <cmath>
 
 
 /** \class HcalHotCellMonitor
   *
-  * $Date: 2010/02/25 20:02:11 $
-  * $Revision: 1.37.2.1 $
+  * $Date: 2010/02/28 20:24:02 $
+  * $Revision: 1.37.2.2 $
   * \author J. Temple - Univ. of Maryland
   */
 

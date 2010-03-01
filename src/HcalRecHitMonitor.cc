@@ -1,5 +1,16 @@
 #include "DQM/HcalMonitorTasks/interface/HcalRecHitMonitor.h"
-#include "FWCore/Common/interface/TriggerNames.h" // any reason not to put this in header file?
+#include "FWCore/Common/interface/TriggerNames.h" 
+#include "CondFormats/HcalObjects/interface/HcalChannelStatus.h"
+#include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
+
+#include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
+#include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
+#include "RecoLocalCalo/HcalRecAlgos/interface/HcalCaloFlagLabels.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
+#include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h" // for eta bounds
+#include "FWCore/MessageLogger/interface/MessageLogger.h"
+#include <cmath>
 
 using namespace std;
 using namespace edm;

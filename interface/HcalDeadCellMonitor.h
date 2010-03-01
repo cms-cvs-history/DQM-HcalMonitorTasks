@@ -2,12 +2,8 @@
 #define DQM_HCALMONITORTASKS_HCALDEADCELLMONITOR_H
 
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
-#include "CondFormats/HcalObjects/interface/HcalChannelStatus.h"
-#include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
-
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
-#include "DQM/HcalMonitorTasks/interface/HcalEtaPhiHists.h"
 
 #include <cmath>
 #include <iostream>
@@ -15,8 +11,8 @@
 
 /** \class HcalDeadCellMonitor
   *
-  * $Date: 2010/02/18 20:41:46 $
-  * $Revision: 1.42 $
+  * $Date: 2010/02/28 20:21:50 $
+  * $Revision: 1.42.2.1 $
   * \author J. Temple - Univ. of Maryland
   */
 

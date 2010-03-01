@@ -78,8 +78,6 @@ protected:
     return;
   }
 
-
-
   // IsAllowedCalibType
   bool IsAllowedCalibType();
   int currenttype_;
@@ -100,6 +98,8 @@ protected:
   MonitorElement* meIevt_;
   MonitorElement* meTevt_;
   MonitorElement* meLevt_;
+  MonitorElement* meTevtHist_;
+
   bool eventAllowed_;
   bool skipOutOfOrderLS_;
   bool makeDiagnostics_;

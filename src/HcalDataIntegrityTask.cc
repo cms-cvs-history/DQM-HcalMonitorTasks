@@ -1,4 +1,9 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDataIntegrityTask.h"
+#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+#include "EventFilter/HcalRawToDigi/interface/HcalHTRData.h"
+#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
+#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
+#include <iostream>
 
 using namespace std;
 using namespace edm;

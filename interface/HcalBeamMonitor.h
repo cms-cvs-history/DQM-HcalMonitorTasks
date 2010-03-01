@@ -2,8 +2,6 @@
 #define GUARD_DQM_HCALMONITORTASKS_HCALBEAMMONITOR_H
 
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
-#include "FWCore/Framework/interface/Event.h"
-#include "FWCore/Framework/interface/EventSetup.h"
 #include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
 #include "CondFormats/DataRecord/interface/HcalChannelQualityRcd.h"
 #include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h"
@@ -11,18 +9,14 @@
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
 
-
 // Use for stringstream
 #include <iostream>
 #include <fstream>
 
-#include <iomanip>
-#include <cmath>
-
 /** \class HcalBeamMonitor
   *
-  * $Date: 2009/11/24 09:45:19 $
-  * $Revision: 1.16 $
+  * $Date: 2010/03/01 13:53:55 $
+  * $Revision: 1.16.4.1 $
   * \author J. Temple - Univ. of Maryland
   */
 

@@ -1,7 +1,16 @@
 #include "DQM/HcalMonitorTasks/interface/HcalNZSMonitor.h"
 
+#include "DataFormats/FEDRawData/interface/FEDNumbering.h"
+#include "DataFormats/FEDRawData/interface/FEDTrailer.h"
+#include "DataFormats/FEDRawData/interface/FEDHeader.h"
+#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+
+#include "FWCore/Common/interface/TriggerNames.h"
+#include <math.h>
+
 using namespace std;
 using namespace edm;
+
 HcalNZSMonitor::HcalNZSMonitor(const edm::ParameterSet& ps) 
 {
   Online_                = ps.getParameter<bool>("online");

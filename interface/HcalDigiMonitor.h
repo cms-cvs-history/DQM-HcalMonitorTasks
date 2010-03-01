@@ -2,14 +2,8 @@
 #define DQM_HCALMONITORTASKS_HCALDIGIDQMONITOR_H
 
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
-#include "DQMServices/Core/interface/DQMStore.h"
-#include "DQMServices/Core/interface/MonitorElement.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalUnpacker.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
-#include "CalibFormats/HcalObjects/interface/HcalDbService.h"
-#include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
-#include <cmath>
-
 #include "CalibFormats/HcalObjects/interface/HcalDbService.h"
 #include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 
@@ -19,8 +13,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2010/02/25 20:02:48 $
-  * $Revision: 1.56.2.2 $
+  * $Date: 2010/02/28 20:24:02 $
+  * $Revision: 1.56.2.3 $
   * \author J. Temple - Univ. of Maryland
   */
 

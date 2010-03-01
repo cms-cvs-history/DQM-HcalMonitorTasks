@@ -2,32 +2,18 @@
 #define DQM_HCALMONITORTASKS_HCALRECHITMONITOR_H
 
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
-#include "CondFormats/HcalObjects/interface/HcalChannelStatus.h"
-#include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
-
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
-
-
-#include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
-#include "RecoLocalCalo/HcalRecAlgos/interface/HcalCaloFlagLabels.h"
-#include "DataFormats/Common/interface/TriggerResults.h"
-#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
-#include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h" // for eta bounds
-#include "FWCore/MessageLogger/interface/MessageLogger.h"
-
-#include <cmath>
 
 #define RECHITMON_TIME_MIN -250
 #define RECHITMON_TIME_MAX 250
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/02/28 17:51:19 $
-  * $Revision: 1.46.2.1 $
+  * $Date: 2010/02/28 20:23:14 $
+  * $Revision: 1.46.2.2 $
   * \author J. Temple - Univ. of Maryland
   */
-
 
 class HcalRecHitMonitor: public HcalBaseDQMonitor {
 

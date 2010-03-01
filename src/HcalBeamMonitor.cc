@@ -1,4 +1,10 @@
 #include "DQM/HcalMonitorTasks/interface/HcalBeamMonitor.h"
+#include "CondFormats/HcalObjects/interface/HcalChannelQuality.h"
+#include "CondFormats/DataRecord/interface/HcalChannelQualityRcd.h"
+#include "Geometry/HcalTowerAlgo/src/HcalHardcodeGeometryData.h"
+
+#include <iomanip>
+#include <cmath>
 
 // define sizes of ieta arrays for each subdetector
 
