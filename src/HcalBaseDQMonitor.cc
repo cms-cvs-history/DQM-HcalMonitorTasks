@@ -3,8 +3,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/02/26 19:11:27 $
- * $Revision: 1.1.2.4 $
+ * $Date: 2010/02/28 16:12:33 $
+ * $Revision: 1.1.2.5 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -93,6 +93,8 @@ void HcalBaseDQMonitor::reset(void)
   HEpresent_=false;
   HOpresent_=false;
   HFpresent_=false;
+  currentLS=0;
+  currenttype_=-1;
 } //reset()
 
 void HcalBaseDQMonitor::cleanup(void)
@@ -141,35 +143,35 @@ bool HcalBaseDQMonitor::LumiInOrder(int lumisec)
 
 bool HcalBaseDQMonitor::IsAllowedCalibType()
 {
-  if (debug_>2) std::cout <<"<HcalBaseDQMonitor::IsAllowedCalibType>"<<std::endl;
+  if (debug_>9) std::cout <<"<HcalBaseDQMonitor::IsAllowedCalibType>"<<std::endl;
   if (AllowedCalibTypes_.size()==0)
     {
-      if (debug_>2) std::cout <<"\tNo calib types specified by user; All events allowed"<<std::endl;
+      if (debug_>9) std::cout <<"\tNo calib types specified by user; All events allowed"<<std::endl;
       return true;
     }
   MonitorElement* me = dbe_->get((prefixME_+"DQM Job Status/CURRENT_EVENT_TYPE").c_str());
   if (me) currenttype_=me->getIntValue();
   else 
     {
-      if (debug_>2) std::cout <<"\tCalib Type cannot be determined from HcalMonitorModule"<<std::endl;
+      if (debug_>9) std::cout <<"\tCalib Type cannot be determined from HcalMonitorModule"<<std::endl;
       return true; // is current type can't be determined, assume event is allowed
     }
-  if (debug_>2) std::cout <<"\tHcalBaseDQMonitor::IsAllowedCalibType  checking if calibration type = "<<currenttype_<<" is allowed...";
+  if (debug_>9) std::cout <<"\tHcalBaseDQMonitor::IsAllowedCalibType  checking if calibration type = "<<currenttype_<<" is allowed...";
   for (std::vector<int>::size_type i=0;i<AllowedCalibTypes_.size();++i)
     {
       if (AllowedCalibTypes_[i]==currenttype_)
 	{
-	  if (debug_>2) std::cout <<"\t Type allowed!"<<std::endl;
+	  if (debug_>9) std::cout <<"\t Type allowed!"<<std::endl;
 	  return true;
 	}
     }
-  if (debug_>2) std::cout <<"\t Type not allowed!"<<std::endl;
+  if (debug_>9) std::cout <<"\t Type not allowed!"<<std::endl;
   return false;
 } // bool HcalBaseDQMonitor::IsAllowedCalibType()
 
 void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
 {
-  if (debug_>2) std::cout <<"\t<HcalBaseDQMonitor::analyze>  event = "<<ievt_<<std::endl;
+  if (debug_>5) std::cout <<"\t<HcalBaseDQMonitor::analyze>  event = "<<ievt_<<std::endl;
   eventAllowed_=true; // assume event is allowed
 
   // fill with total events seen (this differs from ievent, which is total # of good events)
