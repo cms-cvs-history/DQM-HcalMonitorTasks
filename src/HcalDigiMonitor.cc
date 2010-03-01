@@ -18,7 +18,6 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
   AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  ievt_=0;
   skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
   NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
