@@ -4,7 +4,7 @@ hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                  # base class stuff
                                  debug                  = cms.int32(0),
                                  online                 = cms.bool(False),
-                                 AllowedCalibTypes      = cms.vint32(0), # by default, don't include calibratin events
+                                 AllowedCalibTypes      = cms.vint32(0), # by default, don't include calibration events
                                  mergeRuns              = cms.bool(False),
                                  enableCleanup          = cms.bool(False),
                                  subSystemFolder        = cms.string("Hcal/"),

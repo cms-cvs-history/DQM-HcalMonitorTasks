@@ -4,7 +4,7 @@ hcalBeamMonitor=cms.EDAnalyzer("HcalBeamMonitor",
                                # base class stuff
                                debug                  = cms.int32(0),
                                online                 = cms.bool(False),
-                               AllowedCalibTypes      = cms.vint32(),
+                               AllowedCalibTypes      = cms.vint32(0),
                                mergeRuns              = cms.bool(False),
                                enableCleanup          = cms.bool(False),
                                subSystemFolder        = cms.string("Hcal/"),
