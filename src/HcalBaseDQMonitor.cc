@@ -1,10 +1,9 @@
 #include <DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h>
-
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/03/01 19:14:10 $
- * $Revision: 1.1.2.7 $
+ * $Date: 2010/03/01 19:45:33 $
+ * $Revision: 1.1.2.8 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -105,6 +104,7 @@ void HcalBaseDQMonitor::cleanup(void)
 
 void HcalBaseDQMonitor::setup(void)
 {
+  if (debug_>3) std::cout <<"<HcalBaseDQMonitor> setup in progress"<<std::endl;
   dbe_->setCurrentFolder(subdir_);
   meIevt_ = dbe_->bookInt("EventsProcessed");
   if (meIevt_) meIevt_->Fill(-1);
