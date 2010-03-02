@@ -397,6 +397,8 @@ void HcalDigiMonitor::processEvent(const HBHEDigiCollection& hbhe,
 	h_invalid_orbitnumMod103->Fill(orN%103);
       return;
     }
+  
+  h_valid_digis->Fill(0);
 
   hbHists.count_bad=0;
   hbHists.count_good=0;
@@ -666,10 +668,11 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 
   for (int i=0;i<digi.size();++i)
     {
+      int thisCapid = digi.sample(i).capid();
+      if (thisCapid<4) ++h.capid[thisCapid];
+
       if (makeDiagnostics_)
 	{
-	  int thisCapid = digi.sample(i).capid();
-	  if (thisCapid<4) ++h.capid[thisCapid];
 	  if(bitUpset(last,thisCapid)) bitUp=true; // checking capID rotation
 	  last = thisCapid;
 	  // Check for digi error bits
