@@ -376,7 +376,7 @@ void HcalBeamMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
   HcalBaseDQMonitor::beginRun(run,c);
 
   lastProcessedLS_=0;
-  runNumber_=run.run();
+  runNumber_=run.id().run();
   if (lumiqualitydir_.size()>0 && Online_==true)
     {
       outfile_ <<lumiqualitydir_<<"HcalHFLumistatus_"<<runNumber_<<".txt";
