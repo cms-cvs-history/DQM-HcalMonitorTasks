@@ -143,10 +143,9 @@ void HcalBeamMonitor::cleanup()
 
 void HcalBeamMonitor::setup()
 {
-  
+   if (debug_>0) std::cout <<"<HcalBeamMonitor::setup> Setup in progress..."<<std::endl;
   HcalBaseDQMonitor::setup();
   if (!dbe_) return;
-  if (debug_>0) std::cout <<"<HcalBeamMonitor::setup> Setup in progress"<<std::endl;
 
   //jason's
   dbe_->setCurrentFolder(subdir_);
@@ -1098,7 +1097,6 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 					 const edm::EventSetup& c)
 {
   if (debug_>1) std::cout <<"<HcalBeamMonitor::endLuminosityBlock>"<<std::endl;
-  cout <<"Current LS = "<<currentLS<<"  lumiblock = "<<lumiSeg.luminosityBlock()<<endl;
   if (LumiInOrder(lumiSeg.luminosityBlock())==false)
     {
       if (debug_>1)  

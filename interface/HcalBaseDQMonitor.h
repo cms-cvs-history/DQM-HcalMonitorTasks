@@ -70,7 +70,7 @@ protected:
   virtual void setup(void);
   
   // LumiOutOfOrder
-  virtual bool LumiInOrder(int lumisec);
+  bool LumiInOrder(int lumisec);
 
   void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
   {
@@ -79,7 +79,7 @@ protected:
   }
 
   // IsAllowedCalibType
-  virtual bool IsAllowedCalibType();
+  bool IsAllowedCalibType();
   int currenttype_;
 
   std::vector<int> AllowedCalibTypes_;
