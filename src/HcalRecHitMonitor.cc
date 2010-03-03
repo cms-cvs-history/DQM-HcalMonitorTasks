@@ -188,7 +188,7 @@ void HcalRecHitMonitor::setup()
   // Histograms for events that did not pass BPTX triggers
   dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX");
   
-  dbe_->setCurrentFolder(subdir_+"Distributions_FaliedBPTX/passedTechTriggers/");
+  dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX/passedTechTriggers/");
   h_HFnotBPTXtimedifference = dbe_->book1D("HFnotBPTXweightedtimeDifference",
 					   "Energy-Weighted time difference between HF+ and HF-",
 					   251,-250.5,250.5);
@@ -454,11 +454,14 @@ void HcalRecHitMonitor::cleanup()
     {
       dbe_->setCurrentFolder(subdir_); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"rechit_parameters"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"rechit_info"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"rechit_info/sumplots"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"rechit_info_threshold"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"rechit_info_threshold/sumplots"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"luminosityplots"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"rechit_parameters/thresholds"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits/sumplots"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX/sumplots"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX/passedTechTriggers/"); dbe_->removeContents();
+
       dbe_->setCurrentFolder(subdir_+"AnomalousCellFlags"); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"diagnostics/hb"); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"diagnostics/he"); dbe_->removeContents();
@@ -466,7 +469,7 @@ void HcalRecHitMonitor::cleanup()
       dbe_->setCurrentFolder(subdir_+"diagnostics/hf"); dbe_->removeContents();
     }
   return;
-} // void HcalRecHitMonitor::clearME()
+} // void HcalRecHitMonitor::cleanup()
 
 /* -------------------------------- */
 

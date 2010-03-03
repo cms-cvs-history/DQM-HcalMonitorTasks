@@ -21,14 +21,13 @@ hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
                                  
                                  L1GTLabel                    = cms.untracked.InputTag("l1GtUnpack"),
 
-                                 L1TriggerBits                = cms.untracked.vint32(8,9,10), # passes L1 if any of the bits are true
-                                 BPTXBits                     = cms.untracked.vint32(0), # passes BPTX if any of the bits are true
+                                 L1TriggerBits                = cms.untracked.vint32(8,9,10), # passes L1 if any of the bits are true; negative values will force the check to be always true
+                                 BPTXBits                     = cms.untracked.vint32(0), # passes BPTX if any of the bits are true; negative values will force the check to be always true 
 
+                                 # Energy thresholds for some BPTX plots
                                  energyThreshold              = cms.untracked.double(2.),
                                  ETThreshold                  = cms.untracked.double(0.),
-                                 collisionHFthresh            = cms.untracked.double(3.),
-                                 collisionHFETthresh          = cms.untracked.double(3.),
-                                 collisionHEthresh            = cms.untracked.double(3.),
-                                 collisionHEETthresh          = cms.untracked.double(3.),
-                                 collisiontimediffThresh      = cms.untracked.double(10.),
+                                 HF_energyThreshold           = cms.untracked.double(3.),
+
+                                 collisiontimediffThresh      = cms.untracked.double(10.) # max time diff between HF+, HF- weighted times for some plot filling
                                  )
