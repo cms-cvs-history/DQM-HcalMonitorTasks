@@ -34,8 +34,8 @@
 
 /** \class HcalRawDataMonitor
  *
- * $Date: 2010/03/01 23:52:57 $
- * $Revision: 1.1.2.1 $
+ * $Date: 2010/03/02 20:59:46 $
+ * $Revision: 1.1.2.2 $
  * \author J. St. John - Boston University
  */
 class HcalRawDataMonitor: public HcalBaseDQMonitor {
@@ -150,8 +150,90 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   float ChannSumm_DataIntegrityCheck_     [TWO___FED][TWO__SPGT];
   float Chann_DataIntegrityCheck_[NUMDCCS][TWO_CHANN][TWO__SPGT];
 
+  MonitorElement* meHalfHTRDataCorruptionIndicators_;
+  MonitorElement* meLRBDataCorruptionIndicators_;
+  MonitorElement* meChannSumm_DataIntegrityCheck_;
+  MonitorElement* meDataFlowInd_;
+
+  //Histogram labelling functions
+  void label_ySpigots(MonitorElement* me_ptr,int ybins);
+  void label_xFEDs   (MonitorElement* me_ptr,int xbins);
+  void label_xChanns (MonitorElement* me_ptr,int xbins);
+
   HcalDetId hashedHcalDetId_[NUMDCCS * NUMSPIGS * HTRCHANMAX];
-  
+
+  MonitorElement* ProblemCells;
+  EtaPhiHists     ProblemCellsByDepth;
+  //backstage accounting mechanisms for the ProblemMap
+  bool problemfound[85][72][4];     // HFd1,2 at 'depths' 3,4 to avoid collision with HE
+  uint64_t problemcount[85][72][4]; // HFd1,2 at 'depths' 3,4 to avoid collision with HE
+  void mapDCCproblem  (int dcc) ;                         // Increment problem counters for affected cells
+  void mapHTRproblem  (int dcc, int spigot) ;             // Increment problem counters for affected cells
+  void mapChannproblem(int dcc, int spigot, int htrchan); // Increment problem counters for affected cell.
+
+  // The following MEs map specific conditons from the EventFragment headers as specified in
+  //   http://cmsdoc.cern.ch/cms/HCAL/document/CountingHouse/DCC/DCC_1Jul06.pdf
+  MonitorElement* meCDFErrorFound_;       //Summary histo of Common Data Format violations by FED ID
+  MonitorElement* meDCCEventFormatError_; //Summary histo of DCC Event Format violations by FED ID 
+
+  //Check that evt numbers are synchronized across all half-HTRs and their DCC
+  MonitorElement* meBCN_;            // Bunch count number distributions
+  MonitorElement* medccBCN_;         // Bunch count number distributions
+  MonitorElement* meBCNCheck_;       // HTR BCN compared to DCC BCN
+  MonitorElement* meBCNSynch_;       // htr-htr disagreement location
+
+  MonitorElement* meEvtNCheck_;      // HTR Evt # compared to DCC Evt #
+  MonitorElement* meEvtNumberSynch_; // htr-htr disagreement location
+
+  MonitorElement* meOrNCheck_;       // htr OrN compared to dcc OrN
+  MonitorElement* meOrNSynch_;       // htr-htr disagreement location
+  MonitorElement* meBCNwhenOrNDiff_; // BCN distribution (subset)
+
+  MonitorElement* mefedEntries_;
+  MonitorElement* meFEDRawDataSizes_;
+  MonitorElement* meEvFragSize_;
+  MonitorElement* meEvFragSize2_;
+  MonitorElement* meDCCVersion_;
+
+  void labelHTRBits(MonitorElement* mePlot,unsigned int axisType);
+  MonitorElement* HTR_StatusWd_HBHE;
+  MonitorElement* HTR_StatusWd_HF;
+  MonitorElement* HTR_StatusWd_HO;
+  MonitorElement* meStatusWdCrate_;  //HTR status bits by crate
+  MonitorElement* meInvHTRData_;
+  MonitorElement* meFibBCN_;
+
+  // The following MEs map specific conditons from the HTR/DCC headers as specified in
+  //   http://cmsdoc.cern.ch/cms/HCAL/document/CountingHouse/HTR/design/Rev4MainFPGA.pdf
+  MonitorElement* meCrate0HTRStatus_;   //Map of HTR errors into Crate 0
+  MonitorElement* meCrate1HTRStatus_;   //Map of HTR errors into Crate 1
+  MonitorElement* meCrate2HTRStatus_;   //Map of HTR errors into Crate 2
+  MonitorElement* meCrate3HTRStatus_;   //Map of HTR errors into Crate 3
+  MonitorElement* meCrate4HTRStatus_;   //Map of HTR errors into Crate 4
+  MonitorElement* meCrate5HTRStatus_;   //Map of HTR errors into Crate 5
+  MonitorElement* meCrate6HTRStatus_;   //Map of HTR errors into Crate 6
+  MonitorElement* meCrate7HTRStatus_;   //Map of HTR errors into Crate 7
+  MonitorElement* meCrate9HTRStatus_;   //Map of HTR errors into Crate 9
+  MonitorElement* meCrate10HTRStatus_;   //Map of HTR errors into Crate 10
+  MonitorElement* meCrate11HTRStatus_;   //Map of HTR errors into Crate 11
+  MonitorElement* meCrate12HTRStatus_;   //Map of HTR errors into Crate 12
+  MonitorElement* meCrate13HTRStatus_;   //Map of HTR errors into Crate 13
+  MonitorElement* meCrate14HTRStatus_;   //Map of HTR errors into Crate 14
+  MonitorElement* meCrate15HTRStatus_;   //Map of HTR errors into Crate 15
+  MonitorElement* meCrate17HTRStatus_;   //Map of HTR errors into Crate 17
+
+  MonitorElement* meUSFractSpigs_;
+  MonitorElement* meHTRFWVersion_;
+  MonitorElement* meFib1OrbMsgBCN_;  //BCN of Fiber 1 Orb Msg
+  MonitorElement* meFib2OrbMsgBCN_;  //BCN of Fiber 2 Orb Msg
+  MonitorElement* meFib3OrbMsgBCN_;  //BCN of Fiber 3 Orb Msg
+  MonitorElement* meFib4OrbMsgBCN_;  //BCN of Fiber 4 Orb Msg
+  MonitorElement* meFib5OrbMsgBCN_;  //BCN of Fiber 5 Orb Msg
+  MonitorElement* meFib6OrbMsgBCN_;  //BCN of Fiber 6 Orb Msg
+  MonitorElement* meFib7OrbMsgBCN_;  //BCN of Fiber 7 Orb Msg
+  MonitorElement* meFib8OrbMsgBCN_;  //BCN of Fiber 8 Orb Msg
+
+
 };
 
 #endif
