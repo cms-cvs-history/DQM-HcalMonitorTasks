@@ -602,9 +602,10 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   int     hboccthresh=0;
   int     heoccthresh=0;
 
-  double en_HFP=0, en_HFM=0, en_HEP=0, en_HEM=0;
-  double time_HFP=0, time_HFM=0, time_HEP=0, time_HEM=0;
-  double rawtime_HFP=0, rawtime_HFM=0, rawtime_HEP=0, rawtime_HEM=0;
+  double EtPlus =0, EtMinus=0;
+  double tPlus=0, tMinus=0;
+  double ePlus=0, eMinus=0;
+
   int hepocc=0, hemocc=0, hfpocc=0, hfmocc=0;
 
   for (unsigned int i=0;i<4;++i)
@@ -695,21 +696,18 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       else if (subdet==HcalEndcap)
 	{
 	  if (en>HEenergyThreshold_ 
-	      && en/cosh(fEta)>HEETThreshold_ 
-	      && BPTX==true)
+	      && en/cosh(fEta)>HEETThreshold_ )
 	    { 
 	      if (ieta>0)
 		{
-		  en_HEP+=en;
-		  time_HEP+=ti*en;
-		  rawtime_HEP+=ti;
+		  ePlus+=en;
+		  tPlus+=ti*en;
 		  hepocc++;
 		}
 	      else
 		{
-		  en_HEM+=en;
-		  time_HEM+=ti*en;
-		  rawtime_HEM+=ti;
+		  eMinus+=en;
+		  tMinus+=ti*en;
 		  hemocc++;
 		}
 	    }
@@ -737,6 +735,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  energy_[calcEta][iphi-1][depth-1]+=en;
           energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_[calcEta][iphi-1][depth-1]+=ti;
+
+	  // Threshold plots require BPTX
 	  if (en>=HEenergyThreshold_ 
 	      && en/cosh(fEta)>HBETThreshold_
 	      && BPTX==true
@@ -769,19 +769,19 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
   if (Online_ && passedHLT && BPTX==true)
     {
-      if (en_HEP !=0 && en_HEM != 0)
+      if (ePlus !=0 && eMinus != 0)
 	{
-	  h_HEtimedifference->Fill((time_HEP/en_HEP)-(time_HEM/en_HEM));
-	  h_HEenergydifference->Fill((en_HEP-en_HEM)/(en_HEP+en_HEM));
+	  h_HEtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  h_HEenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if passedHLT
 
   else if (Online_ && passedHLT && BPTX==false)
     {
-      if (en_HEP !=0 && en_HEM != 0)
+      if (ePlus !=0 && eMinus != 0)
 	{
-	  h_HEnotBPTXtimedifference->Fill((time_HEP/en_HEP)-(time_HEM/en_HEM));
-	  h_HEnotBPTXenergydifference->Fill((en_HEP-en_HEM)/(en_HEP+en_HEM));
+	  h_HEnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  h_HEnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if passedHLT
   
@@ -864,9 +864,9 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   // loop over HF
   h_HFsizeVsLS->Fill(currentLS,hfHits.size());
 
-  double EtPlus =0, EtMinus=0;
-  double tPlus=0, tMinus=0;
-  double ePlus=0, eMinus=0;
+  EtPlus=0; EtMinus=0;
+  tPlus=0; tMinus=0;
+  ePlus=0; eMinus=0;
 
   int hfocc=0;
   int hfoccthresh=0;
@@ -886,41 +886,25 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
       if (ieta>0)
 	{
-	  if (en>3)
+	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
 	    {
 	      tPlus+=en*ti;
 	      ePlus+=en;
+	      hfpocc++;
 	    }
 	  EtPlus+=en/cosh(fEta);
 	}
       else if (ieta<0)
 	{
-	  if (en>3)
+	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
 	    {
 	      tMinus+=en*ti;
 	      eMinus+=en;
+	      hfmocc++;
 	    }
 	  EtMinus+=en/cosh(fEta);
 	}
 
-      if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_ && BPTX==true)
-	{
-	  if (ieta>0)
-	    {
-	      en_HFP+=en;
-	      time_HFP+=ti*en;
-	      rawtime_HFP+=ti;
-	      hfpocc++;
-	    }
-	  else 
-	    {
-	      en_HFM+=en;
-	      time_HFM+=ti*en;
-	      rawtime_HFM+=ti;
-	      hfmocc++;
-	    }
-	}
-	 
       int rbxindex=logicalMap->getHcalFrontEndId(HFiter->detid()).rbxIndex();
       int rm= logicalMap->getHcalFrontEndId(HFiter->detid()).rm(); 
 	 
@@ -975,9 +959,9 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       }
     } // loop over all HF hits
      
-
-  if (ePlus>0) tPlus/=ePlus;
-  if (eMinus>0) tMinus/=eMinus;
+  // Set tPlus, tMinus to overflow in case where total energy < 0
+  ePlus>0  ? tPlus/=ePlus   :  tPlus  = 10000;
+  eMinus>0 ? tMinus/=eMinus :  tMinus = 10000;
      
   double mintime=min(tPlus,tMinus);
   double minHT=min(EtMinus,EtPlus);
@@ -988,41 +972,43 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       h_LumiPlot_SumHT_HFPlus_vs_HFMinus->Fill(EtMinus,EtPlus);
       h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(eMinus,ePlus);
       h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(tMinus,tPlus);
-    }
-
-  if (EtMinus>1 && 
-      EtPlus>1 && 
-      fabs(en_HFP/hfpocc-en_HFM/hfmocc)<timediffThresh_
-      && BPTX
-      )
-    {
-      h_LumiPlot_EventsPerLS->Fill(currentLS);
-      h_LumiPlot_BX_goodevents->Fill(BCN);
-    }
-
-  if (EtMinus>1 && EtPlus>1)
-    {
-      h_LumiPlot_EventsPerLS_notimecut->Fill(currentLS);
-      h_LumiPlot_BX_goodevents_notimecut->Fill(BCN);
-    }
+      
+      if (
+	  fabs(ePlus/hfpocc-eMinus/hfmocc)<timediffThresh_
+	  && (EtMinus>1 && EtPlus>1) // unnecessary condition?
+	  )
+	{
+	  h_LumiPlot_EventsPerLS->Fill(currentLS);
+	  h_LumiPlot_BX_goodevents->Fill(BCN);
+	}
+      
+      if (
+	  (EtMinus>1 && EtPlus>1) 
+	  )
+	{
+	  h_LumiPlot_EventsPerLS_notimecut->Fill(currentLS);
+	  h_LumiPlot_BX_goodevents_notimecut->Fill(BCN);
+	}
+      
+    } // if (BPTX)
 
   if (Online_ && passedHLT && BPTX==true)
     {
-      if (en_HFP !=0 && en_HFM != 0)
+      if (ePlus !=0 && eMinus != 0)
 	{
-	  h_HFtimedifference->Fill((time_HFP/en_HFP)-(time_HFM/en_HFM));
-	  h_HFenergydifference->Fill((en_HFP-en_HFM)/(en_HFP+en_HFM));
+	  h_HFtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if (passedHLT)
 
   else if (Online_ && passedHLT && BPTX==false)
     {
-      if (en_HFP !=0 && en_HFM != 0)
+      if (ePlus !=0 && eMinus != 0)
 	{
-	  h_HFnotBPTXtimedifference->Fill((time_HFP/en_HFP)-(time_HFM/en_HFM));
-	  h_HFnotBPTXenergydifference->Fill((en_HFP-en_HFM)/(en_HFP+en_HFM));
+	  h_HFnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
-    } // passsed HLT, !101
+    } // passsed HLT , BPTX = false
 
   ++HF_occupancy_[hfocc/10];
   ++HF_occupancy_thresh_[hfoccthresh/10];
