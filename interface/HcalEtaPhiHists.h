@@ -393,6 +393,17 @@ inline int CalcIeta(int eta, int depth)
 
 // Functions to check whether a given (eta,depth) value is valid for a given subdetector
 
+inline std::vector<std::string> HcalEtaPhiHistNames()
+{
+  std::vector<std::string> name;
+  name.push_back("HB HE HF Depth 1 ");
+  name.push_back("HB HE HF Depth 2 ");
+  name.push_back("HE Depth 3 ");
+  name.push_back("HO Depth 4 ");
+  return name;
+}
+
+
 inline bool isHB(int etabin, int depth)
 {
   if (depth>2) return false;
@@ -644,6 +655,8 @@ inline void FillUnphysicalHEHFBins(MonitorElement* hh)
 
   return;
 } // FillUnphysicalHEHFBins(std::vector<MonitorElement*> &hh)
+
+
 
 
 #endif

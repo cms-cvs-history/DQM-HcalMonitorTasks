@@ -8,7 +8,7 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
-  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",0);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
   prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")

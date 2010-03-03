@@ -2,8 +2,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/03/01 19:45:33 $
- * $Revision: 1.1.2.8 $
+ * $Date: 2010/03/02 10:51:46 $
+ * $Revision: 1.1.2.9 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -21,7 +21,7 @@ HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
-  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",0);
   prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/"); 
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
@@ -110,9 +110,9 @@ void HcalBaseDQMonitor::setup(void)
   if (meIevt_) meIevt_->Fill(-1);
   meLevt_ = dbe_->bookInt("EventsProcessed_currentLS");
   if (meLevt_) meLevt_->Fill(-1);
-  meTevt_ = dbe_->bookInt("EventsProcessed_All");
+  meTevt_ = dbe_->bookInt("EventsProcessed_Total");
   if (meTevt_) meTevt_->Fill(-1);
-  meTevtHist_=dbe_->book1D("EventsProcessed_AllHists","Counter of Events Processed By This Task",1,0.5,1.5);
+  meTevtHist_=dbe_->book1D("Events_Processed_Task_Histogram","Counter of Events Processed By This Task",1,0.5,1.5);
   if (meTevtHist_) meTevtHist_->Reset();
 } // setup()
 
@@ -151,7 +151,7 @@ bool HcalBaseDQMonitor::IsAllowedCalibType()
       if (debug_>9) std::cout <<"\tNo calib types specified by user; All events allowed"<<std::endl;
       return true;
     }
-  MonitorElement* me = dbe_->get((prefixME_+"DQM Job Status/CURRENT_EVENT_TYPE").c_str());
+  MonitorElement* me = dbe_->get((prefixME_+"HcalInfo/CURRENT_EVENT_TYPE").c_str());
   if (me) currenttype_=me->getIntValue();
   else 
     {
@@ -200,22 +200,22 @@ void HcalBaseDQMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   MonitorElement* me;
   if (HBpresent_==false)
     {
-      me = dbe_->get((prefixME_+"DQM Job Status/HBpresent"));
+      me = dbe_->get((prefixME_+"HcalInfo/HBpresent"));
       if (me==0 || me->getIntValue()>0) HBpresent_=true;
     }
   if (HEpresent_==false)
     {
-      me = dbe_->get((prefixME_+"DQM Job Status/HEpresent"));
+      me = dbe_->get((prefixME_+"HcalInfo/HEpresent"));
       if (me==0 || me->getIntValue()>0) HEpresent_=true;
     }
   if (HOpresent_==false)
     {
-      me = dbe_->get((prefixME_+"DQM Job Status/HOpresent"));
+      me = dbe_->get((prefixME_+"HcalInfo/HOpresent"));
       if (me==0 || me->getIntValue()>0) HOpresent_=true;
     }
   if (HFpresent_==false)
     {
-      me = dbe_->get((prefixME_+"DQM Job Status/HOpresent"));
+      me = dbe_->get((prefixME_+"HcalInfo/HOpresent"));
       if (me ==0 || me->getIntValue()>0) HFpresent_=true;
     }
 

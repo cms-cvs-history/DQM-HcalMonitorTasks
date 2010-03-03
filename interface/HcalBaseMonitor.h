@@ -16,10 +16,6 @@
 #include "CondFormats/HcalObjects/interface/HcalQIECoder.h"
 #include "CalibFormats/HcalObjects/interface/HcalCoder.h"
 
-#include "TH1F.h"
-#include "TH2F.h"
-#include <map>
-
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
@@ -31,6 +27,10 @@
 
 #include "DQM/HcalMonitorTasks/interface/HcalEtaPhiHists.h"
 
+#include "TH1F.h"
+#include "TH2F.h"
+#include <map>
+
 #include <iostream>
 
 // Temporary fix:  Add this into base class until I figure why multiple inclusions are a problem -- Jeff, 23 May 2008
@@ -39,8 +39,8 @@
 using namespace std;
 /** \class HcalBaseMonitor
   *  
-  * $Date: 2009/11/11 20:54:29 $
-  * $Revision: 1.37 $
+  * $Date: 2010/02/05 18:54:30 $
+  * $Revision: 1.38 $
   * \author W. Fisher - FNAL
   */
 class HcalBaseMonitor {

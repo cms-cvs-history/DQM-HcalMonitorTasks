@@ -27,6 +27,7 @@ using namespace std;
 
 #include "DataFormats/Math/interface/deltaR.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
+#include "FWCore/Framework/interface/TriggerNames.h"
 #include "DataFormats/L1Trigger/interface/L1EmParticle.h"
 #include "DataFormats/L1Trigger/interface/L1EmParticleFwd.h"
 #include "DataFormats/L1Trigger/interface/L1MuonParticle.h"
@@ -65,8 +66,8 @@ using namespace std;
 
 /** \class HcalDetDiagNoiseMonitor
   *  
-  * $Date: 2010/02/22 18:07:49 $
-  * $Revision: 1.3 $
+  * $Date: 2009/12/01 17:03:37 $
+  * $Revision: 1.2 $
   * \author D. Vishnevskiy
   */
 
@@ -266,6 +267,7 @@ private:
   MonitorElement *HPDE2tsOverE10ts_passingTrigger_PhysicsCategory;
   MonitorElement *NLumiSections;
 
+  edm::TriggerNames triggerNames_;
   edm::InputTag hlTriggerResults_;
   edm::InputTag MetSource_;
   edm::InputTag JetSource_;

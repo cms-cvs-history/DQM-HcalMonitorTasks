@@ -4,7 +4,6 @@
 #include "DataFormats/FEDRawData/interface/FEDNumbering.h"
 #include "DataFormats/HcalDigi/interface/HcalCalibrationEventTypes.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
-#include "FWCore/Common/interface/TriggerNames.h"
 
 #include "TFile.h"
 #include "TTree.h"
@@ -485,10 +484,10 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
          if (ntrigs==0) {std::cout << "%HLTInfo -- No trigger name given in TriggerResults of the input " << std::endl;}
          else {std::cout << "%HLTInfo --  Number of HLT Triggers: " << ntrigs << std::endl;}
 */
-         const edm::TriggerNames & triggerNames = iEvent.triggerNames(*hltTriggerResultHandle);
+         triggerNames_.init(* hltTriggerResultHandle);
          for (int itrig = 0; itrig != ntrigs; ++itrig){
            // obtain the trigger name
-           string trigName = triggerNames.triggerName(itrig);
+           string trigName = triggerNames_.triggerName(itrig);
            // did the trigger fire?
            bool accept = hltTriggerResultHandle->accept(itrig);
 /*
