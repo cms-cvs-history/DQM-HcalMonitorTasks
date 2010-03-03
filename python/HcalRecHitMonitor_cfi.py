@@ -22,7 +22,7 @@ hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
                                  L1GTLabel                    = cms.untracked.InputTag("l1GtUnpack"),
 
                                  L1TriggerBits                = cms.untracked.vint32(8,9,10), # passes L1 if any of the bits are true
-                                 BPTXBits                     = cms.untracked.vint32(4), # passes BPTX if any of the bits are true
+                                 BPTXBits                     = cms.untracked.vint32(0), # passes BPTX if any of the bits are true
 
                                  energyThreshold              = cms.untracked.double(2.),
                                  ETThreshold                  = cms.untracked.double(0.),

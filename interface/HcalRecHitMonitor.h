@@ -10,8 +10,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/02/28 20:23:14 $
-  * $Revision: 1.46.2.2 $
+  * $Date: 2010/03/01 19:13:46 $
+  * $Revision: 1.46.2.3 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -74,6 +74,7 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   EtaPhiHists SumEnergyByDepth;
   EtaPhiHists SqrtSumEnergy2ByDepth;
   EtaPhiHists SumEnergyThreshByDepth;
+  EtaPhiHists SqrtSumEnergy2ThreshByDepth;
   EtaPhiHists SumTimeByDepth;
   EtaPhiHists SumTimeThreshByDepth;
 
@@ -168,30 +169,17 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   MonitorElement* h_HF_FlagCorr;
   MonitorElement* h_HBHE_FlagCorr;
 
-  double collisionHFthresh_;
-  double collisionHEthresh_;
-  double collisionHFETthresh_;
-  double collisionHEETthresh_;
-
   double timediffThresh_;
 
   MonitorElement* h_HFtimedifference;
   MonitorElement* h_HFenergydifference;
   MonitorElement* h_HEtimedifference;
   MonitorElement* h_HEenergydifference;
-  MonitorElement* h_HFrawenergydifference;
-  MonitorElement* h_HErawenergydifference;
-  MonitorElement* h_HFrawtimedifference;
-  MonitorElement* h_HErawtimedifference;
 
   MonitorElement* h_HFnotBPTXtimedifference;
   MonitorElement* h_HFnotBPTXenergydifference;
   MonitorElement* h_HEnotBPTXtimedifference;
   MonitorElement* h_HEnotBPTXenergydifference;
-  MonitorElement* h_HFnotBPTXrawenergydifference;
-  MonitorElement* h_HEnotBPTXrawenergydifference;
-  MonitorElement* h_HFnotBPTXrawtimedifference;
-  MonitorElement* h_HEnotBPTXrawtimedifference;
 
   MonitorElement* h_LumiPlot_LS_allevents;
   MonitorElement* h_LumiPlot_EventsPerLS;
