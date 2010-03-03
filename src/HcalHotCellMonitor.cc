@@ -9,7 +9,7 @@ HcalHotCellMonitor::HcalHotCellMonitor(const edm::ParameterSet& ps)
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
-  debug_                 = ps.getUntrackedParameter<int>("debug",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",0);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
   prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
@@ -197,10 +197,10 @@ void HcalHotCellMonitor::setup()
       SetupEtaPhiHists(AboveNeighborsHotCellsByDepth,"Hot Cells Failing Neighbor Test","");
       if (makeDiagnostics_)
 	{
-	  d_HBenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHB","HB Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
-	  d_HEenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHE","HE Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
-	  d_HOenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHO","HO Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
-	  d_HFenergyVsNeighbor=dbe_->book1D("NeighorSumOverEnergyHF","HF Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HBenergyVsNeighbor=dbe_->book1D("NeighborSumOverEnergyHB","HB Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HEenergyVsNeighbor=dbe_->book1D("NeighborSumOverEnergyHE","HE Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HOenergyVsNeighbor=dbe_->book1D("NeighborSumOverEnergyHO","HO Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
+	  d_HFenergyVsNeighbor=dbe_->book1D("NeighborSumOverEnergyHF","HF Neighbor Sum Energy/Cell Energy;sum(neighbors)/E_cell",500,0,10);
 	}
     } // if (test_neighbor_ || makeDiagnostics_)
 
@@ -230,9 +230,9 @@ void HcalHotCellMonitor::reset()
   // now reset all the MonitorElements
 
   // resetting eta-phi histograms
-  if (test_neighbor_)
+  if (test_neighbor_ || makeDiagnostics_)
     AboveNeighborsHotCellsByDepth.Reset();
-  if (test_energy_ || makeDiagnostics_)
+  if (test_energy_ )
     AboveEnergyThresholdCellsByDepth.Reset();
   if (test_persistent_)
     AbovePersistentThresholdCellsByDepth.Reset();
