@@ -327,6 +327,15 @@ void HcalDeadCellMonitor::setup()
     } // if (deadmon_test_rechits)
 
 
+  if (makeDiagnostics_)
+    {
+      dbe_->setCurrentFolder(subdir_+"DiagnosticPlots");
+      HBDeadVsEvent=dbe_->book1D("HBDeadVsEvent","HB Total Dead Cells Vs Event", NLumiBlocks_,-0.5,NLumiBlocks_-0.5);
+      HEDeadVsEvent=dbe_->book1D("HEDeadVsEvent","HE Total Dead Cells Vs Event", NLumiBlocks_,-0.5,NLumiBlocks_-0.5);
+      HODeadVsEvent=dbe_->book1D("HODeadVsEvent","HO Total Dead Cells Vs Event", NLumiBlocks_,-0.5,NLumiBlocks_-0.5);
+      HFDeadVsEvent=dbe_->book1D("HFDeadVsEvent","HF Total Dead Cells Vs Event", NLumiBlocks_,-0.5,NLumiBlocks_-0.5);
+    }
+
   this->reset();
 
   return;
@@ -441,7 +450,6 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!IsAllowedCalibType()) return;
   if (LumiInOrder(e.luminosityBlock())==false) return;
-
   // try to get rechits and digis
   edm::Handle<HBHEDigiCollection> hbhe_digi;
   edm::Handle<HODigiCollection> ho_digi;
@@ -483,12 +491,11 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
       LogWarning("HcalDeadCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
-
-  // Good event found; increment counter (via base class analyze method)
-  
-  HcalBaseDQMonitor::analyze(e,s);
   if (debug_>1) std::cout <<"\t<HcalDeadCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
-
+  // Good event found; increment counter (via base class analyze method)
+  // This also runs the allowed calibration /lumi in order tests again;  remove?
+  HcalBaseDQMonitor::analyze(e,s);
+  
   ++deadevt_; //increment local counter
 
   processEvent(*hbhe_rechit, *ho_rechit, *hf_rechit, *hbhe_digi, *ho_digi, *hf_digi);
@@ -582,6 +589,46 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
     } // if (deadmon_test_rechits)
 
   Nevents->Fill(0,1);
+
+  if (!makeDiagnostics_) return;
+  if (tevt_>=NLumiBlocks_) return;
+  // Diagnostic plots -- add number of missing channels vs event number
+  int hbpresent=0;
+  int hepresent=0;
+  int hopresent=0;
+  int hfpresent=0;
+  int ieta=0;
+  for (int d=0;d<4;++d)
+    {
+      for (int phi=0;phi<72;++phi)
+	{
+	  for (int eta=0;eta<85;++eta)
+	    {
+	      if (!present_digi[eta][phi][d]) continue;
+	      if (d==3) ++hopresent;
+	      else if (d==2) ++hepresent;
+	      else if (d==1)
+		{
+		  ieta=binmapd2[eta];//JEFF
+		  //if (abs(ieta)>29) continue;
+		  if (abs(ieta)>29) ++hfpresent;
+		  else if (abs(ieta)<17) ++hbpresent; //depths 15&16
+		  else ++hepresent;
+		}
+	      else if (d==0)
+		{
+		  ieta=eta-42;
+		  if (abs(ieta)>29) ++hfpresent;
+		  else if (abs(ieta)<17) ++hbpresent;
+		  else ++hepresent;
+		}
+	    }
+	}
+    } // for (int d=0;d<4;++d)
+  HBDeadVsEvent->Fill(tevt_,2592-hbpresent);
+  HEDeadVsEvent->Fill(tevt_,2592-hepresent);
+  HODeadVsEvent->Fill(tevt_,2160-hopresent);
+  HFDeadVsEvent->Fill(tevt_,1728-hfpresent);
   return;
 } // void HcalDeadCellMonitor::processEvent(...)
 

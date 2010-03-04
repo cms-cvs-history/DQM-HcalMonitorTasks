@@ -11,6 +11,7 @@ hcalDeadCellMonitor=cms.EDAnalyzer("HcalDeadCellMonitor",
                                    TaskFolder             = cms.untracked.string("DeadCellMonitor_Hcal/"),
                                    skipOutOfOrderLS       = cms.untracked.bool(True),
                                    NLumiBlocks            = cms.untracked.int32(4000),
+                                   makeDiagnostics        = cms.untracked.bool(False),
                                    
                                    # Dead Cell Monitor-specific Info
                                    

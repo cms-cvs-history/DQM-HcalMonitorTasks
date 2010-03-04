@@ -11,6 +11,7 @@ hcalHotCellMonitor=cms.EDAnalyzer("HcalHotCellMonitor",
                                   TaskFolder             = cms.untracked.string("HotCellMonitor_Hcal/"),
                                   skipOutOfOrderLS       = cms.untracked.bool(True),
                                   NLumiBlocks            = cms.untracked.int32(4000),
+                                  makeDiagnostics        = cms.untracked.bool(False),
                                   
                                   # Hot Cell Monitor-specific Info
                                   

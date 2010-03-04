@@ -11,8 +11,8 @@
 
 /** \class HcalDeadCellMonitor
   *
-  * $Date: 2010/02/28 20:21:50 $
-  * $Revision: 1.42.2.1 $
+  * $Date: 2010/03/01 19:13:45 $
+  * $Revision: 1.42.2.2 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -79,6 +79,9 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
   MonitorElement *NumberOfNeverPresentRecHits, *NumberOfNeverPresentRecHitsHB, *NumberOfNeverPresentRecHitsHE, *NumberOfNeverPresentRecHitsHO, *NumberOfNeverPresentRecHitsHF;
 
   MonitorElement *Nevents;
+
+  MonitorElement *HBDeadVsEvent, *HEDeadVsEvent, *HODeadVsEvent, *HFDeadVsEvent;
+
   bool present_digi[85][72][4]; // tests that a good digi was present at least once
   bool present_rechit[85][72][4]; // tests that rechit with energy > threshold at least once
   unsigned int recentoccupancy_digi[85][72][4]; // tests that cells haven't gone missing for long periods

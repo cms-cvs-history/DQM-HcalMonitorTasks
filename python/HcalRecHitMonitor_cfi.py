@@ -11,7 +11,8 @@ hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
                                  TaskFolder             = cms.untracked.string("RecHitMonitor_Hcal/"),
                                  skipOutOfOrderLS       = cms.untracked.bool(False),
                                  NLumiBlocks            = cms.untracked.int32(4000),
-
+                                 makeDiagnostics        = cms.untracked.bool(False),
+                                 
                                  # variables specific to HcalRecHitMonitor
                                  
                                  # Input collections
