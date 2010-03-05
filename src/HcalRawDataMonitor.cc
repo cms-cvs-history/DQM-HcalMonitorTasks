@@ -1,5 +1,7 @@
 #include "DQM/HcalMonitorTasks/interface/HcalRawDataMonitor.h"
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbService.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 
 using namespace std;
 using namespace edm;
@@ -7,20 +9,24 @@ using namespace edm;
 HcalRawDataMonitor::HcalRawDataMonitor(const edm::ParameterSet& ps) {
   Online_                = ps.getParameter<bool>("online");
   mergeRuns_             = ps.getParameter<bool>("mergeRuns");
-  enableCleanup_         = ps.getParameter<bool>("enableCleanup");
-  debug_                 = ps.getParameter<int>("debug");
-  prefixME_              = ps.getParameter<string>("subSystemFolder"); // Hcal
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup");
+  debug_                 = ps.getUntrackedParameter<int>("debug",0);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder", "Hcal/"); // Hcal
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getParameter<string>("TaskFolder"); // RawDataMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder", "RawDataMonitor_Hcal/"); // RawDataMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getParameter<vector<int> > ("AllowedCalibTypes");
-  skipOutOfOrderLS_      = ps.getParameter<bool>("skipOutOfOrderLS");
-  NLumiBlocks_           = ps.getParameter<int>("NLumiBlocks");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",-1);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
+  FEDRawDataCollection_  = ps.getUntrackedParameter<edm::InputTag>("FEDRawDataCollection");
+  digiLabel_             = ps.getUntrackedParameter<edm::InputTag>("digiLabel");
+  //inputLabelReport_      = ps.getUntrackedParameter<edm::InputTag>("UnpackerReport");
+  
   // Initialize an array of MonitorElements
   meChann_DataIntegrityCheck_[0] =meCh_DataIntegrityFED00_;
   meChann_DataIntegrityCheck_[1] =meCh_DataIntegrityFED01_;
@@ -84,11 +90,47 @@ HcalRawDataMonitor::HcalRawDataMonitor(const edm::ParameterSet& ps) {
 // destructor
 HcalRawDataMonitor::~HcalRawDataMonitor(){}
 
-// BeginJob
-void HcalRawDataMonitor::beginJob(){}
-
 // BeginRun
-void HcalRawDataMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c){}
+void HcalRawDataMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c){
+  HcalBaseDQMonitor::beginRun(run,c);
+  edm::ESHandle<HcalDbService> pSetup;
+  c.get<HcalDbRecord>().get( pSetup );
+
+  readoutMap_=pSetup->getHcalMapping();
+  DetId detid_;
+  HcalDetId hcaldetid_; 
+
+  // Build a map of readout hardware unit to calorimeter channel
+  std::vector <HcalElectronicsId> AllElIds = readoutMap_->allElectronicsIdPrecision();
+  uint32_t itsdcc    =0;
+  uint32_t itsspigot =0;
+  uint32_t itshtrchan=0;
+  
+  // by looping over all precision (non-trigger) items.
+  for (std::vector <HcalElectronicsId>::iterator eid = AllElIds.begin();
+       eid != AllElIds.end();
+       eid++) {
+
+    //Get the HcalDetId from the HcalElectronicsId
+    detid_ = readoutMap_->lookup(*eid);
+    // NULL if illegal; ignore
+    if (!detid_.null()) {
+      if (detid_.det()!=4) continue; //not Hcal
+      if (detid_.subdetId()!=HcalBarrel &&
+	  detid_.subdetId()!=HcalEndcap &&
+	  detid_.subdetId()!=HcalOuter  &&
+	  detid_.subdetId()!=HcalForward) continue;
+
+      itsdcc    =(uint32_t) eid->dccid(); 
+      itsspigot =(uint32_t) eid->spigot();
+      itshtrchan=(uint32_t) eid->htrChanId();
+      hcaldetid_ = HcalDetId(detid_);
+      stashHDI(hashup(itsdcc,itsspigot,itshtrchan),
+	       hcaldetid_);
+    } // if (!detid_.null()) 
+  } 
+  
+}
 
 // Begin LumiBlock
 void HcalRawDataMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
@@ -97,7 +139,10 @@ void HcalRawDataMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSe
 void HcalRawDataMonitor::setup(void){
   // Call base class setup
   HcalBaseDQMonitor::setup();
-  if (!dbe_) return;
+  if (!dbe_) {
+    if (debug_>1)
+      std::cout <<"<HcalRawDataMonitor::setup>  No DQMStore instance available. Bailing out."<<endl;
+    return;}
 
   /******* Set up all histograms  ********/
   if (debug_>1)
@@ -439,7 +484,664 @@ void HcalRawDataMonitor::setup(void){
 }
 
 // Analyze
-void HcalRawDataMonitor::analyze(const edm::Event& e, const edm::EventSetup& c){}
+void HcalRawDataMonitor::analyze(const edm::Event& e, const edm::EventSetup& s){
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(e.luminosityBlock())==false) return;
+
+  HcalBaseDQMonitor::analyze(e,s); // base class increments ievt_, etc. counters
+  
+  // try to get die Data
+  edm::Handle<FEDRawDataCollection> rawraw;
+  if (!(e.getByLabel(FEDRawDataCollection_,rawraw)))
+    {
+      LogWarning("HcalRawDataMonitor")<<" raw data with label "<<FEDRawDataCollection_ <<" not available";
+      return;
+    }
+  edm::Handle<HcalUnpackerReport> report;  
+  if (!(e.getByLabel(digiLabel_,report)))
+    {
+      LogWarning("HcalRawDataMonitor")<<" Unpacker Report "<<digiLabel_<<" not available";
+      return;
+    }
+
+  // all objects grabbed; event is good
+  if (debug_>1) std::cout <<"\t<HcalRawDataMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+
+
+  // Raw Data collection was grabbed successfully; process the Event
+  processEvent(*rawraw, *report);
+}
+
+void HcalRawDataMonitor::processEvent(const FEDRawDataCollection& rawraw, 
+				      const HcalUnpackerReport& report){
+  if(!dbe_) { 
+    if (debug_>1)
+      printf("HcalRawDataMonitor::processEvent DQMStore not instantiated!\n");  
+    return;}
+  
+  // Call these to make sure histograms get updated
+  ProblemCells->update();
+  for (int depth=0;depth<4;++depth) 
+    ProblemCellsByDepth.depth[depth]->update();
+
+//Need these?  lastEvtN_ = -1;
+//Need these?  lastBCN_ = -1;
+//Need these?  lastOrN_ = -1;
+  
+  // Fill event counters (underflow bins of histograms)
+  meLRBDataCorruptionIndicators_->update();
+  meHalfHTRDataCorruptionIndicators_->update();
+  meChannSumm_DataIntegrityCheck_->update();
+  for (int f=0; f<NUMDCCS; f++)      
+    meChann_DataIntegrityCheck_[f]->update();
+  meDataFlowInd_->update();
+
+  // Loop over all FEDs reporting the event, unpacking if good.
+  for (int i=FEDNumbering::MINHCALFEDID; i<=FEDNumbering::MAXHCALFEDID; i++) {
+    const FEDRawData& fed = rawraw.FEDData(i);
+    if (fed.size()<12) continue;  //At least the size of headers and trailers of a DCC.
+    unpack(fed); //Interpret data, fill histograms, everything.
+  }
+
+  // Any problem worth mapping, anywhere?
+  unsigned int etabins=0;
+  unsigned int phibins=0;
+  for (unsigned int depth=0; depth<4; ++depth)
+    {
+      etabins=ProblemCellsByDepth.depth[depth]->getNbinsX();
+      phibins=ProblemCellsByDepth.depth[depth]->getNbinsY();
+      for (unsigned int eta=0; eta<etabins;++eta)
+	{
+	  for (unsigned int phi=0;phi<phibins;++phi)
+	    {
+	      if (problemfound[eta][phi][depth])
+		++problemcount[eta][phi][depth];
+	    }
+	}
+    }
+
+  //if (0== (ievt_ % dfmon_checkNevents))
+  //  UpdateMEs();
+  //Transfer this event's problem info to 
+  for (unsigned int depth=0; depth<4; ++depth)
+    {
+      etabins=ProblemCellsByDepth.depth[depth]->getNbinsX();
+      phibins=ProblemCellsByDepth.depth[depth]->getNbinsY();
+      for (unsigned int eta=0; eta<etabins;++eta)
+	{
+	  for (unsigned int phi=0;phi<phibins;++phi)
+	    {
+	      problemfound[eta][phi][depth]=false;		
+	    }
+	}
+    }
+  return;
+} //void HcalRawDataMonitor::processEvent()
+
+// Process one FED's worth (one DCC's worth) of the event data.
+void HcalRawDataMonitor::unpack(const FEDRawData& raw){
+
+  // get the DCC header & trailer (or bail out)
+  const HcalDCCHeader* dccHeader=(const HcalDCCHeader*)(raw.data());
+  if(!dccHeader) return;
+  unsigned char* trailer_ptr = (unsigned char*) (raw.data()+raw.size()-sizeof(uint64_t));
+  FEDTrailer trailer = FEDTrailer(trailer_ptr);
+
+  // FED id declared in the header
+  int dccid=dccHeader->getSourceId();
+  //Force 0<= dcc_ <= 31
+  int dcc_=max(0,dccid-700);  
+  dcc_ = min(dcc_,31);       
+  if(debug_>1) cout << "DCC " << dccid << endl;
+  uint64_t* dccfw= (uint64_t*) (raw.data()+(sizeof(uint64_t)*2)); //64-bit DAQ word number 2 (from 0)
+  int dcc_fw =  ( ((*dccfw)>>(6*8))&0x00000000000000FF );         //Shift right 6 bytes, get that low byte.
+  meDCCVersion_ -> Fill(dccid,dcc_fw);
+
+  //Before all else, how much data are we dealing with here?
+  uint64_t* lastDataWord = (uint64_t*) ( raw.data()+(raw.size())-(1*sizeof(uint64_t)) );
+  int EvFragLength = (int) (*lastDataWord>>(4*8)) & 0x0000000000FFFFFF ; //Shift right 4 bytes, get low 3 bytes.
+  meFEDRawDataSizes_->Fill(EvFragLength*8);      //# 64-bit DAQ words *8 = # bytes. 
+  meEvFragSize_ ->Fill(dccid, EvFragLength*8);   //# 64-bit DAQ words *8 = # bytes. 
+  meEvFragSize2_ ->Fill(dccid, EvFragLength*8);  //# 64-bit DAQ words *8 = # bytes. 
+  
+  //Orbit, BunchCount, and Event Numbers
+  unsigned long dccEvtNum = dccHeader->getDCCEventNumber();
+  int dccBCN = dccHeader->getBunchId();
+  //Mask down to 5 bits, since only used for comparison to HTR's five bit number...
+  unsigned int dccOrN = (unsigned int) (dccHeader->getOrbitNumber() & 0x0000001F);
+  medccBCN_ -> Fill(dccBCN);
+
+  ////////// Histogram problems with the Common Data Format compliance;////////////
+  bool CDFProbThisDCC = false; 
+  /* 1 */ //There should always be a second CDF header word indicated.
+  if (!dccHeader->thereIsASecondCDFHeaderWord()) {
+    meCDFErrorFound_->Fill(dccid, 1);
+    CDFProbThisDCC = true; 
+  }
+  /* 2 */ //Make sure a reference CDF Version value has been recorded for this dccid
+  CDFvers_it = CDFversionNumber_list.find(dccid);
+  if (CDFvers_it  == CDFversionNumber_list.end()) {
+    CDFversionNumber_list.insert(pair<int,short>
+				 (dccid,dccHeader->getCDFversionNumber() ) );
+    CDFvers_it = CDFversionNumber_list.find(dccid);
+  } // then check against it.
+  if (dccHeader->getCDFversionNumber()!= CDFvers_it->second) {
+    meCDFErrorFound_->Fill(dccid,2);
+    CDFProbThisDCC = true; 
+  }
+  /* 3 */ //There should always be a '5' in CDF Header word 0, bits [63:60]
+  if (dccHeader->BOEshouldBe5Always()!=5) {
+    meCDFErrorFound_->Fill(dccid, 3);
+    CDFProbThisDCC = true; 
+  }
+  /* 4 */ //There should never be a third CDF Header word indicated.
+  if (dccHeader->thereIsAThirdCDFHeaderWord()) {
+    meCDFErrorFound_->Fill(dccid, 4);
+    CDFProbThisDCC = true; 
+  }
+  /* 5 */ //Make sure a reference value of Reserved Bits has been recorded for this dccid
+  CDFReservedBits_it = CDFReservedBits_list.find(dccid);
+  if (CDFReservedBits_it  == CDFReservedBits_list.end()) {
+    CDFReservedBits_list.insert(pair<int,short>
+ 				(dccid,dccHeader->getSlink64ReservedBits() & 0x0000FFFF ) );
+    CDFReservedBits_it = CDFReservedBits_list.find(dccid);
+  } // then check against it.
+  if (((int) dccHeader->getSlink64ReservedBits() & 0x0000FFFF ) != CDFReservedBits_it->second) {
+    meCDFErrorFound_->Fill(dccid,5);
+    //CDFProbThisDCC = true; 
+  }
+  /* 6 */ //There should always be 0x0 in CDF Header word 1, bits [63:60]
+  if (dccHeader->BOEshouldBeZeroAlways() !=0) {
+    meCDFErrorFound_->Fill(dccid, 6);
+    CDFProbThisDCC = true; 
+  }
+  /* 7 */ //There should only be one trailer
+  if (trailer.moreTrailers()) {
+    meCDFErrorFound_->Fill(dccid, 7);
+    CDFProbThisDCC = true; 
+  }
+  //  if trailer.
+  /* 8 */ //CDF Trailer [55:30] should be the # 64-bit words in the EvFragment
+  if ((uint64_t) raw.size() != ( (uint64_t) trailer.lenght()*sizeof(uint64_t)) )  //The function name is a typo! Awesome.
+    {
+      meCDFErrorFound_->Fill(dccid, 8);
+      CDFProbThisDCC = true; 
+    }
+  /* 9 */ //There is a rudimentary sanity check built into the FEDTrailer class
+  if (!trailer.check()) {
+    meCDFErrorFound_->Fill(dccid, 9);
+    CDFProbThisDCC = true; 
+  }
+  if (CDFProbThisDCC) {
+    //Set the problem flag for the ieta, iphi of any channel in this DCC
+    if (debug_>0) cout <<"CDFProbThisDCC"<<endl;
+    mapDCCproblem(dcc_);
+  }
+
+  mefedEntries_->Fill(dccid);
+
+  CDFProbThisDCC = false;  // reset for the next go-round.
+  
+  char CRC_err;
+  for(int i=0; i<HcalDCCHeader::SPIGOT_COUNT; i++) {
+    CRC_err = ((dccHeader->getSpigotSummary(i) >> 10) & 0x00000001);
+    if (CRC_err) {
+      //Set the problem flag for the ieta, iphi of any channel in this DCC
+      if (debug_>0) cout <<"HTR Problem: CRC_err"<<endl;
+      mapHTRproblem(dcc_, i);  
+    }
+  }
+  
+  // The DCC TTS state at event-sending time
+  char TTS_state = (char)trailer.ttsBits();
+  // The DCC TTS state at time L1A received (event enqueued to be built)
+  char L1AtimeTTS_state=(char) dccHeader->getAcceptTimeTTS();
+  if (TTS_state==L1AtimeTTS_state) ;//party
+
+  ////////// Histogram problems with DCC Event Format compliance;////////////
+  /* 1 */ //Make sure a reference value of the DCC Event Format version has been noted for this dcc.
+  DCCEvtFormat_it = DCCEvtFormat_list.find(dccid);
+  if (DCCEvtFormat_it == DCCEvtFormat_list.end()) {
+    DCCEvtFormat_list.insert(pair<int,short>
+			     (dccid,dccHeader->getDCCDataFormatVersion() ) );
+    DCCEvtFormat_it = DCCEvtFormat_list.find(dccid);
+  } // then check against it.
+  if (dccHeader->getDCCDataFormatVersion()!= DCCEvtFormat_it->second) {
+    meDCCEventFormatError_->Fill(dccid,1);
+    if (debug_>0) cout <<"DCC Error Type 1"<<endl;
+    mapDCCproblem(dcc_);
+  }
+  /* 2 */ //Check for ones where there should always be zeros
+  if (false) //dccHeader->getByte1Zeroes() || dccHeader->getByte3Zeroes() || dccHeader->getByte567Zeroes()) 
+  {
+    meDCCEventFormatError_->Fill(dccid,2);
+    if (debug_>0) cout <<"DCC Error Type 2"<<endl;
+    mapDCCproblem(dcc_);
+  }
+  /* 3 */ //Check that there are zeros following the HTR Status words.
+  int SpigotPad = HcalDCCHeader::SPIGOT_COUNT;
+  if (  (((uint64_t) dccHeader->getSpigotSummary(SpigotPad)  ) 
+	 | ((uint64_t) dccHeader->getSpigotSummary(SpigotPad+1)) 
+	 | ((uint64_t) dccHeader->getSpigotSummary(SpigotPad+2)))  != 0){
+    meDCCEventFormatError_->Fill(dccid,3);
+  if (debug_>0) cout <<"DCC Error Type 3"<<endl;
+    mapDCCproblem(dcc_);
+  }
+  /* 4 */ //Check that there are zeros following the HTR Payloads, if needed.
+  int nHTR32BitWords=0;
+  // add up all the declared HTR Payload lengths
+  for(int i=0; i<HcalDCCHeader::SPIGOT_COUNT; i++) {
+    nHTR32BitWords += dccHeader->getSpigotDataLength(i);  }
+  // if it's an odd number, check for the padding zeroes
+  if (( nHTR32BitWords % 2) == 1) {
+    uint64_t* lastDataWord = (uint64_t*) ( raw.data()+raw.size()-(2*sizeof(uint64_t)) );
+    if ((*lastDataWord>>32) != 0x00000000){
+      meDCCEventFormatError_->Fill(dccid, 4);
+      if (debug_>0) cout <<"DCC Error Type 4"<<endl;
+      mapDCCproblem(dcc_);
+    }
+  }
+  
+  unsigned char HTRErrorList=0; 
+  for(int j=0; j<HcalDCCHeader::SPIGOT_COUNT; j++) {
+    HTRErrorList=dccHeader->getSpigotErrorBits(j);    
+  }
+
+  // These will be used in FED-vs-spigot 2D Histograms
+  const int fed3offset = 1 + (4*dcc_); //3 bins, plus one of margin, each DCC
+  const int fed2offset = 1 + (3*dcc_); //2 bins, plus one of margin, each DCC
+  if (TTS_state & 0x8) /*RDY*/ 
+    ;
+  if (TTS_state & 0x2) /*SYN*/ 
+    {
+      if (debug_>0) cout <<"TTS_state Error:sync"<<endl;
+      mapDCCproblem(dcc_);          // DCC lost data
+    }
+  //Histogram per-Spigot bits from the DCC Header
+  int WholeErrorList=0; 
+  for(int spigot=0; spigot<HcalDCCHeader::SPIGOT_COUNT; spigot++) {
+    if (!( dccHeader->getSpigotEnabled((unsigned int) spigot)) )
+      continue; //skip when not enabled
+    // This will be used in FED-vs-spigot 2D Histograms
+    const int spg3offset = 1 + (4*spigot); //3 bins, plus one of margin, each spigot
+    
+    if (TTS_state & 0x4) /*BSY*/ 
+      ++DataFlowInd_[fed2offset+1][spg3offset+1];
+    if (TTS_state & 0x1) /*OFW*/ 
+      ++DataFlowInd_[fed2offset+1][spg3offset+2];
+
+    WholeErrorList=dccHeader->getLRBErrorBits((unsigned int) spigot);
+    if (WholeErrorList!=0) {
+      if ((WholeErrorList>>0)&0x01)  //HammingCode Corrected -- Not data corruption!
+	DataFlowInd_[fed2offset-1][spg3offset-1]++;
+      if (((WholeErrorList>>1)&0x01)!=0)  {//HammingCode Uncorrected Error
+	LRBDataCorruptionIndicators_[fed3offset+1][spg3offset+2]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+      if (((WholeErrorList>>2)&0x01)!=0)  {//Truncated data coming into LRB
+	LRBDataCorruptionIndicators_[fed3offset+2][spg3offset+2]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+      if (((WholeErrorList>>3)&0x01)!=0)  {//FIFO Overflow
+	LRBDataCorruptionIndicators_[fed3offset+1][spg3offset+1]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+      if (((WholeErrorList>>4)&0x01)!=0)  {//ID (EvN Mismatch), htr payload metadeta
+	LRBDataCorruptionIndicators_[fed3offset+2][spg3offset+1]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+      if (((WholeErrorList>>5)&0x01)!=0)  {//STatus: hdr/data/trlr error
+	LRBDataCorruptionIndicators_[fed3offset+1][spg3offset+0]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+      if (((WholeErrorList>>6)&0x01)!=0)  {//ODD 16-bit word count from HTR
+	LRBDataCorruptionIndicators_[fed3offset+2][spg3offset+0]++;
+	mapHTRproblem(dcc_, spigot); 
+      }
+    }
+    if (!dccHeader->getSpigotPresent((unsigned int) spigot)){
+      LRBDataCorruptionIndicators_[fed3offset+0][spg3offset+2]++;  //Enabled, but data not present!
+      if (debug_>0) cout <<"HTR Problem: Spigot Not Present"<<endl;
+      mapHTRproblem(dcc_, spigot);
+    } else {
+      //?////I got the wrong sign on getBxMismatchWithDCC; 
+      //?////It's a match, not a mismatch, when true. I'm sorry. 
+      //?//if (!dccHeader->getBxMismatchWithDCC((unsigned int) spigot)) ;
+      //?//if (!dccHeader->getSpigotValid((unsigned int) spigot)      ) ;//actually "EvN match" 
+      if ( dccHeader->getSpigotDataTruncated((unsigned int) spigot)) {
+     	LRBDataCorruptionIndicators_[fed3offset-1][spg3offset+0]++;  // EventBuilder truncated babbling LRB
+	if (debug_>0) cout <<"HTR Problem: Spigot Data Truncated"<<endl;
+	mapHTRproblem(dcc_, spigot);
+      }
+      if ( dccHeader->getSpigotCRCError((unsigned int) spigot)) {
+	LRBDataCorruptionIndicators_[fed3offset+0][spg3offset+0]++; 
+	//Already mapped any HTR problem with this one.
+      }
+    } //else spigot marked "Present"
+    if (dccHeader->getSpigotDataLength(spigot) <(unsigned long)4) {
+      LRBDataCorruptionIndicators_[fed3offset+0][spg3offset+1]++;  //Lost HTR Data for sure.
+      if (debug_>0) cout <<"HTR Problem: Spigot Data Length too small"<<endl;
+      mapHTRproblem(dcc_, spigot);
+    }    
+  }
+
+  //Fake a problem with each DCC a unique number of times
+  //if ((dcc_+1)>= ievt_)
+  //  mapDCCproblem(dcc_); 
+
+  // Walk through the HTR data...
+  HcalHTRData htr;  
+  for (int spigot=0; spigot<HcalDCCHeader::SPIGOT_COUNT; spigot++) {    
+    const int spg3offset = 1 + (4*spigot); //3 bins, plus one of margin, each spigot
+    const int spg2offset = 1 + (3*spigot); //3 bins, plus one of margin, each spigot
+    if (!dccHeader->getSpigotPresent(spigot)) continue;
+
+    // Load the given decoder with the pointer and length from this spigot.
+    // i.e.     initialize htr, within dcc raw data size.
+    dccHeader->getSpigotData(spigot,htr, raw.size()); 
+    const unsigned short* HTRraw = htr.getRawData();
+
+    // check min length, correct wordcount, empty event, or total length if histo event.
+    if (!htr.check()) {
+      meInvHTRData_ -> Fill(spigot,dccid);
+      if (debug_>0) cout <<"HTR Problem: HTR check fails"<<endl;
+      mapHTRproblem(dcc_,spigot);
+    }
+
+    unsigned short HTRwdcount = htr.getRawLength();
+
+    // Size checks for internal consistency
+    // getNTP(), get NDD() seems to be mismatched with format. Manually:
+    int NTP = ((htr.getExtHdr6() >> 8) & 0x00FF);
+    int NDAQ = (HTRraw[htr.getRawLength() - 4] & 0x7FF);
+
+    if ( !  ((HTRwdcount != 8)               ||
+	     (HTRwdcount != 12 + NTP + NDAQ) ||
+	     (HTRwdcount != 20 + NTP + NDAQ)    )) {
+      ++HalfHTRDataCorruptionIndicators_[fed3offset+2][spg3offset+0];
+      if (debug_>0) cout <<"HTR Problem: NTP+NDAQ size consistency check fails"<<endl;
+      mapHTRproblem(dcc_,spigot);
+      //incompatible Sizes declared. Skip it.
+      continue; }
+    bool EE = ((dccHeader->getSpigotErrorBits(spigot) >> 2) & 0x01);
+    if (EE) { 
+      if (HTRwdcount != 8) {	//incompatible Sizes declared. Skip it.
+	++HalfHTRDataCorruptionIndicators_[fed3offset+2][spg3offset+1];
+	if (debug_>0) cout <<"HTR Problem: HTRwdcount !=8"<<endl;	
+	mapHTRproblem(dcc_,spigot);
+      }
+      DataFlowInd_[fed2offset+0][spg3offset+0]++;
+      continue;}
+    else{ //For non-EE, both CompactMode and !CompactMode
+      bool CM = (htr.getExtHdr7() >> 14)&0x0001;
+      if (( CM && ( (HTRwdcount-NDAQ-NTP) != 12) )
+	  ||                                
+	  (!CM && ( (HTRwdcount-NDAQ-NTP) != 20) )  ) {	//incompatible Sizes declared. Skip it.
+	++HalfHTRDataCorruptionIndicators_[fed3offset+2][spg3offset+1];
+	continue;} }
+
+    if (htr.isHistogramEvent()) continue;
+
+    //We trust the data now.  Finish with the check against DCCHeader
+    unsigned int htrOrN = htr.getOrbitNumber(); 
+    unsigned int htrBCN = htr.getBunchNumber(); 
+    unsigned int htrEvtN = htr.getL1ANumber();
+    meBCN_->Fill(htrBCN);  //The only periodic number for whole events.
+
+    if (( (htrOrN  == dccOrN ) &&
+	  (htrBCN  == (unsigned int) dccBCN) )  
+	!= (dccHeader->getBxMismatchWithDCC(spigot))  ){
+      meDCCEventFormatError_->Fill(dccid,5);
+      if (debug_>0) cout <<"Orbit or BCN  HTR/DCC mismatch"<<endl;
+      mapDCCproblem(dcc_);
+    }
+    if ( (htrEvtN == dccEvtNum) != 
+	 dccHeader->getSpigotValid(spigot) ) {
+      meDCCEventFormatError_->Fill(dccid,5);
+      if (debug_>0) cout <<"DCC invalid spigot"<<endl;
+      mapDCCproblem(dcc_);
+    }
+    int cratenum = htr.readoutVMECrateId();
+    float slotnum = htr.htrSlot() + 0.5*htr.htrTopBottom();
+    if (debug_ > 0) HTRPrint(htr,debug_);
+    unsigned int htrFWVer = htr.getFirmwareRevision() & 0xFF;
+    meHTRFWVersion_->Fill(cratenum,htrFWVer);  
+
+    ///check that all HTRs have the same L1A number.
+    int EvtNdiff = htrEvtN - dccEvtNum;
+    if (EvtNdiff!=0) {
+      meEvtNumberSynch_->Fill(dcc_,spigot);
+      meEvtNCheck_->Fill(EvtNdiff);
+      if (debug_ == 1)cout << "++++ Evt # out of sync, ref, this HTR: "<< dccEvtNum << "  "<<htrEvtN <<endl;
+    }
+
+    ///check that all HTRs have the same BCN
+    int BCNdiff = htrBCN-dccBCN;
+    if (BCNdiff!=0) {
+      meBCNSynch_->Fill(dcc_,spigot);
+      meBCNCheck_->Fill(BCNdiff);
+      if (debug_==1)cout << "++++ BCN # out of sync, ref, this HTR: "<< dccBCN << "  "<<htrBCN <<endl;
+    }
+
+    ///check that all HTRs have the same OrN
+    int OrNdiff = htrOrN-dccOrN;
+    if (OrNdiff!=0) {
+      meOrNSynch_->Fill(dcc_,spigot);
+      meOrNCheck_->Fill(OrNdiff);
+      meBCNwhenOrNDiff_->Fill(htrBCN); // Are there special BCN where OrN mismatched occur? Let's see.
+      if (debug_==1)cout << "++++ OrN # out of sync, ref, this HTR: "<< dccOrN << "  "<<htrOrN <<endl;
+    }
+
+    bool htrUnSuppressed=(HTRraw[6]>>15 & 0x0001);
+    if (htrUnSuppressed) {
+      UScount[dcc_][spigot]++;
+      int here=1+(HcalDCCHeader::SPIGOT_COUNT*(dcc_))+spigot;
+      meUSFractSpigs_->setBinContent(here,
+				     ((double)UScount[dcc_][spigot])/(double)ievt_);}
+
+    //Fake a problem with each HTR a unique number of times.
+    //if ( (spigot+1) >= ievt_ ) 
+    //mapHTRproblem(dcc_,spigot); 
+
+    //Fake a problem with each real calorimeter cell a unique number of times.
+    //for (int htrchan=1; htrchan<=HTRCHANMAX; htrchan++) {
+    //  //  if (htrchan>ievt_)
+    //  mapChannproblem(dcc_,spigot,htrchan); }
+
+    MonitorElement* tmpErr = 0;
+    HcalDetId HDI = hashedHcalDetId_[hashup(dcc_,spigot)];
+    if (HDI != HcalDetId::Undefined) {
+      switch (HDI.subdetId()) {
+      case (HcalBarrel): {
+	tmpErr = HTR_StatusWd_HBHE;
+      } break;
+      case (HcalEndcap): {
+	tmpErr = HTR_StatusWd_HBHE;
+      } break;
+      case (HcalOuter): {
+	tmpErr = HTR_StatusWd_HO;
+      } break;
+      case (HcalForward): {
+	tmpErr = HTR_StatusWd_HF; 
+      } break;
+      default: break;
+      }
+    }
+   
+    int errWord = htr.getErrorsWord() & 0xFFFF;
+    if (  (((dccHeader->getSpigotSummary( spigot))>>24)&0x00FF)
+	  != (errWord&0x00FF) ){
+      meDCCEventFormatError_->Fill(dccid,6);//Low 8 bits miscopied into DCCHeader
+      if (debug_>0) cout <<"DCC spigot summary error or HTR error word"<<endl;
+      mapDCCproblem(dcc_);                  //What other problems may lurk? Spooky.
+    }
+    if(tmpErr!=NULL){
+      for(int i=0; i<16; i++){
+	int errbit = errWord&(0x01<<i);
+	// Bit 15 should always be 1; consider it an error if it isn't.
+	if (i==15) errbit = errbit - 0x8000;
+	if (errbit !=0) {
+	  tmpErr->Fill(i);
+	  //Only certain bits indicate corrupted data:
+	  switch (i) {
+	  case (14): //CT
+	    HalfHTRDataCorruptionIndicators_[fed3offset+0][spg3offset+2]++;
+	    if (debug_>0) cout <<"HTR Problem: Case 14"<<endl;
+	    mapHTRproblem(dcc_,spigot); break;
+	  case (13): //HM
+	    HalfHTRDataCorruptionIndicators_[fed3offset+0][spg3offset+1]++;
+	    if (debug_>0) cout <<"HTR Problem: Case 13"<<endl;
+	    mapHTRproblem(dcc_,spigot); break;
+	  case (12): //TM
+	    HalfHTRDataCorruptionIndicators_[fed3offset+0][spg3offset+0]++;
+	    if (debug_>0) cout <<"HTR Problem: Case 12"<<endl;
+	    mapHTRproblem(dcc_,spigot); break;
+	  case ( 8): //BE
+	    HalfHTRDataCorruptionIndicators_[fed3offset+1][spg3offset+2]++;
+	    if (debug_>0) cout <<"HTR Problem: Case 8"<<endl;
+	    mapHTRproblem(dcc_,spigot); break;
+	  case (15): //b15
+	    HalfHTRDataCorruptionIndicators_[fed3offset+1][spg3offset+1]++;
+	    mapHTRproblem(dcc_,spigot); break;
+	  case ( 7): //CK
+	    HalfHTRDataCorruptionIndicators_[fed3offset+1][spg3offset+0]++;
+	    if (debug_>0) cout <<"HTR Problem: Case 7"<<endl;
+	    mapHTRproblem(dcc_,spigot); break;
+	  //\\case ( 5): //LW removed 2010.02.16
+	  //\\  HalfHTRDataCorruptionIndicators_[fed3offset+2][spg3offset+2]++;
+	  //\\  //Sometimes set spuriously at startup, per-fiber, .: Leniency: 8
+	  //\\  if (HalfHTRDataCorruptionIndicators_[fed3offset+2][spg3offset+2] > 8) { 
+	  //\\    if (debug_>0) cout <<"HTR Problem: Case 5"<<endl;
+	  //\\    mapHTRproblem(dcc_,spigot); break; 
+	  //\\  }
+	  case ( 3): //L1 (previous L1A violated trigger rules)
+	    DataFlowInd_[fed2offset+1][spg3offset+0]++; break;
+	  case ( 1): //BZ
+	    DataFlowInd_[fed2offset+0][spg3offset+1]++; break;
+	  case ( 0): //OW
+	    DataFlowInd_[fed2offset+0][spg3offset+2]++;
+	  default: break;
+	  }
+	  meStatusWdCrate_->Fill(cratenum,i);
+	  if      (cratenum == 0) meCrate0HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 1) meCrate1HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 2) meCrate2HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 3) meCrate3HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 4) meCrate4HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 5) meCrate5HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 6) meCrate6HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 7) meCrate7HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum == 9) meCrate9HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==10)meCrate10HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==11)meCrate11HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==12)meCrate12HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==13)meCrate13HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==14)meCrate14HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==15)meCrate15HTRStatus_ -> Fill(slotnum,i);
+	  else if (cratenum ==17)meCrate17HTRStatus_ -> Fill(slotnum,i);
+	} 
+      }
+    }
+
+    // Fish out Front-End Errors from the precision channels
+    const short unsigned int* daq_first, *daq_last, *tp_first, *tp_last;
+    const HcalQIESample* qie_begin, *qie_end, *qie_work;
+
+    // get pointers
+    htr.dataPointers(&daq_first,&daq_last,&tp_first,&tp_last);
+    qie_begin=(HcalQIESample*)daq_first;
+    qie_end=(HcalQIESample*)(daq_last+1); // one beyond last..
+    
+    int lastcapid=-1;
+    int samplecounter=-1;
+    int htrchan=-1; // Valid: [1,24]
+    int chn2offset=0; 
+    int NTS = htr.getNDD(); //number time slices, in precision channels
+    ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset+0]=NTS;//For normalization by client
+    // Run over DAQ words for this spigot
+    for (qie_work=qie_begin; qie_work!=qie_end; qie_work++) {
+      if (qie_work->raw()==0xFFFF)  // filler word
+	continue;
+      //Beginning a channel's samples?
+      if (( 1 + ( 3* (qie_work->fiber()-1) ) + qie_work->fiberChan() )  != htrchan) { //new channel starting
+	// A fiber [1..8] carries three fiber channels, each is [0..2]. Make htrchan [1..24]
+	htrchan= (3* (qie_work->fiber()-1) ) + qie_work->fiberChan(); 
+	chn2offset = (htrchan*3)+1;
+	++ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset-1];//tally
+	++Chann_DataIntegrityCheck_[dcc_][chn2offset-1][spg2offset-1];//tally
+	if (samplecounter !=-1) { //Wrap up the previous channel if there is one
+	  //Check the previous digi for number of timeslices
+	  if ((samplecounter != NTS) &&
+	      (samplecounter != 1)             ) 
+	    { //Wrong DigiSize
+	      ++ChannSumm_DataIntegrityCheck_  [fed2offset+0][spg2offset+0];
+	      ++Chann_DataIntegrityCheck_[dcc_][chn2offset+0][spg2offset+0];
+	      if (debug_) cout <<"mapChannelProblem:  Wrong Digi Size"<<endl;
+	      mapChannproblem(dcc_,spigot,htrchan); 
+	    } 
+	} 	
+	//set up for this new channel
+	lastcapid=qie_work->capid();
+	samplecounter=1;} // fi (qie_work->fiberAndChan() != lastfibchan)
+      else { //precision samples not the first timeslice
+	int hope = lastcapid +1;// What capid would we hope for here?
+	if (hope==4) hope = 0;  // What capid would we hope for here?
+	if (qie_work->capid() != hope){
+	  ++ChannSumm_DataIntegrityCheck_  [fed2offset+1][spg2offset+0];
+	  ++Chann_DataIntegrityCheck_[dcc_][chn2offset+1][spg2offset+0];
+	  if (debug_) cout <<"mapChannelProblem:  Wrong Cap ID"<<endl;
+	  mapChannproblem(dcc_,spigot,htrchan); }
+	lastcapid=qie_work->capid();
+	samplecounter++;}
+      //For every sample, whether the first of the channel or not, !DV, Er
+      if (!(qie_work->dv())){
+	++ChannSumm_DataIntegrityCheck_  [fed2offset+0][spg2offset+1];
+	++Chann_DataIntegrityCheck_[dcc_][chn2offset+0][spg2offset+1]; }
+      if (qie_work->er()) {      // FEE - Front End Error
+	++ChannSumm_DataIntegrityCheck_  [fed2offset+1][spg2offset+1];
+	++Chann_DataIntegrityCheck_[dcc_][chn2offset+1][spg2offset+1]; 
+	if (debug_) cout <<"mapChannelProblem:  FE Error"<<endl;	
+	mapChannproblem(dcc_,spigot,htrchan); }
+    } // for (qie_work = qie_begin;...)  end loop over all timesamples in this spigot
+    //Wrap up the last channel
+    //Check the last digi for number of timeslices
+    if ((samplecounter != NTS) &&
+	(samplecounter != 1)            &&
+	(samplecounter !=-1)             ) { //Wrong DigiSize (unexpected num. timesamples)
+      ++ChannSumm_DataIntegrityCheck_  [fed2offset+0][spg2offset+0];
+      ++Chann_DataIntegrityCheck_[dcc_][chn2offset+0][spg2offset+0];
+      if (debug_) cout <<"mapChannelProblem:  Wrong Digi Size (last digi)"<<endl;
+      mapChannproblem(dcc_,spigot,htrchan); 
+    } 
+    unsigned int fib1BCN = htr.getFib1OrbMsgBCN();
+    unsigned int fib2BCN = htr.getFib2OrbMsgBCN();
+    unsigned int fib3BCN = htr.getFib3OrbMsgBCN();
+    unsigned int fib4BCN = htr.getFib4OrbMsgBCN();
+    unsigned int fib5BCN = htr.getFib5OrbMsgBCN();
+    unsigned int fib6BCN = htr.getFib6OrbMsgBCN();
+    unsigned int fib7BCN = htr.getFib7OrbMsgBCN();
+    unsigned int fib8BCN = htr.getFib8OrbMsgBCN();
+    meFibBCN_->Fill(fib1BCN);
+    meFibBCN_->Fill(fib2BCN);
+    meFibBCN_->Fill(fib3BCN);
+    meFibBCN_->Fill(fib4BCN);
+    meFibBCN_->Fill(fib5BCN);
+    meFibBCN_->Fill(fib6BCN);
+    meFibBCN_->Fill(fib7BCN);
+    meFibBCN_->Fill(fib8BCN);
+    // Disable for now?
+    meFib1OrbMsgBCN_->Fill(slotnum, cratenum, fib1BCN);
+    meFib2OrbMsgBCN_->Fill(slotnum, cratenum, fib2BCN);
+    meFib3OrbMsgBCN_->Fill(slotnum, cratenum, fib3BCN);
+    meFib4OrbMsgBCN_->Fill(slotnum, cratenum, fib4BCN);
+    meFib5OrbMsgBCN_->Fill(slotnum, cratenum, fib5BCN);
+    meFib6OrbMsgBCN_->Fill(slotnum, cratenum, fib6BCN);
+    meFib7OrbMsgBCN_->Fill(slotnum, cratenum, fib7BCN);
+    meFib8OrbMsgBCN_->Fill(slotnum, cratenum, fib8BCN);
+  } //  loop over spigots 
+  return;
+} // loop over DCCs void HcalRawDataMonitor::unpack(
+
 
 // End LumiBlock
 void HcalRawDataMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
@@ -503,6 +1205,120 @@ void HcalRawDataMonitor::labelHTRBits(MonitorElement* mePlot,unsigned int axisTy
 
   return;
 }
+
+void HcalRawDataMonitor::stashHDI(int thehash, HcalDetId thehcaldetid) {
+  //Let's not allow indexing off the array...
+  if ((thehash<0)||(thehash>(NUMDCCS*NUMSPIGS*HTRCHANMAX)))return;
+  //...but still do the job requested.
+  hashedHcalDetId_[thehash] = thehcaldetid;
+}
+
+//Debugging output for single half-HTRs (single spigot)
+void HcalRawDataMonitor::HTRPrint(const HcalHTRData& htr,int prtlvl){
+  if (prtlvl == 1){ 
+    int cratenum = htr.readoutVMECrateId();
+    float slotnum = htr.htrSlot() + 0.5*htr.htrTopBottom();
+    printf("Crate,Slot,ErrWord,Evt#,BCN:  %3i %4.1f %6X %7i %4X \n", cratenum,slotnum,htr.getErrorsWord(),htr.getL1ANumber(),htr.getBunchNumber());
+    //    printf(" DLLunlk,TTCrdy:%2i %2i \n",htr.getDLLunlock(),htr.getTTCready());
+  }
+  // This one needs new version of HcalHTRData.h to activate
+  else if (prtlvl == 2){
+    int cratenum = htr.readoutVMECrateId();
+    float slotnum = htr.htrSlot() + 0.5*htr.htrTopBottom();
+    printf("Crate, Slot:%3i %4.1f \n", cratenum,slotnum);
+    //    printf("  Ext Hdr: %4X %4X %4X %4X %4X %4X %4X %4X \n",htr.getExtHdr1(),htr.getExtHdr2(),htr.getExtHdr3(),htr.getExtHdr4(),htr.getExtHdr5(),htr.getExtHdr6(),htr.getExtHdr7(),htr.getExtHdr8());
+  }
+
+  else if (prtlvl == 3){
+    int cratenum = htr.readoutVMECrateId();
+    float slotnum = htr.htrSlot() + 0.5*htr.htrTopBottom();
+    printf("Crate, Slot:%3i %4.1f", cratenum,slotnum);
+    printf(" FibOrbMsgBCNs: %4X %4X %4X %4X %4X %4X %4X %4X \n",htr.getFib1OrbMsgBCN(),htr.getFib2OrbMsgBCN(),htr.getFib3OrbMsgBCN(),htr.getFib4OrbMsgBCN(),htr.getFib5OrbMsgBCN(),htr.getFib6OrbMsgBCN(),htr.getFib7OrbMsgBCN(),htr.getFib8OrbMsgBCN());
+  }
+
+  return;
+}
+
+void HcalRawDataMonitor::mapDCCproblem(int dcc) {
+  int myeta   = 0;
+  int myphi   =-1;
+  int mydepth = 0;
+  HcalDetId HDI;
+  //Light up all affected cells.
+  for (int i=hashup(dcc); 
+       i<hashup(dcc)+(NUMSPIGS*HTRCHANMAX); 
+       i++) {
+    HDI = hashedHcalDetId_[i];
+    if (HDI==HcalDetId::Undefined) 
+      continue;
+    mydepth = HDI.depth();
+    myphi   = HDI.iphi();
+    myeta = CalcEtaBin(HDI.subdet(),
+		       HDI.ieta(),
+		       mydepth);
+    if (myeta>=0 && myeta<85 &&
+	(myphi-1)>=0 && (myphi-1)<72 &&
+	(mydepth-1)>=0 && (mydepth-1)<4)
+      problemfound[myeta][myphi-1][mydepth-1] = true;
+    if (debug_>0)
+      if (problemfound[myeta][myphi-1][mydepth-1])
+	cout<<" mapDCCproblem error! "<<HDI.subdet()<<"("<<HDI.ieta()<<", "<<HDI.iphi()<<", "<<HDI.depth()<<")"<<endl;
+  }
+}
+void HcalRawDataMonitor::mapHTRproblem(int dcc, int spigot) {
+  int myeta = 0;
+  int myphi   =-1;
+  int mydepth = 0;
+  HcalDetId HDI;
+  //Light up all affected cells.
+  for (int i=hashup(dcc,spigot); 
+       i<hashup(dcc,spigot)+(HTRCHANMAX); //nice, linear hash....
+       i++) {
+    HDI = hashedHcalDetId_[i];
+    if (HDI==HcalDetId::Undefined) {
+      continue;
+    }
+    mydepth = HDI.depth();
+    myphi   = HDI.iphi();
+    myeta = CalcEtaBin(HDI.subdet(),
+		       HDI.ieta(),
+		       mydepth);
+    if (myeta>=0 && myeta<85 &&
+	(myphi-1)>=0 && (myphi-1)<72 &&
+	(mydepth-1)>=0 && (mydepth-1)<4)
+      problemfound[myeta][myphi-1][mydepth-1] = true;
+    if (debug_>0)
+      if (problemfound[myeta][myphi-1][mydepth-1])
+	cout<<" mapHTRproblem error! "<<HDI.subdet()<<"("<<HDI.ieta()<<", "<<HDI.iphi()<<", "<<HDI.depth()<<")"<<endl;
+    
+  }
+}   // void HcalRawDataMonitor::mapHTRproblem(...)
+
+void HcalRawDataMonitor::mapChannproblem(int dcc, int spigot, int htrchan) {
+  int myeta = 0;
+  int myphi   =-1;
+  int mydepth = 0;
+  HcalDetId HDI;
+  //Light up the affected cell.
+  int i=hashup(dcc,spigot,htrchan); 
+  HDI = HashToHDI(i);
+  if (HDI==HcalDetId::Undefined) {
+    return; // Do nothing at all, instead.
+  } 
+  mydepth = HDI.depth();
+  myphi   = HDI.iphi();
+  myeta = CalcEtaBin(HDI.subdet(),
+		     HDI.ieta(),
+		     mydepth);
+  if (myeta>=0 && myeta<85 &&
+      (myphi-1)>=0 && (myphi-1)<72 &&
+      (mydepth-1)>=0 && (mydepth-1)<4)
+    problemfound[myeta][myphi-1][mydepth-1] = true;
+
+  if (debug_>0)
+    if (problemfound[myeta][myphi-1][mydepth-1])
+      cout<<" mapChannproblem error! "<<HDI.subdet()<<"("<<HDI.ieta()<<", "<<HDI.iphi()<<", "<<HDI.depth()<<")"<<endl;
+}   // void HcalRawDataMonitor::mapChannproblem(...)
 
 DEFINE_ANOTHER_FWK_MODULE(HcalRawDataMonitor);
 

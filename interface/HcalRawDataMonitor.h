@@ -49,9 +49,6 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   // Analyze
   void analyze(const edm::Event& e, const edm::EventSetup& c);
 
-  // BeginJob
-  void beginJob();
-
   // BeginRun
   void beginRun(const edm::Run& run, const edm::EventSetup& c);
 
@@ -62,6 +59,13 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   // End LumiBlock
   void endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
                           const edm::EventSetup& c);
+
+  // Within Analyze(), processEvent
+  void processEvent(const FEDRawDataCollection& rawraw, 
+		    const HcalUnpackerReport& report);
+
+  // Within processEvent, unpack(fed)
+  void unpack(const FEDRawData& raw);
 
   // EndJob
   void endJob(void);
@@ -78,35 +82,19 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
     return;
   }
 
-  std::vector<int> AllowedCalibTypes_;
-  bool Online_;
-  bool mergeRuns_;
-  bool enableCleanup_;
-  int debug_;
-  std::string prefixME_;
-  std::string subdir_;
-
-  int currentLS;
-  DQMStore* dbe_;
-  int ievt_;
-  int levt_; // number of events in current lumi block
-  int tevt_; // number of events overall
-  MonitorElement* meIevt_;
-  MonitorElement* meTevt_;
-  MonitorElement* meLevt_;
-  bool eventAllowed_;
-  bool skipOutOfOrderLS_;
-  bool makeDiagnostics_;
-
-  // check that each subdetector is present
-  bool HBpresent_, HEpresent_, HOpresent_, HFpresent_;
-
-  // Define problem-tracking monitor elements -- keep here, or in the client?
-  MonitorElement *ProblemsVsLB;
-  MonitorElement *ProblemsVsLB_HB, *ProblemsVsLB_HE;
-  MonitorElement *ProblemsVsLB_HO, *ProblemsVsLB_HF;
-
-  int NLumiBlocks_;
+  edm::InputTag FEDRawDataCollection_;
+  edm::InputTag digiLabel_;
+  const HcalElectronicsMap*    readoutMap_;
+  //Electronics map -> geographic channel map
+  inline int hashup(uint32_t d=0, uint32_t s=0, uint32_t c=1) {
+    return (int) ( (d*NUMSPIGS*HTRCHANMAX)+(s*HTRCHANMAX)+(c)); }
+  void stashHDI(int thehash, HcalDetId thehcaldetid);
+  //Protect against indexing past array.
+  inline HcalDetId HashToHDI(int thehash) {
+    return ( ( (thehash<0) || (thehash>(NUMDCCS*NUMSPIGS*HTRCHANMAX)) )
+	     ?(HcalDetId::Undefined)
+	     :(hashedHcalDetId_[thehash]));
+  };
 
  private:
   MonitorElement* meCh_DataIntegrityFED00_;   //DataIntegrity for channels in FED 00
@@ -149,6 +137,7 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   float LRBDataCorruptionIndicators_      [THREE_FED][THREE_SPG];  
   float ChannSumm_DataIntegrityCheck_     [TWO___FED][TWO__SPGT];
   float Chann_DataIntegrityCheck_[NUMDCCS][TWO_CHANN][TWO__SPGT];
+  float DataFlowInd_                      [TWO___FED][THREE_SPG];
 
   MonitorElement* meHalfHTRDataCorruptionIndicators_;
   MonitorElement* meLRBDataCorruptionIndicators_;
@@ -170,6 +159,14 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   void mapDCCproblem  (int dcc) ;                         // Increment problem counters for affected cells
   void mapHTRproblem  (int dcc, int spigot) ;             // Increment problem counters for affected cells
   void mapChannproblem(int dcc, int spigot, int htrchan); // Increment problem counters for affected cell.
+
+  //Member variables for reference values to be used in consistency checks.
+  std::map<int, short> CDFversionNumber_list;
+  std::map<int, short>::iterator CDFvers_it;
+  std::map<int, short> CDFReservedBits_list;
+  std::map<int, short>::iterator CDFReservedBits_it;
+  std::map<int, short> DCCEvtFormat_list;
+  std::map<int, short>::iterator DCCEvtFormat_it;
 
   // The following MEs map specific conditons from the EventFragment headers as specified in
   //   http://cmsdoc.cern.ch/cms/HCAL/document/CountingHouse/DCC/DCC_1Jul06.pdf
@@ -205,22 +202,22 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
 
   // The following MEs map specific conditons from the HTR/DCC headers as specified in
   //   http://cmsdoc.cern.ch/cms/HCAL/document/CountingHouse/HTR/design/Rev4MainFPGA.pdf
-  MonitorElement* meCrate0HTRStatus_;   //Map of HTR errors into Crate 0
-  MonitorElement* meCrate1HTRStatus_;   //Map of HTR errors into Crate 1
-  MonitorElement* meCrate2HTRStatus_;   //Map of HTR errors into Crate 2
-  MonitorElement* meCrate3HTRStatus_;   //Map of HTR errors into Crate 3
-  MonitorElement* meCrate4HTRStatus_;   //Map of HTR errors into Crate 4
-  MonitorElement* meCrate5HTRStatus_;   //Map of HTR errors into Crate 5
-  MonitorElement* meCrate6HTRStatus_;   //Map of HTR errors into Crate 6
-  MonitorElement* meCrate7HTRStatus_;   //Map of HTR errors into Crate 7
-  MonitorElement* meCrate9HTRStatus_;   //Map of HTR errors into Crate 9
-  MonitorElement* meCrate10HTRStatus_;   //Map of HTR errors into Crate 10
-  MonitorElement* meCrate11HTRStatus_;   //Map of HTR errors into Crate 11
-  MonitorElement* meCrate12HTRStatus_;   //Map of HTR errors into Crate 12
-  MonitorElement* meCrate13HTRStatus_;   //Map of HTR errors into Crate 13
-  MonitorElement* meCrate14HTRStatus_;   //Map of HTR errors into Crate 14
-  MonitorElement* meCrate15HTRStatus_;   //Map of HTR errors into Crate 15
-  MonitorElement* meCrate17HTRStatus_;   //Map of HTR errors into Crate 17
+  MonitorElement* meCrate0HTRStatus_ ;   //Map of HTR status bits into Crate 0
+  MonitorElement* meCrate1HTRStatus_ ;   //Map of HTR status bits into Crate 1
+  MonitorElement* meCrate2HTRStatus_ ;   //Map of HTR status bits into Crate 2
+  MonitorElement* meCrate3HTRStatus_ ;   //Map of HTR status bits into Crate 3
+  MonitorElement* meCrate4HTRStatus_ ;   //Map of HTR status bits into Crate 4
+  MonitorElement* meCrate5HTRStatus_ ;   //Map of HTR status bits into Crate 5
+  MonitorElement* meCrate6HTRStatus_ ;   //Map of HTR status bits into Crate 6
+  MonitorElement* meCrate7HTRStatus_ ;   //Map of HTR status bits into Crate 7
+  MonitorElement* meCrate9HTRStatus_ ;   //Map of HTR status bits into Crate 9
+  MonitorElement* meCrate10HTRStatus_;   //Map of HTR status bits into Crate 10
+  MonitorElement* meCrate11HTRStatus_;   //Map of HTR status bits into Crate 11
+  MonitorElement* meCrate12HTRStatus_;   //Map of HTR status bits into Crate 12
+  MonitorElement* meCrate13HTRStatus_;   //Map of HTR status bits into Crate 13
+  MonitorElement* meCrate14HTRStatus_;   //Map of HTR status bits into Crate 14
+  MonitorElement* meCrate15HTRStatus_;   //Map of HTR status bits into Crate 15
+  MonitorElement* meCrate17HTRStatus_;   //Map of HTR status bits into Crate 17
 
   MonitorElement* meUSFractSpigs_;
   MonitorElement* meHTRFWVersion_;
@@ -233,6 +230,7 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   MonitorElement* meFib7OrbMsgBCN_;  //BCN of Fiber 7 Orb Msg
   MonitorElement* meFib8OrbMsgBCN_;  //BCN of Fiber 8 Orb Msg
 
+  void HTRPrint(const HcalHTRData& htr,int prtlvl);
 
 };
 
