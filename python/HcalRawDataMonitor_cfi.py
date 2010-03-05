@@ -2,7 +2,7 @@ import FWCore.ParameterSet.Config as cms
 
 hcalRawDataMonitor=cms.EDAnalyzer("HcalRawDataMonitor",
                                  # base class stuff
-                                 debug                  = cms.untracked.int32(2),
+                                 debug                  = cms.untracked.int32(0),
                                  online                 = cms.bool(False),
                                  AllowedCalibTypes      = cms.untracked.vint32(0), # by default, don't include calibration events
                                  mergeRuns              = cms.bool(False),
