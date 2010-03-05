@@ -435,6 +435,7 @@ void HcalDeadCellMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
 {
   // Always carry out overall occupancy test at endRun, regardless minimum number of events?  
   // Or should we require an absolute lower bound?
+  // We can always run this test; we'll use the summary client to implement a lower bound before calculating reportSummary values
   fillNevents_problemCells(); // always check for never-present cells
   return;
 }
