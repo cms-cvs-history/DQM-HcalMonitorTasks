@@ -145,7 +145,7 @@ void HcalDigiMonitor::setup()
   dbe_->setCurrentFolder(subdir_+"bad_digis/bad_digi_occupancy");
   SetupEtaPhiHists(DigiErrorsByDepth,"Bad Digi Map","");
   dbe_->setCurrentFolder(subdir_+"bad_digis/1D_digi_plots");
-  ProblemsVsLB=dbe_->bookProfile("BadDigisVsLB","# Bad Digis vs Luminosity block;Lumi block;# of Bad digis",
+  ProblemsVsLB=dbe_->bookProfile("BadDigisVsLB","Number Bad Digis vs Luminosity block;Lumi block;# of Bad digis",
 				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,0,10000);
   ProblemsVsLB_HB=dbe_->bookProfile("HB Bad Quality Digis vs LB","HB Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
@@ -254,7 +254,7 @@ void HcalDigiMonitor::setup()
 				       nbins,bins_fraccount_new);
   
   dbe_->setCurrentFolder(subdir_+"good_digis/");
-  DigiNum = dbe_->book1D("NumGoodDigis","# of Digis;# of Good Digis;# of Events",DIGI_NUM+1,-0.5,DIGI_NUM+1-0.5);
+  DigiNum = dbe_->book1D("NumGoodDigis","Number of Digis;# of Good Digis;# of Events",DIGI_NUM+1,-0.5,DIGI_NUM+1-0.5);
     
   setupSubdetHists(hbHists,"HB");
   setupSubdetHists(heHists,"HE");
