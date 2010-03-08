@@ -1,9 +1,13 @@
 #include <DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h>
+
+#include <iostream>
+#include <vector>
+
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/03/02 10:51:46 $
- * $Revision: 1.1.2.9 $
+ * $Date: 2010/03/03 18:07:09 $
+ * $Revision: 1.1.2.10 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers

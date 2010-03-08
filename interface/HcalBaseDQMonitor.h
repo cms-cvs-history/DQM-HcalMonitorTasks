@@ -19,9 +19,6 @@
 
 #include "DQM/HcalMonitorTasks/interface/HcalEtaPhiHists.h"
 
-#include <iostream>
-#include <vector>
-
 class HcalBaseDQMonitor : public edm::EDAnalyzer
 {
 

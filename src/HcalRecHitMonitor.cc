@@ -125,8 +125,8 @@ void HcalRecHitMonitor::setup()
   h_LumiPlot_BX_allevents = dbe_->book1D("BX_allevents",
 					 "BX # of all events",
 					 3600,0,3600);
-  h_LumiPlot_MinTime_vs_MinHT = dbe_->book2D("MinTime_vs_MinHT",
-					     "(HF+,HF-) Min Time vs Min HT;min HT(GeV);min time(ns)",
+  h_LumiPlot_MinTime_vs_MinHT = dbe_->book2D("MinTime_vs_MinSumET",
+					     "Energy-Weighted Time vs Min (HF+,HF-) Scalar Sum ET;min Sum ET(GeV);time(ns)",
 					     100,0,10,80,-40,40);
   dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits/sumplots");
   SetupEtaPhiHists(SumEnergyByDepth,"RecHit Summed Energy","GeV");
@@ -605,7 +605,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   int     hboccthresh=0;
   int     heoccthresh=0;
 
-  double EtPlus =0, EtMinus=0;
+  double HtPlus =0, HtMinus=0;
   double tPlus=0, tMinus=0;
   double ePlus=0, eMinus=0;
 
@@ -674,10 +674,15 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  energy_[calcEta][iphi-1][depth-1]+=en;
           energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_[calcEta][iphi-1][depth-1]+=ti;
-	  if (en>=HBenergyThreshold_ && en/cosh(fEta)>HBETThreshold_ && BPTX==true) 
+	  if (
+	      en>=HBenergyThreshold_ && 
+	      en/cosh(fEta)>HBETThreshold_ && 
+	      BPTX==true
+	      ) 
 	    {
 	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+	      energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	      time_thresh_[calcEta][iphi-1][depth-1]+=ti;
 	      
 	      ++hboccthresh;
@@ -724,19 +729,24 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	      else
 		++HEtime_[int(ti+100)];
 
-	  // Threshold plots require BPTX
+	  // Threshold plots require e>E_thresh, ET>ET_thresh
 	  if (en>=HEenergyThreshold_
 	      && en/cosh(fEta)>HEETThreshold_
-	      && BPTX==true)
+	      )
 	    {
-	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
-	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
-	      time_thresh_[calcEta][iphi-1][depth-1]+=ti;
-	      ++heoccthresh;
-	      if (ti<-100 || ti>200)
-		h_HEThreshTime->Fill(ti);
-	      else
-		++HEtime_thresh_[int(ti+100)];
+	      // occupancy plots also require BPTX
+	      if (BPTX==true)
+		{
+		  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
+		  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+		  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
+		  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
+		  ++heoccthresh;
+		  if (ti<-100 || ti>200)
+		    h_HEThreshTime->Fill(ti);
+		  else
+		    ++HEtime_thresh_[int(ti+100)];
+		}
 	      if (ieta>0)
 		{
 		  ePlus+=en;
@@ -749,24 +759,28 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 		  tMinus+=ti*en;
 		  hemocc++;
 		}
-	    } // if (en>=HEenergyThreshold_)
+	    } // if (en>=HEenergyThreshold_ && ET>threshold)
 
 	} // else if (id.subdet()==HcalEndcap)
      
     } //for (HBHERecHitCollection::const_iterator HBHEiter=...)
 
-  if (Online_ && passedHLT && BPTX==true)
+  if (Online_ && 
+      //passedHLT && 
+      BPTX==true)
     {
-      if (ePlus !=0 && eMinus != 0)
+      if (ePlus >0 && eMinus > 0)
 	{
 	  h_HEtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HEenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if passedHLT
 
-  else if (Online_ && passedHLT && BPTX==false)
+  else if (Online_ && 
+	   passedHLT && 
+	   BPTX==false)
     {
-      if (ePlus !=0 && eMinus != 0)
+      if (ePlus > 0 && eMinus > 0)
 	{
 	  h_HEnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HEnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
@@ -826,6 +840,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	{
 	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+	  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
 	}
       {
@@ -852,7 +867,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   // loop over HF
   h_HFsizeVsLS->Fill(currentLS,hfHits.size());
 
-  EtPlus=0; EtMinus=0;
+  HtPlus=0; HtMinus=0;
   tPlus=0; tMinus=0;
   ePlus=0; eMinus=0;
 
@@ -871,27 +886,6 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
       double fEta=fabs(0.5*(theHFEtaBounds[abs(ieta)-29]+theHFEtaBounds[abs(ieta)-28]));
       int calcEta = CalcEtaBin(HcalForward,ieta,depth);
-
-      if (ieta>0)
-	{
-	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
-	    {
-	      tPlus+=en*ti;
-	      ePlus+=en;
-	      hfpocc++;
-	    }
-	  EtPlus+=en/cosh(fEta);
-	}
-      else if (ieta<0)
-	{
-	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
-	    {
-	      tMinus+=en*ti;
-	      eMinus+=en;
-	      hfmocc++;
-	    }
-	  EtMinus+=en/cosh(fEta);
-	}
 
       int rbxindex=logicalMap->getHcalFrontEndId(HFiter->detid()).rbxIndex();
       int rm= logicalMap->getHcalFrontEndId(HFiter->detid()).rm(); 
@@ -916,54 +910,79 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	    HFflagcounter_[f]++;
 	}
 
-
+      // Occupancy plots, without threshold
       ++occupancy_[calcEta][iphi-1][depth-1];
       energy_[calcEta][iphi-1][depth-1]+=en;
       energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
       time_[calcEta][iphi-1][depth-1]+=ti;
 
+      ++hfocc;
+      if (ti<-100 || ti>200)
+	h_HFTime->Fill(ti);
+      else
+	++HFtime_[int(ti+100)];
 
-      //if (en/cosh(etaBounds[abs(ieta)-29]/area[abs(ieta)-29])>=HFenergyThreshold_)
-      if (en>=HFenergyThreshold_ && en/cosh(fEta)>=HFETThreshold_)
+      // Occupancy plots require BPTX and thresholds exceeded
+      if (en>=HFenergyThreshold_ && 
+	  en/cosh(fEta)>=HFETThreshold_ &&
+	  BPTX)
 	{
 	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+	  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
+
+	  ++hfoccthresh;
+	  if (ti<-100 || ti>200)
+	    h_HFThreshTime->Fill(ti);
+	  else
+	    ++HFtime_thresh_[int(ti+100)];
 	}
-      {
-	++hfocc;
-	if (ti<-100 || ti>200)
-	  h_HFTime->Fill(ti);
-	else
-	  ++HFtime_[int(ti+100)];
-	if (en>=HFenergyThreshold_)
-	  {
-	    ++hfoccthresh;
-	    if (ti<-100 || ti>200)
-	      h_HFThreshTime->Fill(ti);
-	    else
-	      ++HFtime_thresh_[int(ti+100)];
-	  } // if (en>=HFenergyThreshold_)
-      }
+
+      // we want to track average energies, times without necessarily
+      // requiring BPTX
+      if (ieta>0)
+	{
+	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+	    {
+	      tPlus+=en*ti;
+	      ePlus+=en;
+	      hfpocc++;
+	    }
+	  HtPlus+=en/cosh(fEta); // add all energies, or only those > threshold?
+	}
+      else if (ieta<0)
+	{
+	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+	    {
+	      tMinus+=en*ti;
+	      eMinus+=en;
+	      hfmocc++;
+	    }
+	  HtMinus+=en/cosh(fEta); //add all energies?
+	}
     } // loop over all HF hits
      
   // Set tPlus, tMinus to overflow in case where total energy < 0
   ePlus>0  ? tPlus/=ePlus   :  tPlus  = 10000;
-  eMinus>0 ? tMinus/=eMinus :  tMinus = 10000;
+  eMinus>0 ? tMinus/=eMinus :  tMinus = -10000;
      
-  double mintime=min(tPlus,tMinus);
-  double minHT=min(EtMinus,EtPlus);
+  double mintime=99;  // used to be min(tPlus,tMinus);
+  double minHT=min(HtMinus,HtPlus);
+  minHT==HtMinus ?  mintime=tMinus : mintime = tPlus;
+  mintime = min(tPlus,tMinus); // I think we might want to use this value for mintime
+
   h_LumiPlot_MinTime_vs_MinHT->Fill(minHT, mintime);
 
   if (BPTX)
     {
-      h_LumiPlot_SumHT_HFPlus_vs_HFMinus->Fill(EtMinus,EtPlus);
+      h_LumiPlot_SumHT_HFPlus_vs_HFMinus->Fill(HtMinus,HtPlus);
       h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(eMinus,ePlus);
       h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(tMinus,tPlus);
       
       if (
-	  fabs(ePlus/hfpocc-eMinus/hfmocc)<timediffThresh_
-	  && (EtMinus>1 && EtPlus>1) // unnecessary condition?
+	  fabs(tPlus/hfpocc-tMinus/hfmocc)<timediffThresh_
+	  && (HtMinus>1 && HtPlus>1) // unnecessary condition?
 	  )
 	{
 	  h_LumiPlot_EventsPerLS->Fill(currentLS);
@@ -971,7 +990,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	}
       
       if (
-	  (EtMinus>1 && EtPlus>1) 
+	  (HtMinus>1 && HtPlus>1) 
 	  )
 	{
 	  h_LumiPlot_EventsPerLS_notimecut->Fill(currentLS);
@@ -980,18 +999,22 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       
     } // if (BPTX)
 
-  if (Online_ && passedHLT && BPTX==true)
+  if (Online_ && 
+      //passedHLT && // require this as well?
+      BPTX==true)
     {
-      if (ePlus !=0 && eMinus != 0)
+      if (ePlus >0 && eMinus > 0)
 	{
 	  h_HFtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if (passedHLT)
 
-  else if (Online_ && passedHLT && BPTX==false)
+  else if (Online_ && 
+	   passedHLT && 
+	   BPTX==false)
     {
-      if (ePlus !=0 && eMinus != 0)
+      if (ePlus >0 && eMinus > 0)
 	{
 	  h_HFnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
@@ -1062,11 +1085,13 @@ void HcalRecHitMonitor::fill_Nevents(void)
 		      h_rechitiphi_thresh->Fill(phi+1,occupancy_thresh_[eta][phi][mydepth]);
 		    }
 		  OccupancyByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,occupancy_[eta][phi][mydepth]);
-		  OccupancyThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,occupancy_thresh_[eta][phi][mydepth]);
 		  SumEnergyByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,energy_[eta][phi][mydepth]);
                   SqrtSumEnergy2ByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,sqrt(energy2_[eta][phi][mydepth]));
-		  SumEnergyThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,energy_thresh_[eta][phi][mydepth]);
 		  SumTimeByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,time_[eta][phi][mydepth]);
+
+		  OccupancyThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,occupancy_thresh_[eta][phi][mydepth]);
+		  SumEnergyThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,energy_thresh_[eta][phi][mydepth]);
+		  SqrtSumEnergy2ThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,sqrt(energy2_thresh_[eta][phi][mydepth]));
 		  SumTimeThreshByDepth.depth[mydepth]->setBinContent(eta+1,phi+1,time_thresh_[eta][phi][mydepth]);
 		} // for (int phi=0;phi<72;++phi)
 	    } // for (int eta=0;eta<OccupancyByDepth...;++eta)
@@ -1077,6 +1102,7 @@ void HcalRecHitMonitor::fill_Nevents(void)
       FillUnphysicalHEHFBins(SumEnergyByDepth);
       FillUnphysicalHEHFBins(SqrtSumEnergy2ByDepth);
       FillUnphysicalHEHFBins(SumEnergyThreshByDepth);
+      FillUnphysicalHEHFBins(SqrtSumEnergy2ThreshByDepth);
       FillUnphysicalHEHFBins(SumTimeByDepth);
       FillUnphysicalHEHFBins(SumTimeThreshByDepth);
 
@@ -1197,6 +1223,7 @@ void HcalRecHitMonitor::zeroCounters(void)
 	      energy_[i][j][k]=0;
               energy2_[i][j][k]=0;
 	      energy_thresh_[i][j][k]=0;
+	      energy2_thresh_[i][j][k]=0;
 	      time_[i][j][k]=0;
 	      time_thresh_[i][j][k]=0;
 	    }

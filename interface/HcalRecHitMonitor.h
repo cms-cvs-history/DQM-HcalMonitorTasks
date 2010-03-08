@@ -10,8 +10,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/03/01 19:13:46 $
-  * $Revision: 1.46.2.3 $
+  * $Date: 2010/03/03 14:50:25 $
+  * $Revision: 1.46.2.4 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -84,6 +84,7 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   double energy_[85][72][4]; // will get filled when rechit found
   double energy2_[85][72][4]; // will get filled when rechit found
   double energy_thresh_[85][72][4]; // filled when above given  
+  double energy2_thresh_[85][72][4]; // filled when above given
   double time_[85][72][4]; // will get filled when rechit found
   double time_thresh_[85][72][4]; // filled when above given energy
 
