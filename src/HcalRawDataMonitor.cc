@@ -194,7 +194,7 @@ void HcalRawDataMonitor::setup(void){
   //
   std::string type;
       
-  dbe_->setCurrentFolder(subdir_ + "/Corruption"); /// Below, "Corruption" FOLDER
+  dbe_->setCurrentFolder(subdir_ + "Corruption"); /// Below, "Corruption" FOLDER
   type = "01 Common Data Format violations";
   meCDFErrorFound_ = dbe_->book2D(type,type,32,699.5,731.5,9,0.5,9.5);
   meCDFErrorFound_->setAxisTitle("HCAL FED ID", 1);
@@ -285,7 +285,7 @@ void HcalRawDataMonitor::setup(void){
   label_xFEDs   (meChannSumm_DataIntegrityCheck_, 3); // 2 bins + 1 margin per ch.
   label_ySpigots(meChannSumm_DataIntegrityCheck_, 3); // 2 bins + 1 margin per spgt
       
-  dbe_->setCurrentFolder(subdir_ + "/Corruption/Channel Data Integrity");
+  dbe_->setCurrentFolder(subdir_ + "Corruption/Channel Data Integrity");
   char label[10];
   for (int f=0; f<NUMDCCS; f++){      
     sprintf(label, "FED %03d Channel Integrity", f+700);
@@ -296,7 +296,7 @@ void HcalRawDataMonitor::setup(void){
     label_ySpigots(meChann_DataIntegrityCheck_[f], 3); // 2 bins + 1 margin per spgt
     ;}
       
-  dbe_->setCurrentFolder(subdir_ + "/Data Flow"); ////Below, "Data Flow" FOLDER
+  dbe_->setCurrentFolder(subdir_ + "Data Flow"); ////Below, "Data Flow" FOLDER
   type="DCC Event Counts";
   mefedEntries_ = dbe_->book1D(type,type,32,699.5,731.5);
       
@@ -334,7 +334,7 @@ void HcalRawDataMonitor::setup(void){
   label_xFEDs   (meDataFlowInd_, 3); // 2 bins + 1 margin per ch.
   label_ySpigots(meDataFlowInd_, 4); // 3 bins + 1 margin each spgt
       
-  dbe_->setCurrentFolder(subdir_ + "/Diagnostics"); ////Below, "Diagnostics" FOLDER
+  dbe_->setCurrentFolder(subdir_ + "Diagnostics"); ////Below, "Diagnostics" FOLDER
       
   type = "DCC Firmware Version";
   meDCCVersion_ = dbe_->bookProfile(type,type, 32, 699.5, 731.5, 256, -0.5, 255.5);
