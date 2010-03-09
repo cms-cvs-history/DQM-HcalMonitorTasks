@@ -218,30 +218,30 @@ void HcalRawDataMonitor::setup(void){
   meBCNwhenOrNDiff_->setAxisTitle("BCN",1);
   meBCNwhenOrNDiff_->setAxisTitle("# of Entries",2);
       
-  type = "03 OrN Difference HTR - DCC";
+  type = "03 OrN NonZero Difference HTR - DCC";
   meOrNCheck_ = dbe_->book1D(type,type,65,-32.5,32.5);
   meOrNCheck_->setAxisTitle("htr OrN - dcc OrN",1);
       
   type = "03 OrN Inconsistent - HTR vs DCC";
-  meOrNSynch_= dbe_->book2D(type,type,32,0,32, 15,0,15);
+  meOrNSynch_= dbe_->book2D(type,type,32,700,732, 15,0,15);
   meOrNSynch_->setAxisTitle("FED #",1);
   meOrNSynch_->setAxisTitle("Spigot #",2);
       
-  type = "05 BCN Difference HTR - DCC";
+  type = "05 BCN NonZero Difference HTR - DCC";
   meBCNCheck_ = dbe_->book1D(type,type,501,-250.5,250.5);
   meBCNCheck_->setAxisTitle("htr BCN - dcc BCN",1);
       
   type = "05 BCN Inconsistent - HTR vs DCC";
-  meBCNSynch_= dbe_->book2D(type,type,32,0,32, 15,0,15);
+  meBCNSynch_= dbe_->book2D(type,type,32,700,732, 15,0,15);
   meBCNSynch_->setAxisTitle("FED #",1);
   meBCNSynch_->setAxisTitle("Slot #",2);
       
-  type = "06 EvN Difference HTR - DCC";
+  type = "06 EvN NonZero Difference HTR - DCC";
   meEvtNCheck_ = dbe_->book1D(type,type,601,-300.5,300.5);
   meEvtNCheck_->setAxisTitle("htr Evt # - dcc Evt #",1);
       
   type = "06 EvN Inconsistent - HTR vs DCC";
-  meEvtNumberSynch_= dbe_->book2D(type,type,32,0,32, 15,0,15);
+  meEvtNumberSynch_= dbe_->book2D(type,type,32,700,732, 15,0,15);
   meEvtNumberSynch_->setAxisTitle("FED #",1);
   meEvtNumberSynch_->setAxisTitle("Slot #",2);
       
@@ -899,7 +899,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     ///check that all HTRs have the same L1A number.
     int EvtNdiff = htrEvtN - dccEvtNum;
     if (EvtNdiff!=0) {
-      meEvtNumberSynch_->Fill(dcc_,spigot);
+      meEvtNumberSynch_->Fill(dccid,spigot);
       meEvtNCheck_->Fill(EvtNdiff);
       if (debug_ == 1)cout << "++++ Evt # out of sync, ref, this HTR: "<< dccEvtNum << "  "<<htrEvtN <<endl;
     }
@@ -907,7 +907,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     ///check that all HTRs have the same BCN
     int BCNdiff = htrBCN-dccBCN;
     if (BCNdiff!=0) {
-      meBCNSynch_->Fill(dcc_,spigot);
+      meBCNSynch_->Fill(dccid,spigot);
       meBCNCheck_->Fill(BCNdiff);
       if (debug_==1)cout << "++++ BCN # out of sync, ref, this HTR: "<< dccBCN << "  "<<htrBCN <<endl;
     }
@@ -915,7 +915,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     ///check that all HTRs have the same OrN
     int OrNdiff = htrOrN-dccOrN;
     if (OrNdiff!=0) {
-      meOrNSynch_->Fill(dcc_,spigot);
+      meOrNSynch_->Fill(dccid,spigot);
       meOrNCheck_->Fill(OrNdiff);
       meBCNwhenOrNDiff_->Fill(htrBCN); // Are there special BCN where OrN mismatched occur? Let's see.
       if (debug_==1)cout << "++++ OrN # out of sync, ref, this HTR: "<< dccOrN << "  "<<htrOrN <<endl;
