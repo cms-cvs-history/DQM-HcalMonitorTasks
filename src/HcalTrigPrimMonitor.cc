@@ -360,7 +360,8 @@ HcalTrigPrimMonitor::create_map(const std::string& folder, const std::string& na
    edm::LogInfo("HcalTrigPrimMonitor") << "Creating MonitorElement " << name << " in folder " << folder << "\n";
 
    dbe_->setCurrentFolder(folder);
-   return dbe_->book2D(name, name, 65, -32.5, 32.5, 72, 0.5, 72.5);
+   std::string title = name +";ieta;iphi";
+   return dbe_->book2D(name, title, 65, -32.5, 32.5, 72, 0.5, 72.5);
 }
 
 MonitorElement*
