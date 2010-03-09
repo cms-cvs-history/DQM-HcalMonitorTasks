@@ -146,19 +146,19 @@ void HcalDigiMonitor::setup()
   SetupEtaPhiHists(DigiErrorsByDepth,"Bad Digi Map","");
   dbe_->setCurrentFolder(subdir_+"bad_digis/1D_digi_plots");
   ProblemsVsLB=dbe_->bookProfile("BadDigisVsLB","Number Bad Digis vs Luminosity block;Lumi block;# of Bad digis",
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,0,10000);
+				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
   ProblemsVsLB_HB=dbe_->bookProfile("HB Bad Quality Digis vs LB","HB Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				     0,10000);   
+				     100,0,10000);   
   ProblemsVsLB_HE=dbe_->bookProfile("HE Bad Quality Digis vs LB","HE Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				     0,10000);
+				     100,0,10000);
   ProblemsVsLB_HO=dbe_->bookProfile("HO Bad Quality Digis vs LB","HO Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				     0,10000);
+				     100,0,10000);
   ProblemsVsLB_HF=dbe_->bookProfile("HF Bad Quality Digis vs LB","HF Bad Quality Digis vs Luminosity Block",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				     0,10000);
+				     100,0,10000);
   
   if (makeDiagnostics_) // not yet used
     {
@@ -238,7 +238,7 @@ void HcalDigiMonitor::setup()
   dbe_->setCurrentFolder(subdir_+"bad_digis");
   int nbins = sizeof(bins_cellcount_new)/sizeof(float)-1;
 
-  DigiBQ = dbe_->book1D("NumBadQualDigis","# Bad Qual Digis within Digi Collection",nbins, bins_cellcount_new);
+  DigiBQ = dbe_->book1D("NumBadQualDigis","Number Bad Qual Digis within Digi Collection",nbins, bins_cellcount_new);
 
   nbins=sizeof(bins_fraccount_new)/sizeof(float)-1;
 
