@@ -185,6 +185,29 @@ void HcalRecHitMonitor::setup()
   SetupEtaPhiHists(SumTimeThreshByDepth,"Above Threshold RecHit Summed Time","nS");
   SetupEtaPhiHists(SqrtSumEnergy2ThreshByDepth,"Above Threshold RecHit Sqrt Summed Energy2","GeV");
 
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX/rechit_1D_plots");
+  h_HBThreshTime=dbe_->book1D("HB_time_thresh", 
+			      "HB RecHit Time Above Threshold",
+			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
+  h_HBThreshOccupancy=dbe_->book1D("HB_occupancy_thresh",
+				   "HB RecHit Occupancy Above Threshold",260,-0.5,2599.5);
+  h_HEThreshTime=dbe_->book1D("HE_time_thresh", 
+			      "HE RecHit Time Above Threshold",
+			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
+  h_HEThreshOccupancy=dbe_->book1D("HE_occupancy_thresh",
+				   "HE RecHit Occupancy Above Threshold",260,-0.5,2599.5);
+  h_HOThreshTime=dbe_->book1D("HO_time_thresh", 
+			      "HO RecHit Time Above Threshold",
+			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
+  h_HOThreshOccupancy=dbe_->book1D("HO_occupancy_thresh",
+				   "HO RecHit Occupancy Above Threshold",217,-0.5,2169.5);
+  h_HFThreshTime=dbe_->book1D("HF_time_thresh", 
+			      "HF RecHit Time Above Threshold",
+			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
+  h_HFThreshOccupancy=dbe_->book1D("HF_occupancy_thresh",
+				   "HF RecHit Occupancy Above Threshold",
+				   173,-0.5,1729.5);
+
   // Histograms for events that did not pass BPTX triggers
   dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX");
   
@@ -317,67 +340,46 @@ void HcalRecHitMonitor::setup()
   dbe_->setCurrentFolder(subdir_+"diagnostics/hb");
 
   h_HBsizeVsLS=dbe_->bookProfile("HBRecHitsVsLB","HB RecHits vs Luminosity Block",
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				  0,10000);
+				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
+				 100,0,10000);
 
   h_HBTime=dbe_->book1D("HB_time","HB RecHit Time",
 			int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
-  h_HBThreshTime=dbe_->book1D("HB_time_thresh", 
-			      "HB RecHit Time Above Threshold",
-			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
   h_HBOccupancy=dbe_->book1D("HB_occupancy",
 			     "HB RecHit Occupancy",260,-0.5,2599.5);
-  h_HBThreshOccupancy=dbe_->book1D("HB_occupancy_thresh",
-				   "HB RecHit Occupancy Above Threshold",260,-0.5,2599.5);
   
   //he
   dbe_->setCurrentFolder(subdir_+"diagnostics/he");
 
   h_HEsizeVsLS=dbe_->bookProfile("HERecHitsVsLB","HE RecHits vs Luminosity Block",
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				  0,10000);
+				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
+				 100,0,10000);
 	
   h_HETime=dbe_->book1D("HE_time","HE RecHit Time",
 			int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
-  h_HEThreshTime=dbe_->book1D("HE_time_thresh", 
-			      "HE RecHit Time Above Threshold",
-			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
   h_HEOccupancy=dbe_->book1D("HE_occupancy","HE RecHit Occupancy",260,-0.5,2599.5);
-  h_HEThreshOccupancy=dbe_->book1D("HE_occupancy_thresh",
-				   "HE RecHit Occupancy Above Threshold",260,-0.5,2599.5);
-  
+   
   // ho
   dbe_->setCurrentFolder(subdir_+"diagnostics/ho");	
 
   h_HOsizeVsLS=dbe_->bookProfile("HORecHitsVsLB","HO RecHits vs Luminosity Block",
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				  0,10000);
+				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
+				 100,0,10000);
   h_HOTime=dbe_->book1D("HO_time",
 			"HO RecHit Time",
 			int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
-  h_HOThreshTime=dbe_->book1D("HO_time_thresh", 
-			      "HO RecHit Time Above Threshold",
-			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
   h_HOOccupancy=dbe_->book1D("HO_occupancy",
 			     "HO RecHit Occupancy",217,-0.5,2169.5);
-  h_HOThreshOccupancy=dbe_->book1D("HO_occupancy_thresh",
-				   "HO RecHit Occupancy Above Threshold",217,-0.5,2169.5);
   
   // hf
   dbe_->setCurrentFolder(subdir_+"diagnostics/hf");
   h_HFsizeVsLS=dbe_->bookProfile("HFRecHitsVsLB",
 				 "HF RecHits vs Luminosity Block",
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,
-				  0,10000);	
+				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
+				 100, 0,10000);	
   h_HFTime=dbe_->book1D("HF_time","HF RecHit Time",
 			int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
-  h_HFThreshTime=dbe_->book1D("HF_time_thresh", 
-			      "HF RecHit Time Above Threshold",
-			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
   h_HFOccupancy=dbe_->book1D("HF_occupancy","HF RecHit Occupancy",173,-0.5,1729.5);
-  h_HFThreshOccupancy=dbe_->book1D("HF_occupancy_thresh",
-				   "HF RecHit Occupancy Above Threshold",
-				   173,-0.5,1729.5);
 
   // clear all counters, reset histograms
   this->zeroCounters();
