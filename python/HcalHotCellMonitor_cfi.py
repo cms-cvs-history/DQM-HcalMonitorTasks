@@ -27,7 +27,7 @@ hcalHotCellMonitor=cms.EDAnalyzer("HcalHotCellMonitor",
 
                                   # Threshold requirements
                                   minEvents       = cms.untracked.int32(200),
-                                  minErrorFlag    = cms.untracked.double(1.), # fraction of a lumi section for which a channel must be above threshold to be considered a problem in LS plots
+                                  minErrorFlag    = cms.untracked.double(0.25), # fraction of a lumi section for which a channel must be above threshold to be considered a problem in LS plots
                                   energyThreshold = cms.untracked.double(10.),
                                   energyThreshold_HF = cms.untracked.double(20.),
                                   # other subdetector thresholds are also untracked
