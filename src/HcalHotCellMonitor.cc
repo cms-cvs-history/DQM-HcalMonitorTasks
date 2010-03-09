@@ -108,20 +108,20 @@ void HcalHotCellMonitor::setup()
   // 1D plots count number of bad cells vs. luminosity block
   ProblemsVsLB=dbe_->bookProfile("TotalHotCells_HCAL_vs_LS",
 				  "Total Number of Hot Hcal Cells vs lumi section", 
-				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,100);
+				  NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
 
   ProblemsVsLB_HB=dbe_->bookProfile("TotalHotCells_HB_vs_LS",
 				     "Total Number of Hot HB Cells vs lumi section",
-				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,100);
+				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,3000);
   ProblemsVsLB_HE=dbe_->bookProfile("TotalHotCells_HE_vs_LS",
 				     "Total Number of Hot HE Cells vs lumi section",
-				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,100);
+				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,3000);
   ProblemsVsLB_HO=dbe_->bookProfile("TotalHotCells_HO_vs_LS",
 				     "Total Number of Hot HO Cells vs lumi section",
-				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,100);
+				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,3000);
   ProblemsVsLB_HF=dbe_->bookProfile("TotalHotCells_HF_vs_LS",
 				     "Total Number of Hot HF Cells vs lumi section",
-				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
+				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,2000);
 
   ProblemsVsLB->getTProfile()->SetMarkerStyle(20);
   ProblemsVsLB_HB->getTProfile()->SetMarkerStyle(20);
@@ -763,7 +763,7 @@ void HcalHotCellMonitor::fillNevents_problemCells(void)
   int ieta=0;
   int etabins=0;
   int phibins=0;
-  double problemvalue=0;
+  bool problemvalue=false;
 
   // Count problem cells in each subdetector
   int NumBadHB=0;
@@ -778,7 +778,6 @@ void HcalHotCellMonitor::fillNevents_problemCells(void)
   
   if (DEPTH==0) return;
 
-  int zside=0;
   for (unsigned int depth=0;depth<DEPTH;++depth)
     {
       if (test_persistent_) 
@@ -805,38 +804,24 @@ void HcalHotCellMonitor::fillNevents_problemCells(void)
 	      if (abs(ieta)>20 && phi%2==1) continue; //skip non-physical cells
 	      else if (abs(ieta)>39 && (phi+1)%4!=3) continue;
 	      // find problem rate for particular cell
-	      problemvalue=0;
-	      if (test_persistent_)
-		problemvalue+=AbovePersistentThresholdCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1);
-	      if (test_neighbor_)
-		problemvalue+=AboveNeighborsHotCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1);
-	      if (test_energy_)
-		problemvalue+=AboveEnergyThresholdCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1);
-	      problemvalue = min((double)ievt_, problemvalue);
-	      if (problemvalue==0) continue;
-	      zside=0;
-	  
-	      // Shift HF cells by +/- 1 
-	      if (depth<2)
-		{
-		  if (isHF(eta,depth+1))
-		    ieta<0 ? zside = -1 : zside= 1;
-		}
-
-	      // If problem rate is large enough, count it as problematic
-	      if (problemvalue>minErrorFlag_*ievt_)
-		{
-		  if (isHB(eta,depth+1)) ++NumBadHB;
-		  else if (isHE(eta,depth+1)) 
-		    ++NumBadHE;
-		  else if (isHO(eta,depth+1)) ++NumBadHO;
-		  else if (isHF(eta,depth+1)) ++NumBadHF;
-
-		}
+	      problemvalue=false;
+	      if (test_persistent_    && AbovePersistentThresholdCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1)>=ievt_)
+		problemvalue=true;
+	      else if (test_neighbor_ && AboveNeighborsHotCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1)>minErrorFlag_*ievt_)
+		problemvalue=true;
+	      else if (test_energy_   && AboveEnergyThresholdCellsByDepth.depth[depth]->getBinContent(eta+1,phi+1)>minErrorFlag_*ievt_)
+		problemvalue=true;
+	      if (problemvalue==false) continue;
+	      if (isHB(eta,depth+1)) ++NumBadHB;
+	      else if (isHE(eta,depth+1)) 
+		++NumBadHE;
+	      else if (isHO(eta,depth+1)) ++NumBadHO;
+	      else if (isHF(eta,depth+1)) ++NumBadHF;
 	    } // for (int phi=0;...)
 	} //for (int eta=0;...)
     } // for (int depth=0;...)
   
+  if (debug_>2) std::cout <<"<HcalHotCellMonitor::fillNevents_problemCells>  Num Bad HB = "<<NumBadHB<<"  Num Bad HE = "<<NumBadHE<<"  Num Bad HO = "<<NumBadHO<<"  Num Bad HF = "<<NumBadHF<<"  CURRENT LS = "<<currentLS<<std::endl;
   // Fill number of problem cells
   ProblemsVsLB_HB->Fill(currentLS,NumBadHB);
   ProblemsVsLB_HE->Fill(currentLS,NumBadHE);
