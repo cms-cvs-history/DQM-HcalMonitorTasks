@@ -74,7 +74,7 @@ void HcalDeadCellMonitor::setup()
 
   dbe_->setCurrentFolder(subdir_);
   
-  Nevents = dbe_->book1D("NumberOfDeadCellEvents","# of Events Seen by DeadCellMonitor",2,0,2);
+  Nevents = dbe_->book1D("NumberOfDeadCellEvents","Number of Events Seen by DeadCellMonitor",2,0,2);
   Nevents->setBinLabel(1,"allEvents");
   Nevents->setBinLabel(2,"lumiCheck");
  // 1D plots count number of bad cells vs. luminosity block
@@ -160,7 +160,6 @@ void HcalDeadCellMonitor::setup()
   (NumberOfNeverPresentDigisHE->getTProfile())->SetMarkerStyle(20);
   (NumberOfNeverPresentDigisHO->getTProfile())->SetMarkerStyle(20);
   (NumberOfNeverPresentDigisHF->getTProfile())->SetMarkerStyle(20);
-
 
   for (unsigned int depth=0;depth<DigiPresentByDepth.depth.size();++depth)
     DigiPresentByDepth.depth[depth]->Reset();
@@ -450,6 +449,7 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
 
   if (!IsAllowedCalibType()) return;
+  Nevents->Fill(0,1); // count all events of allowed calibration type, even if their lumi block is not in the right order
   if (LumiInOrder(e.luminosityBlock())==false) return;
   // try to get rechits and digis
   edm::Handle<HBHEDigiCollection> hbhe_digi;
@@ -516,12 +516,11 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
   if (debug_>1) std::cout <<"<HcalDeadCellMonitor::processEvent> Processing event..."<<std::endl;
 
   // Do Digi-Based dead cell searches 
-
-  // Dummy fills needed for client normalization of problems
-  // (though not necessarily here; we could do this in endluminosityblock)
+  
+  // Make sure histograms update
   for (unsigned int i=0;i<DigiPresentByDepth.depth.size();++i)
-    DigiPresentByDepth.depth[i]->setBinContent(0,0,ievt_); 
-    
+    DigiPresentByDepth.depth[i]->update();
+
   NumberOfNeverPresentDigis->update();;
   NumberOfNeverPresentDigisHB->update();
   NumberOfNeverPresentDigisHE->update();
@@ -532,8 +531,8 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
     {
       
       for (unsigned int i=0;i<RecentMissingDigisByDepth.depth.size();++i)
-	RecentMissingDigisByDepth.depth[i]->setBinContent(0,0,ievt_);
-      
+	RecentMissingDigisByDepth.depth[i]->update();
+
       NumberOfRecentMissingDigis->update();
       NumberOfRecentMissingDigisHB->update();
       NumberOfRecentMissingDigisHE->update();
@@ -567,7 +566,7 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
     {
       // Normalization Fill
       for (unsigned int i=0;i<RecentMissingRecHitsByDepth.depth.size();++i)
-	RecentMissingRecHitsByDepth.depth[i]->setBinContent(0,0,ievt_);
+	RecentMissingRecHitsByDepth.depth[i]->update();
 
       NumberOfRecentMissingRecHits->update();
       NumberOfRecentMissingRecHitsHB->update();
@@ -588,8 +587,6 @@ void HcalDeadCellMonitor::processEvent(const HBHERecHitCollection& hbHits,
 	process_RecHit(j);
 	
     } // if (deadmon_test_rechits)
-
-  Nevents->Fill(0,1);
 
   if (!makeDiagnostics_) return;
   if (tevt_>=NLumiBlocks_) return;
@@ -738,8 +735,10 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 
   int etabins=0;
   int phibins=0;
+
   for (unsigned int depth=0;depth<RecentMissingDigisByDepth.depth.size();++depth)
     { 
+      RecentMissingDigisByDepth.depth[depth]->setBinContent(0,0,ievt_);
       etabins=RecentMissingDigisByDepth.depth[depth]->getNbinsX();
       phibins=RecentMissingDigisByDepth.depth[depth]->getNbinsY();
       for (int eta=0;eta<etabins;++eta)
@@ -814,6 +813,7 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
   int phibins=0;
   for (unsigned int depth=0;depth<RecentMissingRecHitsByDepth.depth.size();++depth)
     { 
+      RecentMissingRecHitsByDepth.depth[depth]->setBinContent(0,0,ievt_);
       etabins=RecentMissingRecHitsByDepth.depth[depth]->getNbinsX();
       phibins=RecentMissingRecHitsByDepth.depth[depth]->getNbinsY();
       for (int eta=0;eta<etabins;++eta)
@@ -902,9 +902,10 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 
   int etabins=0;
   int phibins=0;
+
   for (unsigned int depth=0;depth<DigiPresentByDepth.depth.size();++depth)
     {
-
+      DigiPresentByDepth.depth[depth]->setBinContent(0,0,ievt_); 
       etabins=DigiPresentByDepth.depth[depth]->getNbinsX();
       phibins=DigiPresentByDepth.depth[depth]->getNbinsY();
       for (int eta=0;eta<etabins;++eta)
