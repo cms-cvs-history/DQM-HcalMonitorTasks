@@ -1000,11 +1000,11 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     } // if (BPTX)
 
   if (Online_ && 
-      //passedHLT && // require this as well?
       BPTX==true)
     {
       if (ePlus >0 && eMinus > 0)
 	{
+	  if (debug_>1) std::cout <<"<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<std::endl;
 	  h_HFtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
