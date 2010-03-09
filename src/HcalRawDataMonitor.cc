@@ -1046,7 +1046,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     int htrchan=-1; // Valid: [1,24]
     int chn2offset=0; 
     int NTS = htr.getNDD(); //number time slices, in precision channels
-    ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset+0]=NTS;//For normalization by client
+    ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset+0]=-NTS;//For normalization by client - NB! negative!
     // Run over DAQ words for this spigot
     for (qie_work=qie_begin; qie_work!=qie_end; qie_work++) {
       if (qie_work->raw()==0xFFFF)  // filler word
@@ -1056,8 +1056,8 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
 	// A fiber [1..8] carries three fiber channels, each is [0..2]. Make htrchan [1..24]
 	htrchan= (3* (qie_work->fiber()-1) ) + qie_work->fiberChan(); 
 	chn2offset = (htrchan*3)+1;
-	++ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset-1];//tally
-	++Chann_DataIntegrityCheck_[dcc_][chn2offset-1][spg2offset-1];//tally
+	--ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset-1];//event tally -- NB! negative!
+	--Chann_DataIntegrityCheck_[dcc_][chn2offset-1][spg2offset-1];//event tally -- NB! negative!
 	if (samplecounter !=-1) { //Wrap up the previous channel if there is one
 	  //Check the previous digi for number of timeslices
 	  if ((samplecounter != NTS) &&
@@ -1204,7 +1204,8 @@ void HcalRawDataMonitor::stashHDI(int thehash, HcalDetId thehcaldetid) {
   hashedHcalDetId_[thehash] = thehcaldetid;
 }
 
-//Debugging output for single half-HTRs (single spigot)
+//Debugging output for single half-HTRs (single spigot) 
+//-->Class member debug_ usually passed for prtlvl argument.<--
 void HcalRawDataMonitor::HTRPrint(const HcalHTRData& htr,int prtlvl){
   if (prtlvl == 1){ 
     int cratenum = htr.readoutVMECrateId();
