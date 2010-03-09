@@ -176,22 +176,17 @@ void HcalRawDataMonitor::setup(void){
 	}
     }
 
-  // * * * Old ways: * * *
-  //  meEVT_ = dbe_->bookInt("Raw Data Task Event Number");
-  //  meEVT_->Fill(ievt_);    
-  //  meTOTALEVT_ = dbe_->bookInt("Raw Data Task Total Events Processed");
-  //  meTOTALEVT_->Fill(tevt_);
-  //  * * *Go to * * *
-  //     dbe_->setCurrentFolder(subdir_);
-  //  meIevt_ = dbe_->bookInt("EventsProcessed");
-  //  if (meIevt_) meIevt_->Fill(-1);
-  //  meLevt_ = dbe_->bookInt("EventsProcessed_currentLS");
-  //  if (meLevt_) meLevt_->Fill(-1);
-  //  meTevt_ = dbe_->bookInt("EventsProcessed_All");
-  //  if (meTevt_) meTevt_->Fill(-1);
-  //  meTevtHist_=dbe_->book1D("EventsProcessed_AllHists","Counter of Events Processed By This Task",1,0.5,1.5);
-  //  if (meTevtHist_) meTevtHist_->Reset();
-  //
+  //  Already done in base class:
+  //dbe_->setCurrentFolder(subdir_);
+  //meIevt_ = dbe_->bookInt("EventsProcessed");
+  //if (meIevt_) meIevt_->Fill(-1);
+  //meLevt_ = dbe_->bookInt("EventsProcessed_currentLS");
+  //if (meLevt_) meLevt_->Fill(-1);
+  //meTevt_ = dbe_->bookInt("EventsProcessed_All");
+  //if (meTevt_) meTevt_->Fill(-1);
+  //meTevtHist_=dbe_->book1D("EventsProcessed_AllHists","Counter of Events Processed By This Task",1,0.5,1.5);
+  //if (meTevtHist_) meTevtHist_->Reset();
+  
   std::string type;
       
   dbe_->setCurrentFolder(subdir_ + "Corruption"); /// Below, "Corruption" FOLDER
@@ -523,10 +518,6 @@ void HcalRawDataMonitor::processEvent(const FEDRawDataCollection& rawraw,
   ProblemCells->update();
   for (int depth=0;depth<4;++depth) 
     ProblemCellsByDepth.depth[depth]->update();
-
-//Need these?  lastEvtN_ = -1;
-//Need these?  lastBCN_ = -1;
-//Need these?  lastOrN_ = -1;
   
   // Fill event counters (underflow bins of histograms)
   meLRBDataCorruptionIndicators_->update();
@@ -560,9 +551,7 @@ void HcalRawDataMonitor::processEvent(const FEDRawDataCollection& rawraw,
 	}
     }
 
-  //if (0== (ievt_ % dfmon_checkNevents))
-  //  UpdateMEs();
-  //Transfer this event's problem info to 
+  //Reset the problemfound booleans
   for (unsigned int depth=0; depth<4; ++depth)
     {
       etabins=ProblemCellsByDepth.depth[depth]->getNbinsX();
@@ -1145,7 +1134,9 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
 
 // End LumiBlock
 void HcalRawDataMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
-					    const edm::EventSetup& c){}
+					    const edm::EventSetup& c){
+  UpdateMEs();
+}
 // EndRun -- Anything to do here?
 void HcalRawDataMonitor::endRun(const edm::Run& run, const edm::EventSetup& c){}
 
@@ -1319,6 +1310,79 @@ void HcalRawDataMonitor::mapChannproblem(int dcc, int spigot, int htrchan) {
     if (problemfound[myeta][myphi-1][mydepth-1])
       cout<<" mapChannproblem error! "<<HDI.subdet()<<"("<<HDI.ieta()<<", "<<HDI.iphi()<<", "<<HDI.depth()<<")"<<endl;
 }   // void HcalRawDataMonitor::mapChannproblem(...)
+
+void HcalRawDataMonitor::UpdateMEs (void ) {
+  for (int x=0; x<THREE_FED; x++)
+    for (int y=0; y<THREE_SPG; y++)
+      if (LRBDataCorruptionIndicators_  [x][y])
+	meLRBDataCorruptionIndicators_->setBinContent(x+1,y+1,LRBDataCorruptionIndicators_[x][y]);
+  	 
+  for (int x=0; x<THREE_FED; x++)
+    for (int y=0; y<THREE_SPG; y++)
+      if (HalfHTRDataCorruptionIndicators_  [x][y])
+	meHalfHTRDataCorruptionIndicators_->setBinContent(x+1,y+1,HalfHTRDataCorruptionIndicators_[x][y]);
+  	 
+  for (int x=0; x<TWO___FED; x++)
+    for (int y=0; y<TWO__SPGT; y++)
+      if (ChannSumm_DataIntegrityCheck_[x][y])
+	meChannSumm_DataIntegrityCheck_->setBinContent(x+1,y+1,ChannSumm_DataIntegrityCheck_[x][y]);
+
+  for (int f=0; f<NUMDCCS; f++)
+    for (int x=0; x<TWO_CHANN; x++)
+      for (int y=0; y<TWO__SPGT; y++)      
+	if (Chann_DataIntegrityCheck_[f][x][y])
+	  meChann_DataIntegrityCheck_[f]->setBinContent(x+1,y+1,Chann_DataIntegrityCheck_ [f][x][y]);
+
+  for (int x=0; x<TWO___FED; x++)
+    for (int y=0; y<THREE_SPG; y++)      
+      if (DataFlowInd_[x][y])
+	meDataFlowInd_->setBinContent(x+1,y+1,DataFlowInd_[x][y]);
+
+  uint64_t probcnt=0;
+
+  int etabins=0;
+  int phibins=0;
+  int filleta=-9999;
+  
+  ProblemCells->Reset(); // clear old values so that we can use "Fill" without problems
+  ProblemCells->setBinContent(0,0,ievt_);
+  for (int depth=0;depth<4;++depth)
+    {
+      etabins=ProblemCellsByDepth.depth[depth]->getNbinsX();
+      phibins=ProblemCellsByDepth.depth[depth]->getNbinsY();
+      ProblemCellsByDepth.depth[depth]->Reset(); // clear depth histograms
+      ProblemCellsByDepth.depth[depth]->setBinContent(0,0,ievt_); // set underflow bin to event count
+      for (int eta=0;eta<etabins;++eta)
+	{
+	  for (int phi=0;phi<phibins;++phi)
+	    {
+	      probcnt=((uint64_t) problemcount[eta][phi][depth] );
+	      if (probcnt==0) continue;
+	      filleta=CalcIeta(eta,depth+1); // calculate ieta from eta counter
+	      // Offset true ieta for HF plotting
+	      if (isHF(eta,depth+1)) 
+		filleta<0 ? filleta-- : filleta++;
+	      if (debug_>0) cout <<"probcnt = "<<probcnt<<"  ieta = "<<filleta<<"  iphi = "<<phi+1<<"  depth = "<<depth+1<<endl;
+	      ProblemCellsByDepth.depth[depth]->Fill(filleta,phi+1,probcnt);
+		ProblemCells->Fill(filleta,phi+1,probcnt); 
+	    }
+	}
+    }
+  // Make sure problem rate (summed over depths) doesn't exceed 100%
+  etabins=ProblemCells->getNbinsX();
+  phibins=ProblemCells->getNbinsY();
+  for (int eta=0;eta<etabins;++eta)
+    {
+      for (int phi=0;phi<phibins;++phi)
+  	{
+	  if (ProblemCells->getBinContent(eta+1,phi+1)>ievt_)
+  	    ProblemCells->setBinContent(eta+1,phi+1,ievt_);
+  	}
+    }
+  
+  FillUnphysicalHEHFBins(ProblemCells);
+  FillUnphysicalHEHFBins(ProblemCellsByDepth);
+} //UpdateMEs
 
 DEFINE_ANOTHER_FWK_MODULE(HcalRawDataMonitor);
 

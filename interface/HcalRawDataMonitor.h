@@ -34,8 +34,8 @@
 
 /** \class HcalRawDataMonitor
  *
- * $Date: 2010/03/02 20:59:46 $
- * $Revision: 1.1.2.2 $
+ * $Date: 2010/03/05 21:09:23 $
+ * $Revision: 1.1.2.4 $
  * \author J. St. John - Boston University
  */
 class HcalRawDataMonitor: public HcalBaseDQMonitor {
@@ -45,35 +45,21 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   HcalRawDataMonitor(){};
   ~HcalRawDataMonitor();
  protected:
-
-  // Analyze
   void analyze(const edm::Event& e, const edm::EventSetup& c);
-
-  // BeginRun
   void beginRun(const edm::Run& run, const edm::EventSetup& c);
-
-  // Begin LumiBlock
   void beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
                             const edm::EventSetup& c) ;
-
-  // End LumiBlock
+  // End LumiBlock 
+  // Dump the backstage arrays into MEs, for normalization by the Client
   void endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
                           const edm::EventSetup& c);
-
   // Within Analyze(), processEvent
   void processEvent(const FEDRawDataCollection& rawraw, 
 		    const HcalUnpackerReport& report);
-
   // Within processEvent, unpack(fed)
   void unpack(const FEDRawData& raw);
-
-  // EndJob
   void endJob(void);
-
-  // EndRun
   void endRun(const edm::Run& run, const edm::EventSetup& c);
-
-  // setup
   void setup(void);
 
   void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
@@ -159,6 +145,9 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   void mapDCCproblem  (int dcc) ;                         // Increment problem counters for affected cells
   void mapHTRproblem  (int dcc, int spigot) ;             // Increment problem counters for affected cells
   void mapChannproblem(int dcc, int spigot, int htrchan); // Increment problem counters for affected cell.
+
+  // Transfer internal problem counts to ME's, & reset internal counters.
+  void UpdateMEs (void );
 
   //Member variables for reference values to be used in consistency checks.
   std::map<int, short> CDFversionNumber_list;
