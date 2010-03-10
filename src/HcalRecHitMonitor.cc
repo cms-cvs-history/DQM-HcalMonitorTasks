@@ -959,8 +959,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	      tPlus+=en*ti;
 	      ePlus+=en;
 	      hfpocc++;
+	      HtPlus+=en/cosh(fEta); // add all energies, or only those > threshold?
 	    }
-	  HtPlus+=en/cosh(fEta); // add all energies, or only those > threshold?
 	}
       else if (ieta<0)
 	{
@@ -969,8 +969,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	      tMinus+=en*ti;
 	      eMinus+=en;
 	      hfmocc++;
+	      HtMinus+=en/cosh(fEta); //add all energies, or only those > threshold?
 	    }
-	  HtMinus+=en/cosh(fEta); //add all energies?
 	}
     } // loop over all HF hits
      
