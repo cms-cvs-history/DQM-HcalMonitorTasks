@@ -11,6 +11,56 @@
 
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 
+#include "DataFormats/Math/interface/deltaR.h"
+#include "DataFormats/Common/interface/TriggerResults.h"
+
+#include "DataFormats/L1Trigger/interface/L1EmParticle.h"
+#include "DataFormats/L1Trigger/interface/L1EmParticleFwd.h"
+#include "DataFormats/L1Trigger/interface/L1MuonParticle.h"
+#include "DataFormats/L1Trigger/interface/L1MuonParticleFwd.h"
+#include "DataFormats/L1Trigger/interface/L1JetParticle.h"
+#include "DataFormats/L1Trigger/interface/L1JetParticleFwd.h"
+#include "DataFormats/L1Trigger/interface/L1EtMissParticle.h"
+#include "DataFormats/L1Trigger/interface/L1EtMissParticleFwd.h"
+#include "DataFormats/L1GlobalCaloTrigger/interface/L1GctHFRingEtSums.h"
+#include "DataFormats/L1GlobalCaloTrigger/interface/L1GctHFBitCounts.h"
+#include "DataFormats/L1GlobalMuonTrigger/interface/L1MuGMTExtendedCand.h"
+#include "DataFormats/Candidate/interface/Candidate.h"
+#include "L1Trigger/RegionalCaloTrigger/interface/L1RCTProducer.h" 
+#include "DataFormats/L1CaloTrigger/interface/L1CaloCollections.h"
+#include "DataFormats/EcalDigi/interface/EcalDigiCollections.h"
+#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
+#include "HLTrigger/HLTanalyzers/interface/JetUtil.h"
+#include "DataFormats/METReco/interface/CaloMET.h"
+#include "DataFormats/METReco/interface/CaloMETCollection.h"
+// #include "DataFormats/L1Trigger/interface/L1ParticleMap.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutSetupFwd.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerObjectMapRecord.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerObjectMapFwd.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerObjectMap.h"
+//#include "DataFormats/L1GlobalTrigger/interface/L1GtLogicParser.h"
+#include "DataFormats/TrackReco/interface/Track.h"
+#include "DataFormats/TrackReco/interface/TrackFwd.h"
+#include "DataFormats/TrackReco/interface/TrackBase.h"
+#include "RecoMET/METAlgorithms/interface/HcalNoiseRBXArray.h"
+#include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
+#include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
+#include "FWCore/ParameterSet/interface/ParameterSet.h"
+#include "DQMServices/Core/interface/DQMStore.h"
+#include "DQMServices/Core/interface/MonitorElement.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbService.h"
+#include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
+
+// this is to retrieve HCAL LogicalMap
+#include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
+#include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
+
+#include <math.h>
+using namespace edm;
+using namespace std;
+using namespace reco;
+
 ////////////////////////////////////////////////////////////////////////////////////////////
 static const float adc2fC[128]={-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5, 10.5,11.5,12.5,
                    13.5,15.,17.,19.,21.,23.,25.,27.,29.5,32.5,35.5,38.5,42.,46.,50.,54.5,59.5,
@@ -36,36 +86,122 @@ static std::string HO_RBX[36]={
 "HO1P02","HO1P04","HO1P06","HO1P08","HO1P10","HO1P12","HO2P02","HO2P04","HO2P06","HO2P08","HO2P10","HO2P12",
 };
 
-HcalDetDiagNoiseMonitor::HcalDetDiagNoiseMonitor() {
+
+class HcalDetDiagNoiseRMData{
+public:
+  HcalDetDiagNoiseRMData(){
+    n_th_hi=n_th_lo=0;
+    energy=0;
+  };
+  int    n_th_hi;
+  int    n_th_lo;
+  double energy; 
+};
+
+class HcalDetDiagNoiseRMSummary{
+public:
+  HcalDetDiagNoiseRMSummary(){ 
+     std::string subdets[11]={"HBM","HBP","HEM","HEP","HO2M","HO1M","HO0","HO1P","HO2P","HFM","HFP"};
+     reset(); 
+     for(int sd=0;sd<11;sd++) for(int sect=1;sect<=18;sect++) for(int rm=1;rm<=4;rm++){
+        std::stringstream tempss;
+        tempss << std::setw(2) << std::setfill('0') << sect;
+        std::string rbx= subdets[sd]+tempss.str();
+        HcalFrontEndId id(rbx,rm,1,1,1,1,1);
+        if(id.rawId()==0) continue;
+        SubDetIndex[id.rmIndex()]=sd; 
+     }
+     for(int i=0;i<HcalFrontEndId::maxRmIndex;i++) Ref[i]=0;
+  }
+  void reset(int subdet=-1){
+     if(subdet==-1){
+       for(int i=0;i<HcalFrontEndId::maxRmIndex;i++) AboveThHi[i]=0; 
+       for(int i=0;i<11;i++) events[i]=0;
+     }else{
+        std::string subdets[11]={"HBM","HBP","HEM","HEP","HO2M","HO1M","HO0","HO1P","HO2P","HFM","HFP"};
+        for(int sect=1;sect<=18;sect++) for(int rm=1;rm<=4;rm++){
+	   std::stringstream tempss;
+           tempss << std::setw(2) << std::setfill('0') << sect;
+           std::string rbx= subdets[subdet]+tempss.str();
+           HcalFrontEndId id(rbx,rm,1,1,1,1,1);
+           if(id.rawId()==0) continue;
+           AboveThHi[id.rmIndex()]=0; 
+	   events[subdet]=0;
+	}
+     }
+  }
+  void SetReference(int index,double val){
+     if(index<0 || index>=HcalFrontEndId::maxRmIndex) return;
+     Ref[index]=val;
+  } 
+  double GetReference(int index){
+     if(index<0 || index>=HcalFrontEndId::maxRmIndex) return 0;
+     return Ref[index];
+  } 
+  bool GetRMStatusValue(const std::string& rbx,int rm,double *val){
+     int index=GetRMindex(rbx,rm);
+     if(index<0 || index>=HcalFrontEndId::maxRmIndex) return false;
+     if(events[SubDetIndex[index]]>10){ *val=(double)AboveThHi[index]/(double)events[SubDetIndex[index]]; return true; }
+     *val=0; return true; 
+  }
+  void AddNoiseStat(int rm_index){
+     AboveThHi[rm_index]++;
+     events[SubDetIndex[rm_index]]++;
+  }
+  int GetSubDetIndex(const std::string& rbx){
+      return SubDetIndex[GetRMindex(rbx,2)];
+  }
+  
+  int GetRMindex(const std::string& rbx,int rm){
+      if(rbx.substr(0,3)=="HO0"){
+         int sect=atoi(rbx.substr(3,2).c_str());
+         if(sect>12) return -1;
+	 if(rm==1 && (sect==2  || sect==3 || sect==6 || sect==7 || sect==10 || sect==11)) return -1;
+         if(rm==4 && (sect==12 || sect==1 || sect==4 || sect==5 || sect==8  || sect==9 )) return -1;
+      }
+      if(rbx.substr(0,3)=="HO1" || rbx.substr(0,3)=="HO2"){ 
+         int sect=atoi(rbx.substr(4,2).c_str());
+	 if(sect>12) return -1;
+         if(sect==1 || sect==3 || sect==5 || sect==7 || sect==9 || sect==11) return -1;
+      }
+      HcalFrontEndId id(rbx,rm,1,1,1,1,1);
+      if(id.rawId()==0) return -1;
+      return id.rmIndex(); 
+  }
+  int GetStat(int subdet){ return events[subdet]; }
+private:  
+  int    AboveThHi  [HcalFrontEndId::maxRmIndex];
+  int    SubDetIndex[HcalFrontEndId::maxRmIndex];
+  double Ref[HcalFrontEndId::maxRmIndex];
+  int    events[11];
+};
+
+
+
+
+HcalDetDiagNoiseMonitor::HcalDetDiagNoiseMonitor(const edm::ParameterSet& ps) 
+{
   ievt_=0;
   run_number=-1;
   NoisyEvents=0;
+  
+  Online_                = ps.getUntrackedParameter<bool>("online",false);
+  mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
+  enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
+  debug_                 = ps.getUntrackedParameter<int>("debug",0);
+  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
+    prefixME_.append("/");
+  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DetDiagNoiseMonitor_Hcal"); 
+  if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
+    subdir_.append("/");
+  subdir_=prefixME_+subdir_;
+  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS","false");
+  NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
+  makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-// ####################################
 
-  lumi.clear();
-
-// ####################################
-
-}
-
-HcalDetDiagNoiseMonitor::~HcalDetDiagNoiseMonitor(){}
-
-void HcalDetDiagNoiseMonitor::clearME(){
-  if(m_dbe){
-    m_dbe->setCurrentFolder(baseFolder_);
-    m_dbe->removeContents();
-    m_dbe = 0;
-  }
-} 
-void HcalDetDiagNoiseMonitor::reset(){}
-
-void HcalDetDiagNoiseMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe){
-  m_dbe=NULL;
-  ievt_=0;
-  if(dbe!=NULL) m_dbe=dbe;
-  clearME();
- 
   UseDB            = ps.getUntrackedParameter<bool>  ("UseDB"  , false);
   ReferenceData    = ps.getUntrackedParameter<string>("NoiseReferenceData" ,"");
   OutputFilePath   = ps.getUntrackedParameter<string>("OutputFilePath", "");
@@ -75,11 +211,9 @@ void HcalDetDiagNoiseMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe){
   SpikeThreshold   = ps.getUntrackedParameter<double>("NoiseThresholdSpike",0.06);
   UpdateEvents     = ps.getUntrackedParameter<int>   ("NoiseUpdateEvents",200);
   
-  FEDRawDataCollection_ = ps.getUntrackedParameter<edm::InputTag>("FEDRawDataCollection",edm::InputTag("source",""));
-  inputLabelDigi_       = ps.getParameter<edm::InputTag>         ("digiLabel");
-
-// ###################################################################################################################
-
+  rawDataLabel_ = ps.getUntrackedParameter<edm::InputTag>("RawDataLabel",edm::InputTag("source",""));
+  digiLabel_     = ps.getUntrackedParameter<edm::InputTag>("digiLabel",edm::InputTag("hcalDigis"));
+  
   hlTriggerResults_				= ps.getUntrackedParameter<edm::InputTag>("HLTriggerResults",edm::InputTag("TriggerResults","","HLT"));
   MetSource_					= ps.getUntrackedParameter<edm::InputTag>("MetSource",edm::InputTag("met"));
   JetSource_          				= ps.getUntrackedParameter<edm::InputTag>("JetSource",edm::InputTag("iterativeCone5CaloJets"));
@@ -97,40 +231,66 @@ void HcalDetDiagNoiseMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe){
   MaxJetHadronicEnergyFraction_ 		= ps.getUntrackedParameter<double>("MaxJetHadronicEnergyFraction",0.98);
   caloTowerCollName_				= ps.getParameter<edm::InputTag>("caloTowerCollName");
 
-// ###################################################################################################################
+// ####################################
 
-  if (showTiming)
-    {
-      cpu_timer.reset(); cpu_timer.start();
-    }
-  
-  HcalBaseMonitor::setup(ps,dbe);
+  lumi.clear();
 
-  baseFolder_ = rootFolder_+"HcalNoiseMonitor";
+// ####################################
+
+}
+
+HcalDetDiagNoiseMonitor::~HcalDetDiagNoiseMonitor(){}
+
+void HcalDetDiagNoiseMonitor::cleanup(){
+  if(dbe_){
+    dbe_->setCurrentFolder(subdir_);
+    dbe_->removeContents();
+    dbe_ = 0;
+  }
+} 
+void HcalDetDiagNoiseMonitor::reset(){}
+
+
+void HcalDetDiagNoiseMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
+{
+  if (debug_>1) std::cout <<"HcalDetDiagNoiseMonitor::beginRun"<<std::endl;
+  HcalBaseDQMonitor::beginRun(run,c);
+
+  if (tevt_==0) this->setup(); // set up histograms if they have not been created before
+  if (mergeRuns_==false)
+    this->reset();
+
+  return;
+
+} // void HcalNDetDiagNoiseMonitor::beginRun(...)
+
+void HcalDetDiagNoiseMonitor::setup()
+{
+
   //char *name;
   std::string name;
-  if(m_dbe!=NULL){    
-     m_dbe->setCurrentFolder(baseFolder_);   
-     meEVT_ = m_dbe->bookInt("HcalNoiseMonitor Event Number");
-     m_dbe->setCurrentFolder(baseFolder_+"/Summary Plots");
+  if(dbe_!=NULL){    
+     dbe_->setCurrentFolder(subdir_);   
+     meEVT_ = dbe_->bookInt("HcalNoiseMonitor Event Number");
+     dbe_->setCurrentFolder(subdir_+"Summary Plots");
      
-     name="RBX Pixel multiplicity";   PixelMult        = m_dbe->book1D(name,name,73,0,73);
-     name="HPD energy";               HPDEnergy        = m_dbe->book1D(name,name,200,0,2500);
-     name="RBX energy";               RBXEnergy        = m_dbe->book1D(name,name,200,0,3500);
-     name="HB RM Noise Fraction Map"; HB_RBXmapRatio   = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HB RM Spike Map";          HB_RBXmapSpikeCnt= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HB RM Spike Amplitude Map";HB_RBXmapSpikeAmp= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HE RM Noise Fraction Map"; HE_RBXmapRatio   = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HE RM Spike Map";          HE_RBXmapSpikeCnt= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HE RM Spike Amplitude Map";HE_RBXmapSpikeAmp= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HO RM Noise Fraction Map"; HO_RBXmapRatio   = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HO RM Spike Map";          HO_RBXmapSpikeCnt= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HO RM Spike Amplitude Map";HO_RBXmapSpikeAmp= m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="RBX Pixel multiplicity";   PixelMult        = dbe_->book1D(name,name,73,0,73);
+     name="HPD energy";               HPDEnergy        = dbe_->book1D(name,name,200,0,2500);
+     name="RBX energy";               RBXEnergy        = dbe_->book1D(name,name,200,0,3500);
+     name="HB RM Noise Fraction Map"; HB_RBXmapRatio   = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HB RM Spike Map";          HB_RBXmapSpikeCnt= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HB RM Spike Amplitude Map";HB_RBXmapSpikeAmp= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HE RM Noise Fraction Map"; HE_RBXmapRatio   = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HE RM Spike Map";          HE_RBXmapSpikeCnt= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HE RM Spike Amplitude Map";HE_RBXmapSpikeAmp= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HO RM Noise Fraction Map"; HO_RBXmapRatio   = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HO RM Spike Map";          HO_RBXmapSpikeCnt= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HO RM Spike Amplitude Map";HO_RBXmapSpikeAmp= dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
  
-     m_dbe->setCurrentFolder(baseFolder_+"/Current Plots");
-     name="HB RM Noise Fraction Map (current status)"; HB_RBXmapRatioCur = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HE RM Noise Fraction Map (current status)"; HE_RBXmapRatioCur = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
-     name="HO RM Noise Fraction Map (current status)"; HO_RBXmapRatioCur = m_dbe->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     dbe_->setCurrentFolder(subdir_+"Current Plots");
+     name="HB RM Noise Fraction Map (current status)"; HB_RBXmapRatioCur = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HE RM Noise Fraction Map (current status)"; HE_RBXmapRatioCur = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
+     name="HO RM Noise Fraction Map (current status)"; HO_RBXmapRatioCur = dbe_->book2D(name,name,4,0.5,4.5,36,0.5,36.5);
      
      std::string title="RM";
      HB_RBXmapRatio->setAxisTitle(title);
@@ -165,148 +325,148 @@ void HcalDetDiagNoiseMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe){
 
      if(!Online_) {
 
-       m_dbe->setCurrentFolder(baseFolder_+"/MetExpressStreamNoiseMonitoring");
+       dbe_->setCurrentFolder(subdir_+"MetExpressStreamNoiseMonitoring");
        title="MET (GeV) All Events";
-       name="MET_All_Events";				Met_AllEvents        = m_dbe->book1D(name,name,200,0,2000);
+       name="MET_All_Events";				Met_AllEvents        = dbe_->book1D(name,name,200,0,2000);
        Met_AllEvents->setAxisTitle(title);
        title="MET #phi All Events";
-       name="METphi_All_Events";				Mephi_AllEvents        = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="METphi_All_Events";				Mephi_AllEvents        = dbe_->book1D(name,name,70,-3.5,3.5);
        Mephi_AllEvents->setAxisTitle(title);
        title="MEx (GeV) All Events";
-       name="MEx_All_Events";				Mex_AllEvents        = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEx_All_Events";				Mex_AllEvents        = dbe_->book1D(name,name,200,-1000,1000);
        Mex_AllEvents->setAxisTitle(title);
        title="MEy (GeV) All Events";
-       name="MEy_All_Events";				Mey_AllEvents        = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEy_All_Events";				Mey_AllEvents        = dbe_->book1D(name,name,200,-1000,1000);
        Mey_AllEvents->setAxisTitle(title);
        title="SumET (GeV) All Events";
-       name="SumEt_All_Events";				SumEt_AllEvents        = m_dbe->book1D(name,name,200,0,2000);
+       name="SumEt_All_Events";				SumEt_AllEvents        = dbe_->book1D(name,name,200,0,2000);
        SumEt_AllEvents->setAxisTitle(title);
        title="Number of LumiSections";
-       name="NLumiSections";				NLumiSections        = m_dbe->book1D(name,name,1,0,1);
+       name="NLumiSections";				NLumiSections        = dbe_->book1D(name,name,1,0,1);
        NLumiSections->setAxisTitle(title);
 
-       m_dbe->setCurrentFolder(baseFolder_+"/MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring");
+       dbe_->setCurrentFolder(subdir_+"MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring");
        title="MET (GeV) passing selections";
-       name="MET_pass_selections";			Met_passingTrigger   = m_dbe->book1D(name,name,200,0,2000);
+       name="MET_pass_selections";			Met_passingTrigger   = dbe_->book1D(name,name,200,0,2000);
        Met_passingTrigger->setAxisTitle(title);
        title="MET #phi passing selections";
-       name="METphi_pass_selections";			Mephi_passingTrigger   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="METphi_pass_selections";			Mephi_passingTrigger   = dbe_->book1D(name,name,70,-3.5,3.5);
        Mephi_passingTrigger->setAxisTitle(title);
        title="MEx (GeV) passing selections";
-       name="MEx_pass_selections";			Mex_passingTrigger   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEx_pass_selections";			Mex_passingTrigger   = dbe_->book1D(name,name,200,-1000,1000);
        Mex_passingTrigger->setAxisTitle(title);
        title="MEy (GeV) passing selections";
-       name="MEy_pass_selections";			Mey_passingTrigger   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEy_pass_selections";			Mey_passingTrigger   = dbe_->book1D(name,name,200,-1000,1000);
        Mey_passingTrigger->setAxisTitle(title);
        title="SumET (GeV) passing selections";
-       name="SumEt_pass_selections";			SumEt_passingTrigger   = m_dbe->book1D(name,name,200,0,2000);
+       name="SumEt_pass_selections";			SumEt_passingTrigger   = dbe_->book1D(name,name,200,0,2000);
        SumEt_passingTrigger->setAxisTitle(title);
        title="MET (GeV) corrected for noise";
-       name="MET_pass_selections_correctfornoise";	CorrectedMet_passingTrigger   = m_dbe->book1D(name,name,200,0,2000);
+       name="MET_pass_selections_correctfornoise";	CorrectedMet_passingTrigger   = dbe_->book1D(name,name,200,0,2000);
        CorrectedMet_passingTrigger->setAxisTitle(title);
        title="MET #phi corrected for noise";
-       name="METphi_pass_selections_correctfornoise";	CorrectedMephi_passingTrigger   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="METphi_pass_selections_correctfornoise";	CorrectedMephi_passingTrigger   = dbe_->book1D(name,name,70,-3.5,3.5);
        CorrectedMephi_passingTrigger->setAxisTitle(title);
        title="MEx (GeV) corrected for noise";
-       name="MEx_pass_selections_correctfornoise";	CorrectedMex_passingTrigger   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEx_pass_selections_correctfornoise";	CorrectedMex_passingTrigger   = dbe_->book1D(name,name,200,-1000,1000);
        CorrectedMex_passingTrigger->setAxisTitle(title);
        title="MEy (GeV) corrected for noise";
-       name="MEy_pass_selections_correctfornoise";	CorrectedMey_passingTrigger   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="MEy_pass_selections_correctfornoise";	CorrectedMey_passingTrigger   = dbe_->book1D(name,name,200,-1000,1000);
        CorrectedMey_passingTrigger->setAxisTitle(title);
        title="SumET (GeV) corrected for noise";
-       name="SumEt_pass_selections_correctfornoise";	CorrectedSumEt_passingTrigger   = m_dbe->book1D(name,name,200,0,2000);
+       name="SumEt_pass_selections_correctfornoise";	CorrectedSumEt_passingTrigger   = dbe_->book1D(name,name,200,0,2000);
        CorrectedSumEt_passingTrigger->setAxisTitle(title);
        title="Jet Hadronic Energy Fraction - passing selections";
-       name="Jets_passing_selections_HadF";		HCALFraction_passingTrigger   = m_dbe->book1D(name,name,55,0,1.1);
+       name="Jets_passing_selections_HadF";		HCALFraction_passingTrigger   = dbe_->book1D(name,name,55,0,1.1);
        HCALFraction_passingTrigger->setAxisTitle(title);
        title="Jet Charge Fraction - passing selections";
-       name="Jets_passing_selections_CHF";		chargeFraction_passingTrigger   = m_dbe->book1D(name,name,30,0,1.5);
+       name="Jets_passing_selections_CHF";		chargeFraction_passingTrigger   = dbe_->book1D(name,name,30,0,1.5);
        chargeFraction_passingTrigger->setAxisTitle(title);
        title="Jet E_{T} (GeV) - passing selections";
-       name="Jets_Et_passing_selections";		JetEt_passingTrigger   = m_dbe->book1D(name,name,200,0,2000);
+       name="Jets_Et_passing_selections";		JetEt_passingTrigger   = dbe_->book1D(name,name,200,0,2000);
        JetEt_passingTrigger->setAxisTitle(title);
        title="Jet #eta - passing selections";
-       name="Jets_Eta_passing_selections";		JetEta_passingTrigger   = m_dbe->book1D(name,name,100,-5,5);
+       name="Jets_Eta_passing_selections";		JetEta_passingTrigger   = dbe_->book1D(name,name,100,-5,5);
        JetEta_passingTrigger->setAxisTitle(title);
        title="Jet #phi - passing selections";
-       name="Jets_Phi_passing_selections";		JetPhi_passingTrigger   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="Jets_Phi_passing_selections";		JetPhi_passingTrigger   = dbe_->book1D(name,name,70,-3.5,3.5);
        JetPhi_passingTrigger->setAxisTitle(title);
        title="Jet HadF vs CHF - passing selections";
-       name="Jets_passing_selections_HadF_vs_CHF"; 	HCALFractionVSchargeFraction_passingTrigger   = m_dbe->book2D(name,name,55,0,1.1,30,0,1.5);
+       name="Jets_passing_selections_HadF_vs_CHF"; 	HCALFractionVSchargeFraction_passingTrigger   = dbe_->book2D(name,name,55,0,1.1,30,0,1.5);
        HCALFractionVSchargeFraction_passingTrigger->setAxisTitle("HadF",1);
        HCALFractionVSchargeFraction_passingTrigger->setAxisTitle("CHF",2);
 
-       m_dbe->setCurrentFolder(baseFolder_+"/MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring"+"/HcalNoiseCategory");
+       dbe_->setCurrentFolder(subdir_+"MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring"+"/HcalNoiseCategory");
        title="'Noise' Jets E_{T} (GeV)";
-       name="Noise_Jets_Et_passing_selections";		JetEt_passingTrigger_TaggedAnomalous   = m_dbe->book1D(name,name,200,0,2000);
+       name="Noise_Jets_Et_passing_selections";		JetEt_passingTrigger_TaggedAnomalous   = dbe_->book1D(name,name,200,0,2000);
        JetEt_passingTrigger_TaggedAnomalous->setAxisTitle(title);
        title="'Noise' Jets #eta";
-       name="Noise_Jets_Eta_passing_selections";		JetEta_passingTrigger_TaggedAnomalous   = m_dbe->book1D(name,name,100,-5,5);
+       name="Noise_Jets_Eta_passing_selections";		JetEta_passingTrigger_TaggedAnomalous   = dbe_->book1D(name,name,100,-5,5);
        JetEta_passingTrigger_TaggedAnomalous->setAxisTitle(title);
        title="'Noise' Jets #phi";
-       name="Noise_Jets_Phi_passing_selections";		JetPhi_passingTrigger_TaggedAnomalous   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="Noise_Jets_Phi_passing_selections";		JetPhi_passingTrigger_TaggedAnomalous   = dbe_->book1D(name,name,70,-3.5,3.5);
        JetPhi_passingTrigger_TaggedAnomalous->setAxisTitle(title);
        title="MET (GeV) passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_MET_pass_selections";		Met_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,200,0,2000);
+       name="Hcal_Noise_MET_pass_selections";		Met_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,200,0,2000);
        Met_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="MET #phi passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_METphi_pass_selections";		Mephi_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="Hcal_Noise_METphi_pass_selections";		Mephi_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,70,-3.5,3.5);
        Mephi_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="MEx (GeV) passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_MEx_pass_selections";		Mex_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="Hcal_Noise_MEx_pass_selections";		Mex_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,200,-1000,1000);
        Mex_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="MEy (GeV) passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_MEy_pass_selections";		Mey_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="Hcal_Noise_MEy_pass_selections";		Mey_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,200,-1000,1000);
        Mey_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="SumET (GeV) passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_SumEt_pass_selections";		SumEt_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,200,0,2000);
+       name="Hcal_Noise_SumEt_pass_selections";		SumEt_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,200,0,2000);
        SumEt_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="RBX Max Zeros - passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_RBX_Max_Zeros_pass_selections";	RBXMaxZeros_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,30,0,30);
+       name="Hcal_Noise_RBX_Max_Zeros_pass_selections";	RBXMaxZeros_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,30,0,30);
        RBXMaxZeros_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="RBX E(2ts)/E(10ts) - passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_RBX_E2tsOverE10ts_pass_selections";	RBXE2tsOverE10ts_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,50,0,2);
+       name="Hcal_Noise_RBX_E2tsOverE10ts_pass_selections";	RBXE2tsOverE10ts_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,50,0,2);
        RBXE2tsOverE10ts_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="RBX N RecHits - passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_RBX_Nhits_pass_selections";	RBXHitsHighest_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,80,0,80);
+       name="Hcal_Noise_RBX_Nhits_pass_selections";	RBXHitsHighest_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,80,0,80);
        RBXHitsHighest_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="HPD E(2ts)/E(10ts) - passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_HPD_E2tsOverE10ts_pass_selections";	HPDE2tsOverE10ts_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,50,0,2);
+       name="Hcal_Noise_HPD_E2tsOverE10ts_pass_selections";	HPDE2tsOverE10ts_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,50,0,2);
        HPDE2tsOverE10ts_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
        title="HPD N RecHits - passing selections & Categorized as 'Hcal Noise'";
-       name="Hcal_Noise_HPD_Nhits_pass_selections";	HPDHitsHighest_passingTrigger_HcalNoiseCategory   = m_dbe->book1D(name,name,30,0,30);
+       name="Hcal_Noise_HPD_Nhits_pass_selections";	HPDHitsHighest_passingTrigger_HcalNoiseCategory   = dbe_->book1D(name,name,30,0,30);
        HPDHitsHighest_passingTrigger_HcalNoiseCategory->setAxisTitle(title);
 
-       m_dbe->setCurrentFolder(baseFolder_+"/MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring"+"/PhysicsCategory");
+       dbe_->setCurrentFolder(subdir_+"MetExpressStreamNoiseMonitoring"+"/SelectedForNoiseMonitoring"+"/PhysicsCategory");
        title="MET (GeV) passing selections & Categorized as 'Physics'";
-       name="Physics_MET_pass_selections";		Met_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,200,0,2000);
+       name="Physics_MET_pass_selections";		Met_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,200,0,2000);
        Met_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="MET #phi passing selections & Categorized as 'Physics'";
-       name="Physics_METphi_pass_selections";           Mephi_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,70,-3.5,3.5);
+       name="Physics_METphi_pass_selections";           Mephi_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,70,-3.5,3.5);
        Mephi_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="MEx (GeV) passing selections & Categorized as 'Physics'";
-       name="Physics_MEx_pass_selections";           Mex_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="Physics_MEx_pass_selections";           Mex_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,200,-1000,1000);
        Mex_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="MEy (GeV) passing selections & Categorized as 'Physics'";
-       name="Physics_MEy_pass_selections";           Mey_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,200,-1000,1000);
+       name="Physics_MEy_pass_selections";           Mey_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,200,-1000,1000);
        Mey_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="SumET (GeV) passing selections & Categorized as 'Physics'";
-       name="Physics_SumEt_pass_selections";         SumEt_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,200,0,2000);
+       name="Physics_SumEt_pass_selections";         SumEt_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,200,0,2000);
        SumEt_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="RBX Max Zeros - passing selections & Categorized as 'Physics'";
-       name="Physics_RBX_Max_Zeros_pass_selections";   RBXMaxZeros_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,30,0,30);
+       name="Physics_RBX_Max_Zeros_pass_selections";   RBXMaxZeros_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,30,0,30);
        RBXMaxZeros_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="RBX E(2ts)/E(10ts) - passing selections & Categorized as 'Physics'";
-       name="Physics_RBX_E2tsOverE10ts_pass_selections";       RBXE2tsOverE10ts_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,50,0,2);
+       name="Physics_RBX_E2tsOverE10ts_pass_selections";       RBXE2tsOverE10ts_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,50,0,2);
        RBXE2tsOverE10ts_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="RBX N RecHits - passing selections & Categorized as 'Physics'";
-       name="Physics_RBX_Nhits_pass_selections";       RBXHitsHighest_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,80,0,80);
+       name="Physics_RBX_Nhits_pass_selections";       RBXHitsHighest_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,80,0,80);
        RBXHitsHighest_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="HPD E(2ts)/E(10ts) - passing selections & Categorized as 'Physics'";
-       name="Physics_HPD_E2tsOverE10ts_pass_selections";       HPDE2tsOverE10ts_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,50,0,2);
+       name="Physics_HPD_E2tsOverE10ts_pass_selections";       HPDE2tsOverE10ts_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,50,0,2);
        HPDE2tsOverE10ts_passingTrigger_PhysicsCategory->setAxisTitle(title);
        title="HPD N RecHits - passing selections & Categorized as 'Physics'";
-       name="Physics_HPD_Nhits_pass_selections";       HPDHitsHighest_passingTrigger_PhysicsCategory   = m_dbe->book1D(name,name,30,0,30);
+       name="Physics_HPD_Nhits_pass_selections";       HPDHitsHighest_passingTrigger_PhysicsCategory   = dbe_->book1D(name,name,30,0,30);
        HPDHitsHighest_passingTrigger_PhysicsCategory->setAxisTitle(title);
 
      }
@@ -317,33 +477,27 @@ void HcalDetDiagNoiseMonitor::setup(const edm::ParameterSet& ps, DQMStore* dbe){
   ReferenceRun="UNKNOWN";
   IsReference=false;
   //LoadReference();
-  lmap =new HcalLogicalMap(gen.createMap());
-
-  if (showTiming)
-    {
-      cpu_timer.stop();  std::cout <<"TIMER:: HcalDetDiagNoiseMonitor Setup -> "<<cpu_timer.cpuTime()<<std::endl;
-    }
+  gen =new HcalLogicalMapGenerator();
+  lmap =new HcalLogicalMap(gen->createMap());
 
   return;
 } 
 
-void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::EventSetup& iSetup, const HcalDbService& cond){
+void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
+
+
+  if (!IsAllowedCalibType()) return;
+  if (LumiInOrder(iEvent.luminosityBlock())==false) return;
+  HcalBaseDQMonitor::analyze(iEvent, iSetup);
+
   bool isNoiseEvent=false;   
-  if(!m_dbe) return;
-   
-  if (showTiming)
-    {
-      cpu_timer.reset(); cpu_timer.start();
-    }
+  if(!dbe_) return;
 
-
-   ievt_++;
-   meEVT_->Fill(ievt_);
    run_number=iEvent.id().run();
 
    // We do not want to look at Abort Gap events
    edm::Handle<FEDRawDataCollection> rawdata;
-   iEvent.getByLabel(FEDRawDataCollection_,rawdata);
+   iEvent.getByLabel(rawDataLabel_,rawdata);
    //checking FEDs for calibration information
    for(int i=FEDNumbering::MINHCALFEDID;i<=FEDNumbering::MAXHCALFEDID; i++) {
        const FEDRawData& fedData = rawdata->FEDData(i) ;
@@ -353,93 +507,81 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
   
    HcalDetDiagNoiseRMData RMs[HcalFrontEndId::maxRmIndex];
    
-   try{
-         edm::Handle<HBHEDigiCollection> hbhe; 
-         iEvent.getByLabel(inputLabelDigi_,hbhe);
-         for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
-	     double max=-100,sum,energy=0;
-	     for(int i=0;i<digi->size()-1;i++){
-	        sum=adc2fC[digi->sample(i).adc()&0xff]+adc2fC[digi->sample(i+1).adc()&0xff]; 
-		if(max<sum) max=sum;
-             }
-	     if(max>HPDthresholdLo){
-	        for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-2.5;
-	        HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
-	        int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
-	        RMs[index].n_th_lo++;
-	        if(max>HPDthresholdHi){ RMs[index].n_th_hi++; isNoiseEvent=true;}
-		RMs[index].energy+=energy;
-	     }
-         }   
-   }catch(...){}      
-   try{
-         edm::Handle<HODigiCollection> ho; 
-         iEvent.getByLabel(inputLabelDigi_,ho);
-         for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
- 	     double max=-100,energy=0; int Eta=digi->id().ieta(); int Phi=digi->id().iphi();
-	     for(int i=0;i<digi->size()-1;i++){
-		if(max<adc2fC[digi->sample(i).adc()&0xff]) max=adc2fC[digi->sample(i).adc()&0xff];
-             }
-	     if((Eta>=11 && Eta<=15 && Phi>=59 && Phi<=70) || (Eta>=5 && Eta<=10 && Phi>=47 && Phi<=58)){
-  	        if(max>SiPMthreshold){
-	          for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-11.0;
-	          HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
-	          int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
-	          RMs[index].n_th_hi++; isNoiseEvent=true;
-	          RMs[index].energy+=energy;
+   edm::Handle<HBHEDigiCollection> hbhe; 
+   iEvent.getByLabel(digiLabel_,hbhe);
+   for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
+     double max=-100,sum,energy=0;
+     for(int i=0;i<digi->size()-1;i++){
+       sum=adc2fC[digi->sample(i).adc()&0xff]+adc2fC[digi->sample(i+1).adc()&0xff]; 
+       if(max<sum) max=sum;
+     }
+     if(max>HPDthresholdLo){
+       for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-2.5;
+       HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
+       int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
+       RMs[index].n_th_lo++;
+       if(max>HPDthresholdHi){ RMs[index].n_th_hi++; isNoiseEvent=true;}
+       RMs[index].energy+=energy;
+     }
+   }
+   edm::Handle<HODigiCollection> ho; 
+   iEvent.getByLabel(digiLabel_,ho);
+   for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
+     double max=-100,energy=0; int Eta=digi->id().ieta(); int Phi=digi->id().iphi();
+     for(int i=0;i<digi->size()-1;i++){
+       if(max<adc2fC[digi->sample(i).adc()&0xff]) max=adc2fC[digi->sample(i).adc()&0xff];
+     }
+     if((Eta>=11 && Eta<=15 && Phi>=59 && Phi<=70) || (Eta>=5 && Eta<=10 && Phi>=47 && Phi<=58)){
+       if(max>SiPMthreshold){
+	 for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-11.0;
+	 HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
+	 int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
+	 RMs[index].n_th_hi++; isNoiseEvent=true;
+	 RMs[index].energy+=energy;
 	        }	          
-	     }else{
-	        if(max>HPDthresholdLo){
-	          for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-2.5;
-	          HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
-	          int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
-	          RMs[index].n_th_lo++;
-	          if(max>HPDthresholdHi){ RMs[index].n_th_hi++; isNoiseEvent=true;}
-		  RMs[index].energy+=energy;
-	        }
-	     }		          
-         }   
-   }catch(...){}  
-//    try{ //curently we don't want to look at PMTs
-//          edm::Handle<HFDigiCollection> hf;
-//          iEvent.getByType(hf);
-//          for(HFDigiCollection::const_iterator digi=hf->begin();digi!=hf->end();digi++){
-//             
-// 	     for(int i=0;i<digi->size();i++); 
-// 	     
-//          }   
-//    }catch(...){}    
+     }else{
+       if(max>HPDthresholdLo){
+	 for(int i=0;i<digi->size();i++) energy+=adc2fC[digi->sample(i).adc()&0xff]-2.5;
+	 HcalFrontEndId lmap_entry=lmap->getHcalFrontEndId(digi->id());
+	 int index=lmap_entry.rmIndex(); if(index>=HcalFrontEndId::maxRmIndex) continue;
+	 RMs[index].n_th_lo++;
+	 if(max>HPDthresholdHi){ RMs[index].n_th_hi++; isNoiseEvent=true;}
+	 RMs[index].energy+=energy;
+       }
+     }		          
+   }   
+
    if(isNoiseEvent){
-      NoisyEvents++;
-      
-      // RMs loop
-      for(int i=0;i<HcalFrontEndId::maxRmIndex;i++){
-        if(RMs[i].n_th_hi>0){
-	   RBXCurrentSummary.AddNoiseStat(i);
-	   RBXSummary.AddNoiseStat(i);
-	   HPDEnergy->Fill(RMs[i].energy);
-	}
-      }
-    }  
-    // RBX loop
-    for(int sd=0;sd<9;sd++) for(int sect=1;sect<=18;sect++){
-       std::stringstream tempss;
-       tempss << std::setw(2) << std::setfill('0') << sect;
-       std::string rbx= subdets[sd]+tempss.str();
-	 
-       double rbx_energy=0;int pix_mult=0; bool isValidRBX=false;
-       for(int rm=1;rm<=4;rm++){
-         int index=RBXSummary.GetRMindex(rbx,rm);
-	 if(index>0 && index<HcalFrontEndId::maxRmIndex){
-	    rbx_energy+=RMs[index].energy;
-            pix_mult+=RMs[index].n_th_lo; 
-	    isValidRBX=true;
-         }
+     NoisyEvents++;
+     
+     // RMs loop
+     for(int i=0;i<HcalFrontEndId::maxRmIndex;i++){
+       if(RMs[i].n_th_hi>0){
+	 RBXCurrentSummary->AddNoiseStat(i);
+	 RBXSummary->AddNoiseStat(i);
+	 HPDEnergy->Fill(RMs[i].energy);
        }
-       if(isValidRBX){
-         PixelMult->Fill(pix_mult);
-         RBXEnergy->Fill(rbx_energy);
+     }
+   }  
+   // RBX loop
+   for(int sd=0;sd<9;sd++) for(int sect=1;sect<=18;sect++){
+     std::stringstream tempss;
+     tempss << std::setw(2) << std::setfill('0') << sect;
+     std::string rbx= subdets[sd]+tempss.str();
+     
+     double rbx_energy=0;int pix_mult=0; bool isValidRBX=false;
+     for(int rm=1;rm<=4;rm++){
+       int index=RBXSummary->GetRMindex(rbx,rm);
+       if(index>0 && index<HcalFrontEndId::maxRmIndex){
+	 rbx_energy+=RMs[index].energy;
+	 pix_mult+=RMs[index].n_th_lo; 
+	 isValidRBX=true;
        }
+     }
+     if(isValidRBX){
+       PixelMult->Fill(pix_mult);
+       RBXEnergy->Fill(rbx_energy);
+     }
    }
    
    UpdateHistos();
@@ -453,7 +595,7 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
 
      if (!iEvent.getByLabel(MetSource_, metHandle))
        {
-	 if (fVerbosity) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloMET collection with handle "<<MetSource_<<" not found!";
+	 if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloMET collection with handle "<<MetSource_<<" not found!";
 	 return;
        }
 
@@ -507,28 +649,28 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
        Handle<CaloJetCollection> calojetHandle;
        if (!iEvent.getByLabel(JetSource_, calojetHandle))
 	 {
-	  if (fVerbosity) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloJet collection with handle "<<JetSource_<<" not found!";
+	  if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloJet collection with handle "<<JetSource_<<" not found!";
 	   return;
 	 }
        // track collection
        Handle<TrackCollection> trackHandle;
        if (!iEvent.getByLabel(TrackSource_, trackHandle))
 	 {
-	   if (fVerbosity) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Track collection with handle "<<TrackSource_<<" not found!";
+	   if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Track collection with handle "<<TrackSource_<<" not found!";
 	   return;
 	 }
        // HcalNoise RBX collection
        Handle<HcalNoiseRBXCollection> rbxnoisehandle;
        if (!iEvent.getByLabel(rbxCollName_, rbxnoisehandle))
 	 {
-	   if (fVerbosity) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  HcalNoiseRBX collection with handle "<<rbxCollName_<<" not found!";
+	   if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  HcalNoiseRBX collection with handle "<<rbxCollName_<<" not found!";
 	   return;
 	 }
        // CaloTower collection
        edm::Handle<CaloTowerCollection> towerhandle;
        if (!iEvent.getByLabel(caloTowerCollName_, towerhandle))
 	 {
-	   if (fVerbosity) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloTower collection with handle "<<caloTowerCollName_<<" not found!";
+	   if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloTower collection with handle "<<caloTowerCollName_<<" not found!";
 	   return;
 	 }
 
@@ -727,13 +869,8 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
 
 // ###################################################################################################################
        
-   if((ievt_%100)==0 && fVerbosity)
+   if((ievt_%100)==0 && debug_>0)
      std::cout <<ievt_<<"\t"<<NoisyEvents<<std::endl;
-
-   if (showTiming)
-    {
-      cpu_timer.stop();  std::cout <<"TIMER:: HcalDetDiagNoiseMonitor PROCESSEVENT -> "<<cpu_timer.cpuTime()<<std::endl;
-    }
 
    return;
 }
@@ -741,15 +878,15 @@ void HcalDetDiagNoiseMonitor::processEvent(const edm::Event& iEvent, const edm::
 void HcalDetDiagNoiseMonitor::UpdateHistos(){
 int first_rbx=0,last_rbx=0;  
   for(int sd=0;sd<9;sd++){
-     if(RBXCurrentSummary.GetStat(sd)>=UpdateEvents){
+     if(RBXCurrentSummary->GetStat(sd)>=UpdateEvents){
         if(sd==0){ first_rbx=0;  last_rbx=18;} //HBM
         if(sd==1){ first_rbx=18; last_rbx=36;} //HBP
         if(sd==0 || sd==1){  // update HB plots
            for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
               double val1=0,val2=0;
-              if(RBXSummary.GetRMStatusValue(HB_RBX[rbx],rm,&val1)){
+              if(RBXSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val1)){
 	        HB_RBXmapRatio->setBinContent(rm,rbx+1,val1);
-                if(RBXCurrentSummary.GetRMStatusValue(HB_RBX[rbx],rm,&val2)){
+                if(RBXCurrentSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val2)){
 	           HB_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
 		   if((val2-val1)>SpikeThreshold){
 		      double n=HB_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
@@ -766,9 +903,9 @@ int first_rbx=0,last_rbx=0;
         if(sd==2 || sd==3){  // update HB plots
            for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
               double val1=0,val2=0;
-              if(RBXSummary.GetRMStatusValue(HE_RBX[rbx],rm,&val1)){
+              if(RBXSummary->GetRMStatusValue(HE_RBX[rbx],rm,&val1)){
 	        HE_RBXmapRatio->setBinContent(rm,rbx+1,val1);
-                if(RBXCurrentSummary.GetRMStatusValue(HE_RBX[rbx],rm,&val2)){
+                if(RBXCurrentSummary->GetRMStatusValue(HE_RBX[rbx],rm,&val2)){
 		   HE_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
 	           if((val2-val1)>SpikeThreshold){
 		      double n=HE_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
@@ -788,9 +925,9 @@ int first_rbx=0,last_rbx=0;
 	if(sd>3){ // update HO plots
            for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
               double val1=0,val2=0;
-              if(RBXSummary.GetRMStatusValue(HO_RBX[rbx],rm,&val1)){
+              if(RBXSummary->GetRMStatusValue(HO_RBX[rbx],rm,&val1)){
 	        HO_RBXmapRatio->setBinContent(rm,rbx+1,val1);
-                if(RBXCurrentSummary.GetRMStatusValue(HO_RBX[rbx],rm,&val2)){
+                if(RBXCurrentSummary->GetRMStatusValue(HO_RBX[rbx],rm,&val2)){
 		   HO_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
 	           if((val2-val1)>SpikeThreshold){
 		      double n=HO_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
@@ -803,7 +940,7 @@ int first_rbx=0,last_rbx=0;
            }		
 	}
 	
-        RBXCurrentSummary.reset(sd); 
+        RBXCurrentSummary->reset(sd); 
 	// disabled output statement
         //printf("update %i\n",sd); 
      }
@@ -834,10 +971,10 @@ double VAL;
            tempss << std::setw(2) << std::setfill('0') << sect;
            std::string rbx= subdets[sd]+tempss.str();
            double val;
-           if(RBXCurrentSummary.GetRMStatusValue(rbx,rm,&val)){
+           if(RBXCurrentSummary->GetRMStatusValue(rbx,rm,&val)){
 	       sprintf(RBX,"%s",(char *)rbx.c_str());
 	       RM=rm;
-	       RM_INDEX=RBXCurrentSummary.GetRMindex(rbx,rm);
+	       RM_INDEX=RBXCurrentSummary->GetRMindex(rbx,rm);
 	       val=VAL;
                tree->Fill();
            }
@@ -866,8 +1003,8 @@ double VAL;
       t->SetBranchAddress("relative_noise", &VAL);
       for(int ievt=0;ievt<t->GetEntries();ievt++){
          t->GetEntry(ievt);
-	 RBXCurrentSummary.SetReference(RM_INDEX,VAL);
-	 RBXSummary.SetReference(RM_INDEX,VAL);
+	 RBXCurrentSummary->SetReference(RM_INDEX,VAL);
+	 RBXSummary->SetReference(RM_INDEX,VAL);
       }
       f->Close();
       IsReference=true;
