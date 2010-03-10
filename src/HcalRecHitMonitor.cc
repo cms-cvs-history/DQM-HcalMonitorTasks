@@ -128,6 +128,15 @@ void HcalRecHitMonitor::setup()
   h_LumiPlot_MinTime_vs_MinHT = dbe_->book2D("MinTime_vs_MinSumET",
 					     "Energy-Weighted Time vs Min (HF+,HF-) Scalar Sum ET;min Sum ET(GeV);time(ns)",
 					     100,0,10,80,-40,40);
+
+  h_LumiPlot_timeHT_HFM = dbe_->book2D("HFM_Time_vs_SumET",
+				       "Energy-Weighted Time vs HFMinus Scalar Sum ET;Sum ET(GeV);time(ns)",
+				       100,0,10,80,-40,40);
+  
+  h_LumiPlot_timeHT_HFP = dbe_->book2D("HFP_Time_vs_SumET",
+				       "Energy-Weighted Time vs HFPlus Scalar Sum ET;Sum ET(GeV);time(ns)",
+				       100,0,10,80,-40,40);
+
   dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits/sumplots");
   SetupEtaPhiHists(SumEnergyByDepth,"RecHit Summed Energy","GeV");
   SetupEtaPhiHists(SqrtSumEnergy2ByDepth,"RecHit Sqrt Summed Energy2","GeV");
@@ -975,6 +984,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   mintime = min(tPlus,tMinus); // I think we might want to use this value for mintime
 
   h_LumiPlot_MinTime_vs_MinHT->Fill(minHT, mintime);
+  h_LumiPlot_timeHT_HFM->Fill(HtMinus,tMinus);
+  h_LumiPlot_timeHT_HFP->Fill(HtPlus,tPlus);
 
   if (BPTX)
     {

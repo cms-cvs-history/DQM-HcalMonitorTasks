@@ -10,8 +10,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/03/03 14:50:25 $
-  * $Revision: 1.46.2.4 $
+  * $Date: 2010/03/08 19:59:52 $
+  * $Revision: 1.46.2.5 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -196,6 +196,10 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   MonitorElement* h_LumiPlot_BX_goodevents_notimecut;
 
   MonitorElement* h_LumiPlot_MinTime_vs_MinHT;
+  MonitorElement* h_LumiPlot_timeHT_HFM;
+  MonitorElement* h_LumiPlot_timeHT_HFP;
+
+
   bool HBpresent_, HEpresent_, HOpresent_, HFpresent_;
 
   edm::InputTag hbheRechitLabel_, hoRechitLabel_, hfRechitLabel_;
