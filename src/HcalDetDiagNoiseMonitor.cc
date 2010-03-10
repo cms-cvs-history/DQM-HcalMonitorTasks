@@ -267,6 +267,10 @@ void HcalDetDiagNoiseMonitor::beginRun(const edm::Run& run, const edm::EventSetu
 void HcalDetDiagNoiseMonitor::setup()
 {
 
+  // Call base class setup
+  HcalBaseDQMonitor::setup();
+  if (!dbe_) return;
+
   //char *name;
   std::string name;
   if(dbe_!=NULL){    
@@ -1012,3 +1016,5 @@ double VAL;
 } 
 
 void HcalDetDiagNoiseMonitor::done(){   /*SaveReference();*/ } 
+
+DEFINE_ANOTHER_FWK_MODULE (HcalDetDiagNoiseMonitor);

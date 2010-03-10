@@ -176,6 +176,10 @@ void HcalDetDiagLEDMonitor::beginRun(const edm::Run& run, const edm::EventSetup&
 } // void HcalNDetDiagLEDMonitor::beginRun(...)
 
 void HcalDetDiagLEDMonitor::setup(){
+  // Call base class setup
+  HcalBaseDQMonitor::setup();
+  if (!dbe_) return;
+
   std::string name;
   if(dbe_!=NULL){    
      dbe_->setCurrentFolder(subdir_);   
@@ -872,3 +876,5 @@ void HcalDetDiagLEDMonitor::done(){
       SaveReference();
    }   
 } 
+DEFINE_ANOTHER_FWK_MODULE (HcalDetDiagLEDMonitor);
+
