@@ -1,17 +1,6 @@
 #ifndef DQM_HCALMONITORTASKS_HCALRAWDATAMONITOR_H
 #define DQM_HCALMONITORTASKS_HCALRAWDATAMONITOR_H
 
-#define DEPTHBINS      4
-#define  IETAMIN     -43
-#define  IETAMAX      43
-#define  IPHIMIN       0
-#define  IPHIMAX      71
-#define  HBHE_LO_DCC 700
-#define  HBHE_HI_DCC 717
-#define  HF_LO_DCC   718
-#define  HF_HI_DCC   724
-#define  HO_LO_DCC   725
-#define  HO_HI_DCC   731
 #define  NUMDCCS      32
 #define  NUMSPIGS     15
 #define  HTRCHANMAX   24
@@ -34,8 +23,8 @@
 
 /** \class HcalRawDataMonitor
  *
- * $Date: 2010/03/05 21:09:23 $
- * $Revision: 1.1.2.4 $
+ * $Date: 2010/03/09 16:15:05 $
+ * $Revision: 1.1.2.5 $
  * \author J. St. John - Boston University
  */
 class HcalRawDataMonitor: public HcalBaseDQMonitor {
@@ -61,12 +50,6 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   void endJob(void);
   void endRun(const edm::Run& run, const edm::EventSetup& c);
   void setup(void);
-
-  void SetupEtaPhiHists(EtaPhiHists & hh, std::string Name, std::string Units)
-  {
-    hh.setup(dbe_, Name, Units);
-    return;
-  }
 
   edm::InputTag FEDRawDataCollection_;
   edm::InputTag digiLabel_;
@@ -136,15 +119,6 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   void label_xChanns (MonitorElement* me_ptr,int xbins);
 
   HcalDetId hashedHcalDetId_[NUMDCCS * NUMSPIGS * HTRCHANMAX];
-
-  MonitorElement* ProblemCells;
-  EtaPhiHists     ProblemCellsByDepth;
-  //backstage accounting mechanisms for the ProblemMap
-  bool problemfound[85][72][4];     // HFd1,2 at 'depths' 3,4 to avoid collision with HE
-  uint64_t problemcount[85][72][4]; // HFd1,2 at 'depths' 3,4 to avoid collision with HE
-  void mapDCCproblem  (int dcc) ;                         // Increment problem counters for affected cells
-  void mapHTRproblem  (int dcc, int spigot) ;             // Increment problem counters for affected cells
-  void mapChannproblem(int dcc, int spigot, int htrchan); // Increment problem counters for affected cell.
 
   // Transfer internal problem counts to ME's, & reset internal counters.
   void UpdateMEs (void );
