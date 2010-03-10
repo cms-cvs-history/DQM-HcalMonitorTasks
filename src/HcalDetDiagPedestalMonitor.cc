@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id$
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.1 2010/03/10 11:40:49 temple Exp $
 //
 //
 // user include files
@@ -135,6 +135,7 @@ class HcalDetDiagPedestalMonitor : public HcalBaseDQMonitor {
 
       const HcalElectronicsMap  *emap;
       edm::InputTag inputLabelDigi_;
+      edm::InputTag  inputLabelRawData_;
 
       void beginRun(const edm::Run& run, const edm::EventSetup& c);  
       void endRun(const edm::Run& run, const edm::EventSetup& c);
@@ -217,7 +218,8 @@ HcalDetDiagPedestalMonitor::HcalDetDiagPedestalMonitor(const edm::ParameterSet& 
   IsReference=false;
   LocalRun=false;
 
-  inputLabelDigi_  = iConfig.getUntrackedParameter<edm::InputTag>("digiLabel");
+  inputLabelDigi_    = iConfig.getUntrackedParameter<edm::InputTag>("digiLabel");
+  inputLabelRawData_ = iConfig.getUntrackedParameter<edm::InputTag>("rawDataLabel");
   enableHTML       = iConfig.getUntrackedParameter<bool>  ("enableHTML",false);
   BaseHTMLpath     = iConfig.getUntrackedParameter<string>("BaseHTMLpath","");
   ReferenceData    = iConfig.getUntrackedParameter<string>("PedestalReferenceData" ,"");
@@ -384,7 +386,7 @@ static int  lastPEDorbit,nChecksPED;
    int calibType = -1 ;
    if(LocalRun==false){
        edm::Handle<FEDRawDataCollection> rawdata;
-       iEvent.getByType(rawdata);
+       iEvent.getByLabel(inputLabelRawData_,rawdata);
        //checking FEDs for calibration information
        for (int i=FEDNumbering::MINHCALFEDID;i<=FEDNumbering::MAXHCALFEDID; i++){
          const FEDRawData& fedData = rawdata->FEDData(i) ;
