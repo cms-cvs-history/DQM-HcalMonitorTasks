@@ -6,8 +6,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/03/03 18:07:09 $
- * $Revision: 1.1.2.10 $
+ * $Date: 2010/03/08 19:59:53 $
+ * $Revision: 1.1.2.11 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -37,7 +37,18 @@ HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",false);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
+  
+  meIevt_=0;
+  meLevt_=0;
+  meTevtHist_=0;
+  ProblemsVsLB=0;
+  ProblemsVsLB_HB=0;
+  ProblemsVsLB_HE=0;
+  ProblemsVsLB_HF=0;
+  ProblemsVsLB_HO=0;
+
 } //HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
+
 
 // destructor
 
@@ -127,7 +138,7 @@ void HcalBaseDQMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg
   if (this->LumiInOrder(lumiSeg.luminosityBlock())==false) return;
   currentLS=lumiSeg.luminosityBlock();
   levt_=0;
-  if (meLevt_) meLevt_->Fill(-1);
+  if (meLevt_!=0) meLevt_->Fill(-1);
 }
 
 void HcalBaseDQMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,

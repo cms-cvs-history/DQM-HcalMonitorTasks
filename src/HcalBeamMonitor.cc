@@ -336,6 +336,7 @@ void HcalBeamMonitor::setup()
 
   //HFlumi plots
   HFlumi_ETsum_perwedge =  dbe_->book1D("HF lumi ET-sum per wedge","HF lumi ET-sum per wedge;wedge",36,1,37);
+  HFlumi_ETsum_perwedge->getTH1F()->SetMinimum(0); 
       
   HFlumi_Occupancy_above_thr_r1 =  dbe_->book1D("HF lumi Occupancy above threshold ring1","HF lumi Occupancy above threshold ring1;wedge",36,1,37);
   HFlumi_Occupancy_between_thrs_r1 = dbe_->book1D("HF lumi Occupancy between thresholds ring1","HF lumi Occupancy between thresholds ring1;wedge",36,1,37);
@@ -343,7 +344,14 @@ void HcalBeamMonitor::setup()
   HFlumi_Occupancy_above_thr_r2 = dbe_->book1D("HF lumi Occupancy above threshold ring2","HF lumi Occupancy above threshold ring2;wedge",36,1,37);
   HFlumi_Occupancy_between_thrs_r2 = dbe_->book1D("HF lumi Occupancy between thresholds ring2","HF lumi Occupancy between thresholds ring2;wedge",36,1,37);
   HFlumi_Occupancy_below_thr_r2 = dbe_->book1D("HF lumi Occupancy below threshold ring2","HF lumi Occupancy below threshold ring2;wedge",36,1,37);
-      
+
+  HFlumi_Occupancy_above_thr_r1->getTH1F()->SetMinimum(0);
+  HFlumi_Occupancy_between_thrs_r1->getTH1F()->SetMinimum(0);
+  HFlumi_Occupancy_below_thr_r1->getTH1F()->SetMinimum(0);
+  HFlumi_Occupancy_above_thr_r2->getTH1F()->SetMinimum(0);
+  HFlumi_Occupancy_between_thrs_r2->getTH1F()->SetMinimum(0);
+  HFlumi_Occupancy_below_thr_r2->getTH1F()->SetMinimum(0);
+ 
   HFlumi_Occupancy_per_channel_vs_lumiblock_RING1 = dbe_->bookProfile("HFlumiRing1OccupancyPerChannelVsLB)",
 								      "HFlumi Occupancy per channel vs lumi-block (RING 1);LS; -ln(empty fraction)",
 								      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
