@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.1 2010/03/10 11:40:49 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.2 2010/03/10 13:42:38 temple Exp $
 //
 //
 // user include files
@@ -164,11 +164,10 @@ class HcalDetDiagPedestalMonitor : public HcalBaseDQMonitor {
       bool        enableHTML;
       std::string BaseHTMLpath;
 
-      std::string baseFolder_;
       std::string prefixME_;
       bool        Online_;
 
-      MonitorElement *meEVT_;
+  MonitorElement * meEVT_;
       MonitorElement *RefRun_;
       MonitorElement *PedestalsAve4HB;
       MonitorElement *PedestalsAve4HE;
@@ -226,10 +225,13 @@ HcalDetDiagPedestalMonitor::HcalDetDiagPedestalMonitor(const edm::ParameterSet& 
   OutputFilePath   = iConfig.getUntrackedParameter<string>("OutputFilePath", "");
   Online_          = iConfig.getUntrackedParameter<bool>  ("online",false);
   prefixME_        = iConfig.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  if (prefixME_.size()>0 && prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
+    prefixME_.append("/");
   subdir_          = iConfig.getUntrackedParameter<string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
+
   HBMeanTreshold   = iConfig.getUntrackedParameter<double>("HBMeanPedestalTreshold" , 0.2);
   HBRmsTreshold    = iConfig.getUntrackedParameter<double>("HBRmsPedestalTreshold"  , 0.3);
   HEMeanTreshold   = iConfig.getUntrackedParameter<double>("HEMeanPedestalTreshold" , 0.2);
@@ -249,7 +251,7 @@ void HcalDetDiagPedestalMonitor::beginRun(const edm::Run& run, const edm::EventS
   HcalBaseDQMonitor::setup();
   if (!dbe_) return;
   std::string name;
- 
+
   dbe_->setCurrentFolder(subdir_);   
   meEVT_ = dbe_->bookInt("HcalDetDiagPedestalMonitor Event Number");
 

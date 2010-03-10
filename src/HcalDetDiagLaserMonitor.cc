@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Wed Mar  3 12:14:16 CET 2010
-// $Id$
+// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.1 2010/03/10 11:40:49 temple Exp $
 //
 //
 
@@ -292,10 +292,13 @@ HcalDetDiagLaserMonitor::HcalDetDiagLaserMonitor(const edm::ParameterSet& iConfi
   BaseHTMLpath     = iConfig.getUntrackedParameter<string>("BaseHTMLpath","");
   Online_          = iConfig.getUntrackedParameter<bool>  ("online",false);
   prefixME_        = iConfig.getUntrackedParameter<string>("subSystemFolder","Hcal/");
-  subdir_          = iConfig.getUntrackedParameter<string>("TaskFolder","HcalDetDiagLaserMonitor/");
+  if (prefixME_.size()>0 && prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
+    prefixME_.append("/");
+  subdir_          = iConfig.getUntrackedParameter<string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
+
 
   LaserTimingThreshold = iConfig.getUntrackedParameter<double>("LaserTimingThreshold",0.2);
   LaserEnergyThreshold = iConfig.getUntrackedParameter<double>("LaserEnergyThreshold",0.1);
