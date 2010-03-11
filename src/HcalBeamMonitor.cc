@@ -1115,6 +1115,7 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
   float Nentries=HFlumi_occ_LS->getBinContent(-1,-1);
   if (debug_>3) 
     std::cout <<"Number of entries in this LB = "<<Nentries<<std::endl;
+
   if (Nentries<minEvents_) 
     {
       // not enough entries to determine status; fill everything with -1 and return
@@ -1214,6 +1215,7 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
     return;
   // dump out lumi quality file
   std::ofstream outStream(outfile_.str().c_str(),ios::app);
+  outStream.precision(6);
   outStream<<currentLS<<"\t\t"<<ring1status<<"\t\t"<<ring2status<<"\t\t"<<totalstatus<<"\t\t"<<Nentries<<endl;
   outStream.close();
   return;
