@@ -77,7 +77,9 @@ def SetTaskParams(process,param, value):
     tasks=[hcalDigiMonitor,hcalRecHitMonitor,hcalHotCellMonitor,hcalDeadCellMonitor,
            hcalRawDataMonitor, hcalBeamMonitor, hcalTrigPrimMonitor, hcalNZSMonitor,
            hcalDataIntegrityMonitor, hcalDetDiagLaserMonitor, hcalDetDiagLEDMonitor,
-           hcalDetDiagNoiseMonitor, hcalDetDiagPedestalMonitor]
+           hcalDetDiagNoiseMonitor, hcalDetDiagPedestalMonitor,
+           hcalDetDiagTimingMonitor]
+    
     for i in tasks:
         if isstring==False:
             cmd="process.%s.%s=%s"%(i,param,value)
