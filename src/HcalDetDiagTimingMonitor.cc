@@ -69,8 +69,8 @@ HcalDetDiagTimingMonitor::HcalDetDiagTimingMonitor(const edm::ParameterSet& ps)
   GCTTriggerBit5_= ps.getUntrackedParameter<int>("GCTTriggerBit5", 16);         
   CosmicsCorr_   = ps.getUntrackedParameter<bool>("CosmicsCorr", true); 
   
-  L1ADataLabel_  = ps.getParameter<edm::InputTag>("gtLabel");
-  inputLabelDigi_= ps.getParameter<edm::InputTag>("digiLabel");
+  L1ADataLabel_  = ps.getUntrackedParameter<edm::InputTag>("gtLabel");
+  inputLabelDigi_= ps.getUntrackedParameter<edm::InputTag>("digiLabel");
   FEDRawDataCollection_ = ps.getUntrackedParameter<edm::InputTag>("FEDRawDataCollection",edm::InputTag("source",""));
 }
 

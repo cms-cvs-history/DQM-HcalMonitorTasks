@@ -15,6 +15,7 @@ from DQM.HcalMonitorTasks.HcalDetDiagLaserMonitor_cfi  import *
 from DQM.HcalMonitorTasks.HcalDetDiagPedestalMonitor_cfi import*
 from DQM.HcalMonitorTasks.HcalDetDiagLEDMonitor_cfi import*
 from DQM.HcalMonitorTasks.HcalDetDiagNoiseMonitor_cfi import*
+from DQM.HcalMonitorTasks.HcalDetDiagTimingMonitor_cfi import*
 
 hcalMonitorTasksTestSequence=cms.Sequence(hcalDigiMonitor
                                           *hcalHotCellMonitor
@@ -36,7 +37,8 @@ hcalMonitorTasksOnlineSequence = cms.Sequence(hcalDigiMonitor
                                               #*hcalDetDiagPedestalMonitor
                                               #*hcalDetDiagLaserMonitor
                                               #*hcalDetDiagLEDMonitor
-                                              #*hcalDetDiagNoiseMonitor
+                                              *hcalDetDiagNoiseMonitor
+                                              *hcalDetDiagTimingMonitor
                                               *hcalNZSMonitor 
                                               )
 
@@ -55,6 +57,7 @@ hcalMonitorTasksCalibrationSequence = cms.Sequence(hcalRecHitMonitor
                                                    *hcalDetDiagLaserMonitor
                                                    *hcalDetDiagLEDMonitor
                                                    *hcalDetDiagNoiseMonitor
+                                                   *hcalDetDiagTimingMonitor
                                                    )
 
 

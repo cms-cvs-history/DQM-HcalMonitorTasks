@@ -1,6 +1,6 @@
 import FWCore.ParameterSet.Config as cms
 
-hcalDetDiagTimingMonitor=cms.EDAnalyzer("HcalDetDiagNoiseMonitor",
+hcalDetDiagTimingMonitor=cms.EDAnalyzer("HcalDetDiagTimingMonitor",
                                        # base class stuff
                                        debug                  = cms.untracked.int32(0),
                                        online                 = cms.untracked.bool(False),
@@ -20,7 +20,7 @@ hcalDetDiagTimingMonitor=cms.EDAnalyzer("HcalDetDiagNoiseMonitor",
                                        GCTTriggerBit4         = cms.untracked.int32(18),
                                        GCTTriggerBit5         = cms.untracked.int32(19),
                                        CosmicsCorr            = cms.untracked.bool(True),
-                                       gtLabel = cms.InputTag("l1GtUnpack"),
+                                       gtLabel                = cms.untracked.InputTag("l1GtUnpack"),
                                        digiLabel              = cms.untracked.InputTag("hcalDigis"),
                                        FEDRawDataCollection   = cms.untracked.InputTag("source")
                                        )
