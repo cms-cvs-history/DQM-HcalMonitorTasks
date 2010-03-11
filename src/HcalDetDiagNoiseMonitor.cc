@@ -240,7 +240,8 @@ HcalDetDiagNoiseMonitor::HcalDetDiagNoiseMonitor(const edm::ParameterSet& ps)
 // ####################################
 
   lumi.clear();
-
+  RBXSummary = 0;
+  RBXCurrentSummary = 0;
 // ####################################
 
 }
@@ -276,6 +277,9 @@ void HcalDetDiagNoiseMonitor::setup()
   // Call base class setup
   HcalBaseDQMonitor::setup();
   if (!dbe_) return;
+
+  RBXSummary = new HcalDetDiagNoiseRMSummary();
+  RBXCurrentSummary = new HcalDetDiagNoiseRMSummary();
 
   //char *name;
   std::string name;
@@ -573,9 +577,7 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
    
    UpdateHistos();
 
-     std::cout << "testing ... I'm runnning" << std::endl;
-
-// ###################################################################################################################
+   // ###################################################################################################################
 
    if(!Online_) {
 
@@ -1048,77 +1050,78 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
    return;
 }
 
-void HcalDetDiagNoiseMonitor::UpdateHistos(){
-int first_rbx=0,last_rbx=0;  
-  for(int sd=0;sd<9;sd++){
-     if(RBXCurrentSummary->GetStat(sd)>=UpdateEvents){
-        if(sd==0){ first_rbx=0;  last_rbx=18;} //HBM
-        if(sd==1){ first_rbx=18; last_rbx=36;} //HBP
-        if(sd==0 || sd==1){  // update HB plots
-           for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
-              double val1=0,val2=0;
-              if(RBXSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val1)){
-	        HB_RBXmapRatio->setBinContent(rm,rbx+1,val1);
-                if(RBXCurrentSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val2)){
-	           HB_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
-		   if((val2-val1)>SpikeThreshold){
-		      double n=HB_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
-		      double a=HB_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
-		      HB_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
-		      HB_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
-	           }
+void HcalDetDiagNoiseMonitor::UpdateHistos()
+{
+  int first_rbx=0,last_rbx=0;  
+  for(int sd=0;sd<9;sd++)
+    {
+      if(RBXCurrentSummary->GetStat(sd)>=UpdateEvents)
+	{
+	  if(sd==0){ first_rbx=0;  last_rbx=18;} //HBM
+	  if(sd==1){ first_rbx=18; last_rbx=36;} //HBP
+	  if(sd==0 || sd==1){  // update HB plots
+	    for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
+	      double val1=0,val2=0;
+	      if(RBXSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val1)){
+		HB_RBXmapRatio->setBinContent(rm,rbx+1,val1);
+		if(RBXCurrentSummary->GetRMStatusValue(HB_RBX[rbx],rm,&val2)){
+		  HB_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
+		  if((val2-val1)>SpikeThreshold){
+		    double n=HB_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
+		    double a=HB_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
+		    HB_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
+		    HB_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
+		  }
 		}
 	      }
-           }	
-	}
-	if(sd==2){ first_rbx=0;  last_rbx=18;} //HEM
-        if(sd==3){ first_rbx=18; last_rbx=36;} //HEP
-        if(sd==2 || sd==3){  // update HB plots
-           for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
+	    }	
+	  }
+	  if(sd==2){ first_rbx=0;  last_rbx=18;} //HEM
+	  if(sd==3){ first_rbx=18; last_rbx=36;} //HEP
+	  if(sd==2 || sd==3){  // update HB plots
+	    for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
               double val1=0,val2=0;
               if(RBXSummary->GetRMStatusValue(HE_RBX[rbx],rm,&val1)){
 	        HE_RBXmapRatio->setBinContent(rm,rbx+1,val1);
                 if(RBXCurrentSummary->GetRMStatusValue(HE_RBX[rbx],rm,&val2)){
-		   HE_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
-	           if((val2-val1)>SpikeThreshold){
-		      double n=HE_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
-		      double a=HE_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
-		      HE_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
-		      HE_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
-	           }
+		  HE_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
+		  if((val2-val1)>SpikeThreshold){
+		    double n=HE_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
+		    double a=HE_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
+		    HE_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
+		    HE_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
+		  }
 	        }
 	      }
-           }	
-	}
-        if(sd==4){ first_rbx=0;  last_rbx=6;}   //HO2M
-	if(sd==5){ first_rbx=6;  last_rbx=12;}  //HO1M
-	if(sd==6){ first_rbx=12;  last_rbx=24;} //HO0
-	if(sd==7){ first_rbx=24;  last_rbx=30;} //HO1P
-	if(sd==8){ first_rbx=30;  last_rbx=36;} //HO2P
-	if(sd>3){ // update HO plots
-           for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
+	    }	
+	  }
+	  if(sd==4){ first_rbx=0;  last_rbx=6;}   //HO2M
+	  if(sd==5){ first_rbx=6;  last_rbx=12;}  //HO1M
+	  if(sd==6){ first_rbx=12;  last_rbx=24;} //HO0
+	  if(sd==7){ first_rbx=24;  last_rbx=30;} //HO1P
+	  if(sd==8){ first_rbx=30;  last_rbx=36;} //HO2P
+	  if(sd>3){ // update HO plots
+	    for(int rbx=first_rbx;rbx<last_rbx;rbx++)for(int rm=1;rm<=4;rm++){
               double val1=0,val2=0;
               if(RBXSummary->GetRMStatusValue(HO_RBX[rbx],rm,&val1)){
 	        HO_RBXmapRatio->setBinContent(rm,rbx+1,val1);
                 if(RBXCurrentSummary->GetRMStatusValue(HO_RBX[rbx],rm,&val2)){
-		   HO_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
-	           if((val2-val1)>SpikeThreshold){
-		      double n=HO_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
-		      double a=HO_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
-		      HO_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
-		      HO_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
-	           }
+		  HO_RBXmapRatioCur->setBinContent(rm,rbx+1,val2);
+		  if((val2-val1)>SpikeThreshold){
+		    double n=HO_RBXmapSpikeCnt->getBinContent(rm,rbx+1);
+		    double a=HO_RBXmapSpikeAmp->getBinContent(rm,rbx+1);
+		    HO_RBXmapSpikeCnt->Fill(rm,rbx+1,1);
+		    HO_RBXmapSpikeAmp->setBinContent(rm,rbx+1,((val2-val1)+a*n)/(n+1));
+		  }
 	        }
 	      }
-           }		
-	}
-	
-        RBXCurrentSummary->reset(sd); 
-	// disabled output statement
-        //printf("update %i\n",sd); 
-     }
-  } 
-} 
+	    }		
+	  }
+	  
+	  RBXCurrentSummary->reset(sd); 
+	}  //if(RBXCurrentSummary->GetStat(sd)>=UpdateEvents)
+    } //sd=0;sd<9
+} // UpdateHistos
 
 void HcalDetDiagNoiseMonitor::SaveReference(){
 char   RBX[20];
