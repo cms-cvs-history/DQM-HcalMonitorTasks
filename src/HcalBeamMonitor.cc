@@ -455,24 +455,24 @@ void HcalBeamMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   
   if (!(e.getByLabel(digiLabel_,hf_digi)))
     {
-      LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" hf_digi not available";
+      LogWarning("HcalBeamMonitor")<< digiLabel_<<" hf_digi not available";
       return;
     }
 
   if (!(e.getByLabel(hbheRechitLabel_,hbhe_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
+      LogWarning("HcalBeamMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
       return;
     }
 
   if (!(e.getByLabel(hfRechitLabel_,hf_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
+      LogWarning("HcalBeamMonitor")<< hfRechitLabel_<<" hf_rechit not available";
       return;
     }
   if (!(e.getByLabel(hoRechitLabel_,ho_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
+      LogWarning("HcalBeamMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
 
