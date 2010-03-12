@@ -15,8 +15,8 @@
 
 /** \class HcalBeamMonitor
   *
-  * $Date: 2010/03/01 13:53:55 $
-  * $Revision: 1.16.4.1 $
+  * $Date: 2010/03/01 19:13:46 $
+  * $Revision: 1.16.4.2 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -45,6 +45,7 @@ class HcalBeamMonitor:  public HcalBaseDQMonitor {
  private:
   void SetEtaLabels(MonitorElement* h);
   double occThresh_;  
+  double hotrate_;
   int minEvents_;
   std::string lumiqualitydir_;
 
@@ -127,7 +128,7 @@ class HcalBeamMonitor:  public HcalBaseDQMonitor {
   std::ostringstream outfile_;
   unsigned int lastProcessedLS_;
   int runNumber_;
-
+ 
   edm::InputTag digiLabel_;
   edm::InputTag hbheRechitLabel_, hfRechitLabel_, hoRechitLabel_;
 }; // class HcalBeamMonitor

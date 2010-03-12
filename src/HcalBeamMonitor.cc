@@ -64,7 +64,8 @@ HcalBeamMonitor::HcalBeamMonitor(const edm::ParameterSet& ps):
   lumiqualitydir_ = ps.getUntrackedParameter<std::string>("lumiqualitydir","");
   if (lumiqualitydir_.size()>0 && lumiqualitydir_.substr(lumiqualitydir_.size()-1,lumiqualitydir_.size())!="/")
     lumiqualitydir_.append("/");
-  occThresh_ = ps.getUntrackedParameter<double>("occupancyThresh",0.0625);
+  occThresh_ = ps.getUntrackedParameter<double>("occupancyThresh",0.0625);  // energy required to be counted by dead/hot checks
+  hotrate_        = ps.getUntrackedParameter<double>("hotrate",0.25);
 }
 
 
@@ -1172,12 +1173,12 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 	    } // dead cell check
 
 	  // hot if present in more than 25% of events in the LS
-	  if (Ncellhits>0.25*Nentries)
+	  if (Ncellhits>hotrate_*Nentries)
 	    {
 	      HFlumi_total_hotcells->Fill(x-1,2*y-1,1);
 	    } // hot cell check
 
-	  if (Ncellhits==0 || Ncellhits>0.25*Nentries) // cell was either hot or dead
+	  if (Ncellhits==0 || Ncellhits>hotrate_*Nentries) // cell was either hot or dead
 	    {
 	      if (depth==1)  badring1++;
 	      else if (depth==2)  badring2++;

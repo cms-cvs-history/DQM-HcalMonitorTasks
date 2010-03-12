@@ -21,5 +21,7 @@ hcalBeamMonitor=cms.EDAnalyzer("HcalBeamMonitor",
                                digiLabel              = cms.untracked.InputTag("hcalDigis"),
 
                                minEvents              = cms.untracked.int32(500),
-                               lumiqualitydir         = cms.untracked.string("")
+                               lumiqualitydir         = cms.untracked.string(""),
+                               occupancyThresh        = cms.untracked.double(0.0625),
+                               hotrate                = cms.untracked.double(0.25),
                                )
