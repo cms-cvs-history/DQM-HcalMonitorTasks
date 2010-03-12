@@ -20,7 +20,7 @@ hcalBeamMonitor=cms.EDAnalyzer("HcalBeamMonitor",
                                hfRechitLabel          = cms.untracked.InputTag("hfreco"),
                                digiLabel              = cms.untracked.InputTag("hcalDigis"),
 
-                               minEvents              = cms.untracked.int32(500),
+                               minEvents              = cms.untracked.int32(250), # changed from 500 once lumi section definition changed
                                lumiqualitydir         = cms.untracked.string(""),
                                occupancyThresh        = cms.untracked.double(0.0625),
                                hotrate                = cms.untracked.double(0.25),
