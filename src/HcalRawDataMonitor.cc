@@ -541,8 +541,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
   bool CDFProbThisDCC = false; 
   /* 1 */ //There should always be a second CDF header word indicated.
   if (!dccHeader->thereIsASecondCDFHeaderWord()
-      //TESTME_HCALRAWDATA//
-      //|| ((dccid==702)&&(tevt_%2==0))
+      //TESTME_HCALRAWDATA//|| ((dccid==702)&&(tevt_%2==0))
       ) {
     meCDFErrorFound_->Fill(dccid, 1);
     CDFProbThisDCC = true; 
@@ -817,8 +816,7 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     ///check that all HTRs have the same BCN
     int BCNdiff = htrBCN-dccBCN;
     if ((BCNdiff!=0) 
-	//TESTME_HCALRAWDATA//
-	//|| ((dccid==727) && (spigot==8) && (dccEvtNum%3==0))
+	//TESTME_HCALRAWDATA//|| ((dccid==727) && (spigot==8))
 	){
       meBCNSynch_->Fill(dccid,spigot);
       meBCNCheck_->Fill(BCNdiff);
@@ -1141,36 +1139,27 @@ void HcalRawDataMonitor::HTRPrint(const HcalHTRData& htr,int prtlvl){
 
 
 void HcalRawDataMonitor::UpdateMEs (void ) {
-  tevt_=0;
-  if (meTevtHist_) tevt_= meTevtHist_->getBinContent(1);
-
-  meLRBDataCorruptionIndicators_->setBinContent(0,0,tevt_);
   for (int x=0; x<THREE_FED; x++)
     for (int y=0; y<THREE_SPG; y++)
       if (LRBDataCorruptionIndicators_  [x][y])
 	meLRBDataCorruptionIndicators_->setBinContent(x+1,y+1,LRBDataCorruptionIndicators_[x][y]);
   	 
-  meHalfHTRDataCorruptionIndicators_->setBinContent(0,0,tevt_);
   for (int x=0; x<THREE_FED; x++)
     for (int y=0; y<THREE_SPG; y++)
       if (HalfHTRDataCorruptionIndicators_  [x][y])
 	meHalfHTRDataCorruptionIndicators_->setBinContent(x+1,y+1,HalfHTRDataCorruptionIndicators_[x][y]);
-
-  meChannSumm_DataIntegrityCheck_->setBinContent(0,0,tevt_);  	 
+  	 
   for (int x=0; x<TWO___FED; x++)
     for (int y=0; y<TWO__SPGT; y++)
       if (ChannSumm_DataIntegrityCheck_[x][y])
 	meChannSumm_DataIntegrityCheck_->setBinContent(x+1,y+1,ChannSumm_DataIntegrityCheck_[x][y]);
-  
-  for (int f=0; f<NUMDCCS; f++){
-    meChann_DataIntegrityCheck_[f]->setBinContent(0,0,tevt_);
+
+  for (int f=0; f<NUMDCCS; f++)
     for (int x=0; x<TWO_CHANN; x++)
       for (int y=0; y<TWO__SPGT; y++)      
 	if (Chann_DataIntegrityCheck_[f][x][y])
 	  meChann_DataIntegrityCheck_[f]->setBinContent(x+1,y+1,Chann_DataIntegrityCheck_ [f][x][y]);
-  }
-  
-  meDataFlowInd_->setBinContent(0,0,tevt_);
+
   for (int x=0; x<TWO___FED; x++)
     for (int y=0; y<THREE_SPG; y++)      
       if (DataFlowInd_[x][y])
