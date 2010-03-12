@@ -160,14 +160,14 @@ void HcalDataIntegrityTask::analyze(edm::Event const&e, edm::EventSetup const&s)
   // Trying new getByLabel
   if (!(e.getByLabel(inputLabelRawData_,rawraw)))
     {
-      LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<inputLabelRawData_<<" not available";
+      if (debug_>0) LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<inputLabelRawData_<<" not available";
       return;
     }
   
   edm::Handle<HcalUnpackerReport> report;
   if (!(e.getByLabel(inputLabelReport_,report)))
     {
-      LogWarning("HcalDataIntegrityTask")<<" UnpackerReport with label "<<inputLabelReport_<<" \not available";
+      if (debug_>0) LogWarning("HcalDataIntegrityTask")<<" UnpackerReport with label "<<inputLabelReport_<<" \not available";
       return;
     }
   
