@@ -53,9 +53,10 @@ hcalMonitorTasksOfflineSequence = cms.Sequence(hcalDigiMonitor
 
 
 hcalMonitorTasksCalibrationSequence = cms.Sequence(hcalRecHitMonitor
+                                                   *hcalRawDataMonitor
                                                    *hcalDetDiagPedestalMonitor
                                                    *hcalDetDiagLaserMonitor
-                                                   *hcalDetDiagLEDMonitor
+                                                   #*hcalDetDiagLEDMonitor
                                                    *hcalDetDiagNoiseMonitor
                                                    *hcalDetDiagTimingMonitor
                                                    )
