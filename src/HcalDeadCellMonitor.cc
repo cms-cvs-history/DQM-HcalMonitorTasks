@@ -66,7 +66,7 @@ HcalDeadCellMonitor::~HcalDeadCellMonitor()
 void HcalDeadCellMonitor::setup()
 {
   HcalBaseDQMonitor::setup();
-
+  zeroCounters(1); // make sure arrays are set up
   if (debug_>0)
     std::cout <<"<HcalDeadCellMonitor::setup>  Setting up histograms"<<std::endl;
 
@@ -645,7 +645,7 @@ void HcalDeadCellMonitor::processEvent_HBHEdigi(const HBHEDataFrame digi)
 template<class DIGI> 
 void HcalDeadCellMonitor::process_Digi(DIGI& digi)
 {
-  // Remove the validate check as when we figure out how to access bad digis in digi monitor
+  // Remove the validate check when we figure out how to access bad digis in digi monitor
   //if (!digi.validate()) return; // digi must be good to be counted
   int ieta=digi.id().ieta();
   int iphi=digi.id().iphi();
