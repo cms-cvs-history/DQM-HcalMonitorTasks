@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Wed Mar  3 12:14:16 CET 2010
-// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.1 2010/03/10 11:40:49 temple Exp $
+// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.2 2010/03/10 16:26:11 temple Exp $
 //
 //
 
@@ -929,7 +929,7 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	      T+=time; nT++; E+=ave; nE++;
            }
         }
-        if(nT>0 && abs(eta)>16 ){Time2Dhbhehf->setBinContent(eta+44,phi+1,T/nT);   Energy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE); }	 
+        if(nT>0 && abs(eta)>16 ){Time2Dhbhehf->setBinContent(eta+44,phi+1,T/nT); Energy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE); }	 
         if(nT>0 && abs(eta)>20 ){Time2Dhbhehf->setBinContent(eta+44,phi+2,T/nT); Energy2Dhbhehf->setBinContent(eta+44,phi+2,E/nE);}	 
      } 
    }
@@ -949,7 +949,7 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	      hfTimeRMS->Fill(time_rms);
            }
         }	
-        if(nT>0 && abs(eta)>29 ){ Time2Dhbhehf->setBinContent(eta+44,phi+1,T/nT); Time2Dhbhehf->setBinContent(eta+44,phi+2,T/nT);}	 
+        if(nT>0 && abs(eta)>29 ){ Time2Dhbhehf->setBinContent(eta+44,phi+1,T/nT);   Time2Dhbhehf->setBinContent(eta+44,phi+2,T/nT);}	 
         if(nT>0 && abs(eta)>29 ){ Energy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE); Energy2Dhbhehf->setBinContent(eta+44,phi+2,E/nE);}	 
      }
    } 
@@ -988,7 +988,7 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	     T+=TIME-time; nT++;
 	   }  
         }
-        if(nE>0) refEnergy2Dhbhehf->Fill(eta,phi,E/nE);  
+        if(nE>0) refEnergy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE);  
         if(nT>0){ double TTT=T/nT+1; if(TTT<0.01) TTT=0.01;  refTime2Dhbhehf->setBinContent(eta+44,phi+1,TTT); } 
      } 
      for(int eta=-29;eta<=29;eta++) for(int phi=1;phi<=72;phi++){
@@ -1004,9 +1004,9 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	     T+=TIME-time; nT++;
 	   }  
         }
-        if(nE>0 && abs(eta)>16) refEnergy2Dhbhehf->Fill(eta,phi,E/nE);  
+        if(nE>0 && abs(eta)>16) refEnergy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE);  
         if(nT>0 && abs(eta)>16){ double TTT=T/nT+1; if(TTT<0.01) TTT=0.01;  refTime2Dhbhehf->setBinContent(eta+44,phi+1,TTT); } 
-        if(nE>0 && abs(eta)>20) refEnergy2Dhbhehf->Fill(eta,phi+1,E/nE);  
+        if(nE>0 && abs(eta)>20) refEnergy2Dhbhehf->setBinContent(eta+44,phi+2,E/nE);  
         if(nT>0 && abs(eta)>20){ double TTT=T/nT+1; if(TTT<0.01) TTT=0.01;  refTime2Dhbhehf->setBinContent(eta+44,phi+2,TTT); }  
      } 
    }
@@ -1024,9 +1024,9 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	     T+=TIME-time; nT++;
 	   }  
         }
-        if(nE>0 && abs(eta)>29) refEnergy2Dhbhehf->Fill(eta,phi,E/nE);  
+        if(nE>0 && abs(eta)>29) refEnergy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE);  
         if(nT>0 && abs(eta)>29){ double TTT=T/nT+1; if(TTT<0.01) TTT=0.01; refTime2Dhbhehf->setBinContent(eta+44,phi+1,TTT); }
-        if(nE>0 && abs(eta)>29) refEnergy2Dhbhehf->Fill(eta,phi+1,E/nE);  
+        if(nE>0 && abs(eta)>29) refEnergy2Dhbhehf->setBinContent(eta+44,phi+2,E/nE);  
         if(nT>0 && abs(eta)>29){ double TTT=T/nT+1; if(TTT<0.01) TTT=0.01; refTime2Dhbhehf->setBinContent(eta+44,phi+2,TTT); } 
      }
    } 
