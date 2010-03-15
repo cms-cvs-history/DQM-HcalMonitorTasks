@@ -36,8 +36,8 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
   /* Dead cells can be defined in the following ways:
      1)  never present digi -- digi is never present in run
      2)  digis -- digi is absent for one or more lumi section 
-     3)  never present rechit -- rechit never present (a bit redundant, though cells excluded by Channel Status could be present in digis but not rechits)
-     4)  rechits -- digi is present, but rechit energy below threshold for one or more lumi sections
+     3)  never present rechit -- rechit > threshold energy never present (NOT redundant, since it requires not just that a rechit be present, but that it be above threshold as well.  )
+     4)  rechits -- rechit is present, but rechit energy below threshold for one or more lumi sections
 
      Of these tests, never-present digis are always checked.
      Occasional digis are checked only if deadmon_test_digis_ is true,
