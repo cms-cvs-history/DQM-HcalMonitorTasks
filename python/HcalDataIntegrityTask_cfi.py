@@ -8,7 +8,7 @@ hcalDataIntegrityMonitor = cms.EDAnalyzer("HcalDataIntegrityTask",
                                           mergeRuns              = cms.untracked.bool(False),
                                           enableCleanup          = cms.untracked.bool(False),
                                           subSystemFolder        = cms.untracked.string("Hcal/"),
-                                          TaskFolder             = cms.untracked.string("HcalDataIntegrityTask/"),
+                                          TaskFolder             = cms.untracked.string("FEDIntegrity/"),
                                           skipOutOfOrderLS       = cms.untracked.bool(False),
                                           NLumiBlocks            = cms.untracked.int32(4000),
                                           
