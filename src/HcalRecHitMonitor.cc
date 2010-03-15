@@ -587,6 +587,13 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
 
     }
 
+  if (!Online_) 
+    {
+      // triggers aren't available offline yet;  assume both are true for the purposes of threshold plots
+      BPTX = true;
+      passedL1=true;
+    }
+
   processEvent_rechit(hbHits, hoHits, hfHits,passedL1,BPTX,BCN);
 
   return;
