@@ -27,9 +27,9 @@ hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
 
                                  # Energy thresholds for some BPTX plots
                                  energyThreshold              = cms.untracked.double(2.),
-                                 ETThreshold                  = cms.untracked.double(2.),
+                                 ETThreshold                  = cms.untracked.double(0.),
                                  HF_energyThreshold           = cms.untracked.double(3.),
-                                 HF_ETThreshold               = cms.untracked.double(2.),
+                                 HF_ETThreshold               = cms.untracked.double(0.),
                                  HO_energyThreshold           = cms.untracked.double(5.),
                                  collisiontimediffThresh      = cms.untracked.double(10.) # max time diff between HF+, HF- weighted times for some plot filling
                                  )
