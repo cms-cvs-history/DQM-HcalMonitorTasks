@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.3 2010/03/10 16:25:56 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.4 2010/03/16 17:05:33 temple Exp $
 //
 //
 // user include files
@@ -231,6 +231,7 @@ HcalDetDiagPedestalMonitor::HcalDetDiagPedestalMonitor(const edm::ParameterSet& 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
+  debug_           = iConfig.getUntrackedParameter<int>("debug",0);
 
   HBMeanTreshold   = iConfig.getUntrackedParameter<double>("HBMeanPedestalTreshold" , 0.2);
   HBRmsTreshold    = iConfig.getUntrackedParameter<double>("HBRmsPedestalTreshold"  , 0.3);
@@ -344,27 +345,25 @@ void HcalDetDiagPedestalMonitor::beginRun(const edm::Run& run, const edm::EventS
   RefRun_= dbe_->bookString("HcalDetDiagLaserMonitor Reference Run",ReferenceRun);
 }
 
-
-
 void HcalDetDiagPedestalMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   HcalBaseDQMonitor::analyze(iEvent, iSetup); // increments counters
-int  eta,phi,depth,nTS;
-static bool PEDseq;
-static int  lastPEDorbit,nChecksPED;
-   if(ievt_==0)
-     { PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
-   int orbit=iEvent.orbitNumber();
-
-   bool PedestalEvent=false;
-
-   // for local runs 
-   edm::Handle<HcalTBTriggerData> trigger_data;
-   iEvent.getByType(trigger_data);
-   if(trigger_data.isValid()){
-       if(trigger_data->triggerWord()==5) PedestalEvent=true;
-       LocalRun=true;
-   }
-   if(LocalRun && !PedestalEvent) return; 
+  int  eta,phi,depth,nTS;
+  static bool PEDseq;
+  static int  lastPEDorbit,nChecksPED;
+  if(ievt_==0)
+    { PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
+  int orbit=iEvent.orbitNumber();
+  
+  bool PedestalEvent=false;
+  
+  // for local runs 
+  edm::Handle<HcalTBTriggerData> trigger_data;
+  iEvent.getByType(trigger_data);
+  if(trigger_data.isValid()){
+    if(trigger_data->triggerWord()==5) PedestalEvent=true;
+    LocalRun=true;
+  }
+  if(LocalRun && !PedestalEvent) return; 
 
 
   if(!LocalRun && Online_)
@@ -387,80 +386,80 @@ static int  lastPEDorbit,nChecksPED;
     } // if (!LocalRun && Online_)
 
   
-   // Abort Gap pedestals 
-   int calibType = -1 ;
-   if(LocalRun==false)
-     {
-       if (!IsAllowedCalibType()) return; // not a pedestal event!
-       // If we get this far, we know the event is a pedestal event
-       PEDseq=true;
-       lastPEDorbit=orbit;
-       calibType = hc_Pedestal; // if it passes our AllowedCalibType, treat it like a pedestal from this point on
-     }
-   //if(!LocalRun && calibType!=hc_Pedestal) return; 
+  // Abort Gap pedestals 
+  int calibType = -1 ;
+  if(LocalRun==false)
+    {
+      if (!IsAllowedCalibType()) return; // not a pedestal event!
+      // If we get this far, we know the event is a pedestal event
+      PEDseq=true;
+      lastPEDorbit=orbit;
+      calibType = hc_Pedestal; // if it passes our AllowedCalibType, treat it like a pedestal from this point on
+    }
+  //if(!LocalRun && calibType!=hc_Pedestal) return; 
    
-   ievt_++;
-   meEVT_->Fill(ievt_);
-   run_number=iEvent.id().run();
+  ievt_++;
+  meEVT_->Fill(ievt_);
+  run_number=iEvent.id().run();
 
-   edm::Handle<HBHEDigiCollection> hbhe; 
-   iEvent.getByLabel(inputLabelDigi_,hbhe);
-   if(hbhe.isValid()){
-	 if(hbhe->size()<30 && calibType==hc_Pedestal){
-             ievt_--;
-             meEVT_->Fill(ievt_);
-             return;	 
-	 }
-         for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
-             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-             if(nTS>8) nTS=8;
-	     if(nTS<8) continue;
-	     if(digi->id().subdet()==HcalBarrel){
-		for(int i=0;i<nTS;i++) hb_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-	     }	 
-             if(digi->id().subdet()==HcalEndcap){
-		for(int i=0;i<nTS;i++) he_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-	     }
-         }   
-   }
-   edm::Handle<HODigiCollection> ho; 
-   iEvent.getByLabel(inputLabelDigi_,ho);
-   if(ho.isValid()){
-         for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
-             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-	     if(nTS>8) nTS=8;
-	     if(nTS<8) continue;
-             for(int i=0;i<nTS;i++) ho_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-         }   
-   }
-   edm::Handle<HFDigiCollection> hf;
-   iEvent.getByLabel(inputLabelDigi_,hf);
-   if(hf.isValid()){
-         for(HFDigiCollection::const_iterator digi=hf->begin();digi!=hf->end();digi++){
-             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-	     if(nTS>8) nTS=8;
-	     if(nTS<8) continue;
-	     for(int i=0;i<nTS;i++) hf_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-         }   
-   }
+  edm::Handle<HBHEDigiCollection> hbhe; 
+  iEvent.getByLabel(inputLabelDigi_,hbhe);
+  if(hbhe.isValid()){
+    if(hbhe->size()<30 && calibType==hc_Pedestal){
+      ievt_--;
+      meEVT_->Fill(ievt_);
+      return;	 
+    }
+    for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
+      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+      if(nTS>8) nTS=8;
+      if(nTS<8) continue;
+      if(digi->id().subdet()==HcalBarrel){
+	for(int i=0;i<nTS;i++) hb_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+      }	 
+      if(digi->id().subdet()==HcalEndcap){
+	for(int i=0;i<nTS;i++) he_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+      }
+    }   
+  }
+  edm::Handle<HODigiCollection> ho; 
+  iEvent.getByLabel(inputLabelDigi_,ho);
+  if(ho.isValid()){
+    for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
+      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+      if(nTS>8) nTS=8;
+      if(nTS<8) continue;
+      for(int i=0;i<nTS;i++) ho_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+    }   
+  }
+  edm::Handle<HFDigiCollection> hf;
+  iEvent.getByLabel(inputLabelDigi_,hf);
+  if(hf.isValid()){
+    for(HFDigiCollection::const_iterator digi=hf->begin();digi!=hf->end();digi++){
+      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+      if(nTS>8) nTS=8;
+      if(nTS<8) continue;
+      for(int i=0;i<nTS;i++) hf_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+    }   
+  }
 }
 
 void HcalDetDiagPedestalMonitor::fillHistos(){
-   PedestalsRmsHB->Reset();
-   PedestalsAve4HB->Reset();
-   PedestalsRmsHE->Reset();
-   PedestalsAve4HE->Reset();
-   PedestalsRmsHO->Reset();
-   PedestalsAve4HO->Reset();
-   PedestalsRmsHF->Reset();
-   PedestalsAve4HF->Reset();
-   PedestalsRmsSimp->Reset();
-   PedestalsAve4Simp->Reset();
-   Pedestals2DRmsHBHEHF->Reset();
-   Pedestals2DRmsHO->Reset();
-   Pedestals2DHBHEHF->Reset();
-   Pedestals2DHO->Reset();
-   // HBHEHF summary map
+  PedestalsRmsHB->Reset();
+  PedestalsAve4HB->Reset();
+  PedestalsRmsHE->Reset();
+  PedestalsAve4HE->Reset();
+  PedestalsRmsHO->Reset();
+  PedestalsAve4HO->Reset();
+  PedestalsRmsHF->Reset();
+  PedestalsAve4HF->Reset();
+  PedestalsRmsSimp->Reset();
+  PedestalsAve4Simp->Reset();
+  Pedestals2DRmsHBHEHF->Reset();
+  Pedestals2DRmsHO->Reset();
+  Pedestals2DHBHEHF->Reset();
+  Pedestals2DHO->Reset();
+  // HBHEHF summary map
    for(int eta=-42;eta<=42;eta++) for(int phi=1;phi<=72;phi++){ 
       double PED=0,RMS=0,nped=0,nrms=0,ave=0,rms=0;
       for(int depth=1;depth<=3;depth++){
@@ -964,7 +963,10 @@ void HcalDetDiagPedestalMonitor::SaveHTML(){
 
 }
 void HcalDetDiagPedestalMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
-void HcalDetDiagPedestalMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
+void HcalDetDiagPedestalMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c)
+{
+  //if (debug_<-9999) fillHistos();  // special debugging; don't use this unless you know what you're doing!
+}
 
 //define this as a plug-in
 DEFINE_ANOTHER_FWK_MODULE(HcalDetDiagPedestalMonitor);

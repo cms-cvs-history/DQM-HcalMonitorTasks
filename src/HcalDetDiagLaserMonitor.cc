@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Wed Mar  3 12:14:16 CET 2010
-// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.2 2010/03/10 16:26:11 temple Exp $
+// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.3 2010/03/15 12:52:05 temple Exp $
 //
 //
 
@@ -298,7 +298,7 @@ HcalDetDiagLaserMonitor::HcalDetDiagLaserMonitor(const edm::ParameterSet& iConfi
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-
+  debug_           = iConfig.getUntrackedParameter<int>("debug",0);
 
   LaserTimingThreshold = iConfig.getUntrackedParameter<double>("LaserTimingThreshold",0.2);
   LaserEnergyThreshold = iConfig.getUntrackedParameter<double>("LaserEnergyThreshold",0.1);
