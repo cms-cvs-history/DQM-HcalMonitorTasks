@@ -163,7 +163,7 @@ void HcalRecHitMonitor::setup()
 				      "Number of Events with BPTX vs LS (HFM-HFP time cut)",
 				      NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
   h_LumiPlot_EventsPerLS_notimecut=dbe_->book1D("EventsPerLS_notimecut",
-						"Number of Events with BPTX vs LS (no time cut)",
+						"Number of Events with BPTX vs LS (HFM,HFP HT>1,no time cut)",
 						NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
 
   h_LumiPlot_SumHT_HFPlus_vs_HFMinus = dbe_->book2D("SumHT_plus_minus",
