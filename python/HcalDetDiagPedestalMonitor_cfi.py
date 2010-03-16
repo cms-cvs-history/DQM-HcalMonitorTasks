@@ -4,7 +4,7 @@ hcalDetDiagPedestalMonitor=cms.EDAnalyzer("HcalDetDiagPedestalMonitor",
                                           # base class stuff
                                           debug                  = cms.untracked.int32(0),
                                           online                 = cms.untracked.bool(False),
-                                          AllowedCalibTypes      = cms.untracked.vint32(1,2,3,4,5),
+                                          AllowedCalibTypes      = cms.untracked.vint32(1),  # pedestals have calibration type 1
                                           mergeRuns              = cms.untracked.bool(False),
                                           enableCleanup          = cms.untracked.bool(False),
                                           subSystemFolder        = cms.untracked.string("Hcal/"),

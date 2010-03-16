@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.2 2010/03/10 13:42:38 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.3 2010/03/10 16:25:56 temple Exp $
 //
 //
 // user include files
@@ -351,7 +351,8 @@ void HcalDetDiagPedestalMonitor::analyze(const edm::Event& iEvent, const edm::Ev
 int  eta,phi,depth,nTS;
 static bool PEDseq;
 static int  lastPEDorbit,nChecksPED;
-   if(ievt_==0){ PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
+   if(ievt_==0)
+     { PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
    int orbit=iEvent.orbitNumber();
 
    bool PedestalEvent=false;
@@ -366,40 +367,38 @@ static int  lastPEDorbit,nChecksPED;
    if(LocalRun && !PedestalEvent) return; 
 
 
-  if(!LocalRun && Online_){
-      if(PEDseq && (orbit-lastPEDorbit)>(11223*10)){
-         PEDseq=false;
-         fillHistos();
-         CheckStatus();
-         nChecksPED++;
-         if(nChecksPED==1 || (nChecksPED>1 && ((nChecksPED-1)%8)==0)){
-             SaveReference();
-             SaveHTML();
-         }
-         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hb_data[i][j][k][l].reset();
-         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) he_data[i][j][k][l].reset();
-         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) ho_data[i][j][k][l].reset();
-         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hf_data[i][j][k][l].reset();
-      }
-   }
+  if(!LocalRun && Online_)
+    {
+      if(PEDseq && (orbit-lastPEDorbit)>(11223*10))
+	{
+	  PEDseq=false;
+	  fillHistos();
+	  CheckStatus();
+	  nChecksPED++;
+	  if(nChecksPED==1 || (nChecksPED>1 && ((nChecksPED-1)%8)==0)){
+	    SaveReference();
+	    SaveHTML();
+	  }
+	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hb_data[i][j][k][l].reset();
+	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) he_data[i][j][k][l].reset();
+	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) ho_data[i][j][k][l].reset();
+	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hf_data[i][j][k][l].reset();
+	}
+    } // if (!LocalRun && Online_)
 
   
    // Abort Gap pedestals 
    int calibType = -1 ;
-   if(LocalRun==false){
-       edm::Handle<FEDRawDataCollection> rawdata;
-       iEvent.getByLabel(inputLabelRawData_,rawdata);
-       //checking FEDs for calibration information
-       for (int i=FEDNumbering::MINHCALFEDID;i<=FEDNumbering::MAXHCALFEDID; i++){
-         const FEDRawData& fedData = rawdata->FEDData(i) ;
-	 if ( fedData.size() < 24 ) continue ;
-	 int value = ((const HcalDCCHeader*)(fedData.data()))->getCalibType() ;
-	 if ( calibType < 0 )  calibType = value ;
-         if(value==hc_Pedestal){   PEDseq=true;  lastPEDorbit=orbit; break;} 
-       }
-   }
-   if(!LocalRun && calibType!=hc_Pedestal) return; 
-
+   if(LocalRun==false)
+     {
+       if (!IsAllowedCalibType()) return; // not a pedestal event!
+       // If we get this far, we know the event is a pedestal event
+       PEDseq=true;
+       lastPEDorbit=orbit;
+       calibType = hc_Pedestal; // if it passes our AllowedCalibType, treat it like a pedestal from this point on
+     }
+   //if(!LocalRun && calibType!=hc_Pedestal) return; 
+   
    ievt_++;
    meEVT_->Fill(ievt_);
    run_number=iEvent.id().run();
