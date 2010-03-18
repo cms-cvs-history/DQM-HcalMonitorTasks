@@ -145,10 +145,10 @@ void HcalRecHitMonitor::setup()
   // Histograms for events that passed BPTX triggers
   dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX");
   h_HFtimedifference = dbe_->book1D("HFweightedtimeDifference",
-				    "Energy-Weighted time difference between HF+ and HF-",
+				    "Energy-Weighted time difference between HF+ and HF- with BPTX",
 				    251,-250.5,250.5);
   h_HEtimedifference = dbe_->book1D("HEweightedtimeDifference",
-				    "Energy-Weighted time difference between HE+ and HE-",
+				    "Energy-Weighted time difference between HE+ and HE- with BPTX",
 				    251,-250.5,250.5);
 
   // Would these work better as 2D plots?
@@ -222,10 +222,10 @@ void HcalRecHitMonitor::setup()
   
   dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX/passedTechTriggers/");
   h_HFnotBPTXtimedifference = dbe_->book1D("HFnotBPTXweightedtimeDifference",
-					   "Energy-Weighted time difference between HF+ and HF-",
+					   "Energy-Weighted time difference between HF+ and HF- no BPTX",
 					   251,-250.5,250.5);
   h_HEnotBPTXtimedifference = dbe_->book1D("HEnotBPTXweightedtimeDifference",
-					   "Energy-Weighted time difference between HE+ and HE-",
+					   "Energy-Weighted time difference between HE+ and HE- no BPTX",
 					   251,-250.5,250.5);
   h_HFnotBPTXenergydifference = dbe_->book1D("HFnotBPTXenergyDifference",
 					     "Sum(E_HFPlus - E_HFMinus)/Sum(E_HFPlus + E_HFMinus)",
@@ -486,7 +486,7 @@ void HcalRecHitMonitor::cleanup()
 
 void HcalRecHitMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
-  if (debug_>0)  std::cout <<"HcalRecHitMonitor::analyze"<<std::endl;
+  if (debug_>0)  std::cout <<"HcalRecHitMonitor::analyze; debug = "<<debug_<<std::endl;
 
   if (!IsAllowedCalibType()) return;
   if (LumiInOrder(e.luminosityBlock())==false) return;
@@ -742,10 +742,10 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  time_[calcEta][iphi-1][depth-1]+=ti;
 
 	  ++heocc;
-	  if (ti<-100 || ti>200)
+	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	    h_HETime->Fill(ti);
 	      else
-		++HEtime_[int(ti+100)];
+		++HEtime_[int(ti-RECHITMON_TIME_MIN)];
 
 	  // Threshold plots require e>E_thresh, ET>ET_thresh
 	  if (en>=HEenergyThreshold_
@@ -760,10 +760,10 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 		  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
 		  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
 		  ++heoccthresh;
-		  if (ti<-100 || ti>200)
-		    h_HEThreshTime->Fill(ti);
+		  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
+		      h_HEThreshTime->Fill(ti);
 		  else
-		    ++HEtime_thresh_[int(ti+100)];
+		    ++HEtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
 		}
 	      if (ieta>0)
 		{
@@ -863,17 +863,17 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	}
       {
 	++hoocc;
-	if (ti<-100 || ti>200)
+	if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	  h_HOTime->Fill(ti);
 	else
-	  ++HOtime_[int(ti+100)];
+	  ++HOtime_[int(ti-RECHITMON_TIME_MIN)];
 	if (en>=HOenergyThreshold_)
 	  {
 	    ++hooccthresh;
-	    if (ti<-100 || ti>200)
+	    if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	      h_HOThreshTime->Fill(ti);
 	    else
-	      ++HOtime_thresh_[int(ti+100)];
+	      ++HOtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
 	  } // if (en>=HOenergyThreshold_)
       } 
     } // loop over all HO hits
@@ -928,17 +928,17 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	    HFflagcounter_[f]++;
 	}
 
+
       // Occupancy plots, without threshold
       ++occupancy_[calcEta][iphi-1][depth-1];
       energy_[calcEta][iphi-1][depth-1]+=en;
       energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
       time_[calcEta][iphi-1][depth-1]+=ti;
-
       ++hfocc;
-      if (ti<-100 || ti>200)
+      if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	h_HFTime->Fill(ti);
       else
-	++HFtime_[int(ti+100)];
+	++HFtime_[int(ti-RECHITMON_TIME_MIN)];
 
       // Occupancy plots require BPTX and thresholds exceeded
       if (en>=HFenergyThreshold_ && 
@@ -951,10 +951,10 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
 
 	  ++hfoccthresh;
-	  if (ti<-100 || ti>200)
+	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	    h_HFThreshTime->Fill(ti);
 	  else
-	    ++HFtime_thresh_[int(ti+100)];
+	    ++HFtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
 	}
 
       // we want to track average energies, times without necessarily
@@ -1024,9 +1024,9 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     {
       if (ePlus >0 && eMinus > 0)
 	{
-	  if (debug_>1) std::cout <<"<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<std::endl;
+	  if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<"  Weighted Time Diff = "<<((tPlus/ePlus)-(tMinus/eMinus))<<std::endl;
 	  h_HFtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
-	  h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
+	  if (ePlus+eMinus!=0) h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if (passedHLT)
 
@@ -1037,7 +1037,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       if (ePlus >0 && eMinus > 0)
 	{
 	  h_HFnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
-	  h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
+	  if (ePlus+eMinus!=0) h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // passsed HLT , BPTX = false
 
@@ -1092,6 +1092,7 @@ void HcalRecHitMonitor::fill_Nevents(void)
 	  for (int eta=0;eta<OccupancyByDepth.depth[mydepth]->getNbinsX();++eta)
 	    {
 	      myieta=CalcIeta(eta,mydepth+1);
+
 	      for (int phi=0;phi<72;++phi)
 		{
 		  if (occupancy_[eta][phi][mydepth]>0)
