@@ -606,6 +606,7 @@ inline void FillUnphysicalHEHFBins(EtaPhiHists &hh)
 	      // Fill the phi cell above iphi, and the 2 below it
 	      else  if (abs(ieta)>39 && iphi%4==3 && iphi<73)
 		{
+		  //ieta=40, iphi=3 covers iphi 3,4,5,6
 		  hh.depth[d]->setBinContent(eta+1,(iphi)%72+1, hh.depth[d]->getBinContent(eta+1,iphi));
 		  hh.depth[d]->setBinContent(eta+1,(iphi+1)%72+1, hh.depth[d]->getBinContent(eta+1,iphi));
 		  hh.depth[d]->setBinContent(eta+1,(iphi+2)%72+1, hh.depth[d]->getBinContent(eta+1,iphi));
