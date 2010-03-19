@@ -23,8 +23,8 @@
 
 /** \class HcalRawDataMonitor
  *
- * $Date: 2010/03/09 16:15:05 $
- * $Revision: 1.1.2.5 $
+ * $Date: 2010/03/10 06:25:56 $
+ * $Revision: 1.1.2.6 $
  * \author J. St. John - Boston University
  */
 class HcalRawDataMonitor: public HcalBaseDQMonitor {
@@ -66,6 +66,8 @@ class HcalRawDataMonitor: public HcalBaseDQMonitor {
   };
 
  private:
+  MonitorElement* meBCNofnDV_;   //BCN and OrN%103 when !DV is set
+
   MonitorElement* meCh_DataIntegrityFED00_;   //DataIntegrity for channels in FED 00
   MonitorElement* meCh_DataIntegrityFED01_;   //DataIntegrity for channels in FED 01
   MonitorElement* meCh_DataIntegrityFED02_;   //DataIntegrity for channels in FED 02
