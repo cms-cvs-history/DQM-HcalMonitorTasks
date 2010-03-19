@@ -303,11 +303,6 @@ void HcalRawDataMonitor::setup(void){
   label_ySpigots(meDataFlowInd_, 4); // 3 bins + 1 margin each spgt
       
   dbe_->setCurrentFolder(subdir_ + "Diagnostics"); ////Below, "Diagnostics" FOLDER
-      
-  type = "BCN and OrN mod 103 for each nDV TS";
-  meBCNofnDV_ = dbe_->book2D(type,type, 3600, 0, 3600, 103, 0, 103);
-  meBCNofnDV_  ->setAxisTitle("BCN of timeslice", 1);
-  meBCNofnDV_  ->setAxisTitle("Orbit Num modulo 103", 2);
 
   type = "DCC Firmware Version";
   meDCCVersion_ = dbe_->bookProfile(type,type, 32, 699.5, 731.5, 256, -0.5, 255.5);
@@ -540,7 +535,6 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
   int dccBCN = dccHeader->getBunchId();
   //Mask down to 5 bits, since only used for comparison to HTR's five bit number...
   unsigned int dccOrN = (unsigned int) (dccHeader->getOrbitNumber() & 0x0000001F);
-  int wholedccOrN = dccHeader->getOrbitNumber();
   medccBCN_ -> Fill(dccBCN);
 
   ////////// Histogram problems with the Common Data Format compliance;////////////
@@ -771,8 +765,6 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
       if (debug_>0)std::cout <<"HTR Problem: NTP+NDAQ size consistency check fails"<<endl;
       //incompatible Sizes declared. Skip it.
       continue; }
-    //How many presamples preceed the sample of interest?
-    int NPS =  ((htr.getExtHdr6() >> 3) & 0x001F);
     bool EE = ((dccHeader->getSpigotErrorBits(spigot) >> 2) & 0x01);
     if (EE) { 
       if (HTRwdcount != 8) {	//incompatible Sizes declared. Skip it.
@@ -961,7 +953,6 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
     int htrchan=-1; // Valid: [1,24]
     int chn2offset=0; 
     int NTS = htr.getNDD(); //number time slices, in precision channels
-    int TSBCN = 0; // BCN corresponding to one timeslice
 
     ChannSumm_DataIntegrityCheck_  [fed2offset-1][spg2offset+0]=-NTS;//For normalization by client - NB! negative!
     // Run over DAQ words for this spigot
@@ -1003,15 +994,6 @@ void HcalRawDataMonitor::unpack(const FEDRawData& raw){
 	samplecounter++;}
       //For every sample, whether the first of the channel or not, !DV, Er
       if (!(qie_work->dv())){
-	//Event's BCN is for SOI. Get BCN for first presample.
-	TSBCN = htrBCN - NPS;
-	//Then try to get it for this sample:
-	if (samplecounter>0)
-	  TSBCN += samplecounter;
-	//Handle wraparound 
-	if (TSBCN < 0)    TSBCN+=3564;
-	if (TSBCN > 3564) TSBCN-=3564;
-	meBCNofnDV_->Fill(TSBCN,wholedccOrN%103);
 	++ChannSumm_DataIntegrityCheck_  [fed2offset+0][spg2offset+1];
 	++Chann_DataIntegrityCheck_[dcc_][chn2offset+0][spg2offset+1]; }
       if (qie_work->er()) {      // FEE - Front End Error
