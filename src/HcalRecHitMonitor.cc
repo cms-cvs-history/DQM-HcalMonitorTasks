@@ -574,6 +574,7 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
 	      BPTX=true;
 	      break;
 	    }
+
 	  for (std::vector<int>::const_iterator i=L1TriggerBits_.begin();i!=L1TriggerBits_.end();++i)
 	    {
 	      if ((*i)<0) {passedL1=true; break;}
@@ -792,7 +793,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  h_HEtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HEenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
-    } // if passedHLT
+    } // if BPTX==true
 
   else if (Online_ && 
 	   passedHLT && 
@@ -803,7 +804,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  h_HEnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
 	  h_HEnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
-    } // if passedHLT
+    } // if BPTX==false
   
   ++HB_occupancy_[hbocc/10];
   ++HE_occupancy_[heocc/10];
@@ -981,9 +982,9 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	}
     } // loop over all HF hits
      
-  // Set tPlus, tMinus to overflow in case where total energy < 0
-  ePlus>0  ? tPlus/=ePlus   :  tPlus  = 10000;
-  eMinus>0 ? tMinus/=eMinus :  tMinus = -10000;
+  // Calculate weighted times.  (Set tPlus, tMinus to overflow in case where total energy < 0)
+  ePlus>0 ? tPlus/=ePlus    : tPlus  =  10000;
+  eMinus>0 ? tMinus/=eMinus : tMinus = -10000;
      
   double mintime=99;  // used to be min(tPlus,tMinus);
   double minHT=min(HtMinus,HtPlus);
@@ -1024,8 +1025,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     {
       if (ePlus >0 && eMinus > 0)
 	{
-	  if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<"  Weighted Time Diff = "<<((tPlus/ePlus)-(tMinus/eMinus))<<std::endl;
-	  h_HFtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<"  Weighted Time Diff = "<<((tPlus)-(tMinus))<<std::endl;
+	  h_HFtimedifference->Fill((tPlus)-(tMinus));
 	  if (ePlus+eMinus!=0) h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // if (passedHLT)
@@ -1036,7 +1037,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     {
       if (ePlus >0 && eMinus > 0)
 	{
-	  h_HFnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
+	  h_HFnotBPTXtimedifference->Fill((tPlus)-(tMinus));
 	  if (ePlus+eMinus!=0) h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
 	}
     } // passsed HLT , BPTX = false
