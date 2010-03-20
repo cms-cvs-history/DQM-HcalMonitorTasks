@@ -13,8 +13,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2010/02/28 20:24:02 $
-  * $Revision: 1.56.2.3 $
+  * $Date: 2010/03/01 19:13:46 $
+  * $Revision: 1.56.2.4 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -178,6 +178,11 @@ private:  ///Methods, variables accessible only within class code
 
   MonitorElement* DigiNum;
   int diginum[DIGI_NUM];
+
+  //  Pawel's HF timing study plots
+  MonitorElement* HFtiming_totaltime2D;
+  MonitorElement* HFtiming_occupancy2D;
+  MonitorElement* HFtiming_etaProfile;
 
   DigiHists hbHists, heHists, hfHists, hoHists;
 

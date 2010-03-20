@@ -23,7 +23,6 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-
   digiLabel_     = ps.getUntrackedParameter<edm::InputTag>("digiLabel");
   shapeThresh_   = ps.getUntrackedParameter<int>("shapeThresh",50);
   //shapeThresh_ is used for plotting pulse shapes for all digis with ADC sum > shapeThresh_;
@@ -55,6 +54,10 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   
   shutOffOrbitTest_ = ps.getUntrackedParameter<bool>("shutOffOrbitTest",false);
   DigiMonitor_ExpectedOrbitMessageTime_=ps.getUntrackedParameter<int>("ExpectedOrbitMessageTime",3559); // -1 means that orbit mismatches won't be checked
+
+  HFtiming_totaltime2D=0;
+  HFtiming_occupancy2D=0;
+  HFtiming_etaProfile=0;
 }
 
 // destructor
@@ -160,12 +163,23 @@ void HcalDigiMonitor::setup()
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,
 				     100,0,10000);
   
-  if (makeDiagnostics_) // not yet used
+  if (makeDiagnostics_) 
     {
-      dbe_->setCurrentFolder(subdir_+"bad_digis/badcapID");
+      // by default, unpacked digis won't have these errors
+      dbe_->setCurrentFolder(subdir_+"diagnostics/bad_digis/badcapID");
       SetupEtaPhiHists(DigiErrorsBadCapID," Digis with Bad Cap ID Rotation", "");
-      dbe_->setCurrentFolder(subdir_+"bad_digis/data_invalid_error");
+      dbe_->setCurrentFolder(subdir_+"diagnostics/bad_digis/data_invalid_error");
       SetupEtaPhiHists(DigiErrorsDVErr," Digis with Data Invalid or Error Bit Set", "");
+    }
+  
+  if (Online_)
+    {
+      // Special histograms for Pawel's timing study
+      dbe_->setCurrentFolder(subdir_+"HFTimingStudy");
+      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;abs(ieta);average time (ns)",13,28.5,41.5,300,-150,150);
+      dbe_->setCurrentFolder(subdir_+"HFTimingStudy/sumplots");
+      HFtiming_totaltime2D=dbe_->book2D("HFTiming_Total_Time","HFTiming Total Time",83,-41.5,41.5,72,0.5,72.5);
+      HFtiming_occupancy2D=dbe_->book2D("HFTiming_Occupancy","HFTiming Occupancy",83,-41.5,41.5,72,0.5,72.5);
     }
   
   dbe_->setCurrentFolder(subdir_+"bad_digis/bad_reportUnpackerErrors");
@@ -745,6 +759,43 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
   ++occupancyVME[static_cast<int>(2*(digi.elecId().htrSlot()+0.5*digi.elecId().htrTopBottom()))][static_cast<int>(digi.elecId().readoutVMECrateId())];
   ++occupancySpigot[static_cast<int>(digi.elecId().spigot())][static_cast<int>(digi.elecId().dccid())];
 
+  // Pawel's code for HF timing checks -- run only in online mode
+  if (digi.id().subdet()==HcalForward && Online_)
+    {
+      int maxtime=-1;
+      double maxenergy=-1;
+      int digisize=digi.size();
+      for (int ff=0;ff<digisize;++ff)
+	{
+	  if (digi.sample(ff).nominal_fC()>maxenergy)
+	    {
+	      maxenergy=digi.sample(ff).nominal_fC();
+	      maxtime=ff;
+	    }
+	}
+      
+      if (maxtime>-1) // should always happen!
+	{
+	  double time_den=0, time_num=0;
+	  // form weighted time sum
+	  int startslice=max(0,maxtime-1);
+	  int endslice=min(digisize-1,maxtime+1);
+	  for (int ss=startslice;ss<=endslice;++ss)
+	    {
+	      // subtract 'default' pedestal of 2.5 fC
+	      time_num+=ss*(digi.sample(ss).nominal_fC()-2.5);
+	      time_den+=digi.sample(ss).nominal_fC()-2.5;
+	    }
+	  int myiphi=iPhi;
+	  if (iDepth==2) ++myiphi;
+	  if (HFtiming_etaProfile!=0 && time_den!=0)
+	    HFtiming_etaProfile->Fill(abs(iEta),time_num/time_den);
+	  if (HFtiming_totaltime2D!=0 && time_den!=0)
+	    HFtiming_totaltime2D->Fill(iEta,myiphi,time_num/time_den);
+	  if (HFtiming_occupancy2D!=0 && time_den!=0)
+	    HFtiming_occupancy2D->Fill(iEta,myiphi,1);
+	} //maxtime>-1
+    } // if HcalForward
   return err;
 } // template <class DIGI> int HcalDigiMonitor::process_Digi
 
