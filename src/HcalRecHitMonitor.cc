@@ -39,10 +39,11 @@ HcalRecHitMonitor::HcalRecHitMonitor(const edm::ParameterSet& ps)
   hfRechitLabel_         = ps.getUntrackedParameter<edm::InputTag>("hfRechitLabel");
   l1gtLabel_             = ps.getUntrackedParameter<edm::InputTag>("L1GTLabel"); // should be l1GtUnpack
 
-  L1TriggerBits_         = ps.getUntrackedParameter<std::vector<int> >("L1TriggerBits");
-  BPTXBits_              = ps.getUntrackedParameter<std::vector<int> >("BPTXBits");
+  hltresultsLabel_       = ps.getUntrackedParameter<edm::InputTag>("HLTResultsLabel");
+  HcalHLTBits_           = ps.getUntrackedParameter<std::vector<std::string> >("HcalHLTBits");
+  MinBiasHLTBits_        = ps.getUntrackedParameter<std::vector<std::string> >("MinBiasHLTBits");
 
-  // energy/ET threshold plots also require that at least one BPTXBit fires
+  // energy/ET threshold plots also require that at least one MinBias trigger bit fires
   energyThreshold_       = ps.getUntrackedParameter<double>("energyThreshold",2);
   HBenergyThreshold_     = ps.getUntrackedParameter<double>("HB_energyThreshold",energyThreshold_);
   HEenergyThreshold_     = ps.getUntrackedParameter<double>("HE_energyThreshold",energyThreshold_);
@@ -85,6 +86,10 @@ void HcalRecHitMonitor::setup()
     std::cout <<"<HcalRecHitMonitor::setup>  Creating Histograms"<<endl;
 
   dbe_->setCurrentFolder(subdir_);
+  h_TriggeredEvents=dbe_->book1D("EventTriggers","EventTriggers",3,-0.5,2.5);
+  h_TriggeredEvents->setBinLabel(1,"AllEvents");
+  h_TriggeredEvents->setBinLabel(2,"HLT_Minbias");
+  h_TriggeredEvents->setBinLabel(3,"HLT_Hcal");
 
   dbe_->setCurrentFolder(subdir_+"rechit_parameters");
   MonitorElement* THR;
@@ -137,18 +142,33 @@ void HcalRecHitMonitor::setup()
 				       "Energy-Weighted Time vs HFPlus Scalar Sum ET;Sum ET(GeV);time(ns)",
 				       100,0,10,80,-40,40);
 
+
   dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits/sumplots");
   SetupEtaPhiHists(SumEnergyByDepth,"RecHit Summed Energy","GeV");
   SetupEtaPhiHists(SqrtSumEnergy2ByDepth,"RecHit Sqrt Summed Energy2","GeV");
   SetupEtaPhiHists(SumTimeByDepth,"RecHit Summed Time","nS");
 
-  // Histograms for events that passed BPTX triggers
-  dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX");
+  // Histograms for events that passed MinBias triggers
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedMinBias");
+
+  h_HBP_weightedTime = dbe_->book1D("WeightedTime_HBP","Weighted Time for HBP",
+				    300,-150,150);
+  h_HBM_weightedTime = dbe_->book1D("WeightedTime_HBM","Weighted Time for HBM",
+				    300,-150,150);
+  h_HEP_weightedTime = dbe_->book1D("WeightedTime_HEP","Weighted Time for HEP",
+				    300,-150,150);
+  h_HEM_weightedTime = dbe_->book1D("WeightedTime_HEM","Weighted Time for HEM",
+				    300,-150,150);
+  h_HFP_weightedTime = dbe_->book1D("WeightedTime_HFP","Weighted Time for HFP",
+				    300,-150,150);
+  h_HFM_weightedTime = dbe_->book1D("WeightedTime_HFM","Weighted Time for HFM",
+				    300,-150,150);
+
   h_HFtimedifference = dbe_->book1D("HFweightedtimeDifference",
-				    "Energy-Weighted time difference between HF+ and HF- with BPTX",
+				    "Energy-Weighted time difference between HF+ and HF- passing MinBias (no HT cut)",
 				    251,-250.5,250.5);
   h_HEtimedifference = dbe_->book1D("HEweightedtimeDifference",
-				    "Energy-Weighted time difference between HE+ and HE- with BPTX",
+				    "Energy-Weighted time difference between HE+ and HE- passing MinBias (no HT cut)",
 				    251,-250.5,250.5);
 
   // Would these work better as 2D plots?
@@ -159,12 +179,12 @@ void HcalRecHitMonitor::setup()
 				      "Sum(E_HEPlus - E_HEMinus)/Sum(E_HEPlus + E_HEMinus)",
 				      200,-1,1);
 
-  h_LumiPlot_EventsPerLS=dbe_->book1D("EventsPerLS",
-				      "Number of Events with BPTX vs LS (HFM-HFP time cut)",
-				      NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
-  h_LumiPlot_EventsPerLS_notimecut=dbe_->book1D("EventsPerLS_notimecut",
-						"Number of Events with BPTX vs LS (HFM,HFP HT>1,no time cut)",
-						NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
+  h_LumiPlot_LS_MinBiasEvents=dbe_->book1D("MinBiasEventsPerLS",
+					   "Number of MinBias Events vs LS (HT cut and HFM-HFP time cut)",
+					   NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
+  h_LumiPlot_LS_MinBiasEvents_notimecut=dbe_->book1D("MinBiasEventsPerLS_notimecut",
+						     "Number of Events with MinBias vs LS (HFM,HFP HT>1,no time cut)",
+						     NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
 
   h_LumiPlot_SumHT_HFPlus_vs_HFMinus = dbe_->book2D("SumHT_plus_minus",
 						    "HF+ Sum HT vs HF- Sum HT",60,0,30,60,0,30);
@@ -174,13 +194,13 @@ void HcalRecHitMonitor::setup()
   h_LumiPlot_timeHFPlus_vs_timeHFMinus = dbe_->book2D("timeHFplus_vs_timeHFminus",
 						      "Energy-weighted time average of HF+ vs HF-",
 						      120,-120,120,120,-120,120);
-  h_LumiPlot_BX_goodevents = dbe_->book1D("BX_goodevents",
-					  "BX # of good events (HFM & HFP HT>1 & HFM-HFP time cut)",
+  h_LumiPlot_BX_MinBiasEvents = dbe_->book1D("BX_MinBias_Events_TimeCut",
+					  "BX # of MinBias events (HFM & HFP HT>1 & HFM-HFP time cut)",
 					  3600,0,3600);
-  h_LumiPlot_BX_goodevents_notimecut = dbe_->book1D("BX_goodevents_notimecut",
-						    "BX # of good events (HFM,HFP HT>1, no time cut)",
-						    3600,0,3600);
-  // threshold plots must pass BPTX trigger?
+  h_LumiPlot_BX_MinBiasEvents_notimecut = dbe_->book1D("BX_MinBias_Events_notimecut",
+						       "BX # of MinBias events (HFM,HFP HT>1, no time cut)",
+						       3600,0,3600);
+  // threshold plots must pass MinBias Trigger
   SetupEtaPhiHists(OccupancyThreshByDepth,"Above Threshold RecHit Occupancy","");
   h_rechitieta_thresh = dbe_->book1D("HcalRecHitIeta_thresh",
 			      "Hcal RecHit ieta above energy and ET threshold",
@@ -189,12 +209,12 @@ void HcalRecHitMonitor::setup()
 			      "Hcal RecHit iphi above energy and ET threshold",
 			      72,0.5,72.5);
 
-  dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX/sumplots");
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedMinBias/sumplots");
   SetupEtaPhiHists(SumEnergyThreshByDepth,"Above Threshold RecHit Summed Energy","GeV");
   SetupEtaPhiHists(SumTimeThreshByDepth,"Above Threshold RecHit Summed Time","nS");
   SetupEtaPhiHists(SqrtSumEnergy2ThreshByDepth,"Above Threshold RecHit Sqrt Summed Energy2","GeV");
 
-  dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX/rechit_1D_plots");
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedMinBias/rechit_1D_plots");
   h_HBThreshTime=dbe_->book1D("HB_time_thresh", 
 			      "HB RecHit Time Above Threshold",
 			      int(RECHITMON_TIME_MAX-RECHITMON_TIME_MIN),RECHITMON_TIME_MIN,RECHITMON_TIME_MAX);
@@ -217,24 +237,38 @@ void HcalRecHitMonitor::setup()
 				   "HF RecHit Occupancy Above Threshold",
 				   173,-0.5,1729.5);
 
-  // Histograms for events that did not pass BPTX triggers
-  dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX");
+  // Histograms for events that did passed Hcal-specfied HLT triggers
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedHcalHLTriggers");
   
-  dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX/passedTechTriggers/");
-  h_HFnotBPTXtimedifference = dbe_->book1D("HFnotBPTXweightedtimeDifference",
-					   "Energy-Weighted time difference between HF+ and HF- no BPTX",
-					   251,-250.5,250.5);
-  h_HEnotBPTXtimedifference = dbe_->book1D("HEnotBPTXweightedtimeDifference",
-					   "Energy-Weighted time difference between HE+ and HE- no BPTX",
-					   251,-250.5,250.5);
-  h_HFnotBPTXenergydifference = dbe_->book1D("HFnotBPTXenergyDifference",
+  h_LumiPlot_BX_HcalHLTEvents = dbe_->book1D("BX_HcalHLT_Events_TimeCut",
+					  "BX # of HcalHLT events (HFM & HFP HT>1 & HFM-HFP time cut)",
+					  3600,0,3600);
+  h_LumiPlot_BX_HcalHLTEvents_notimecut = dbe_->book1D("BX_HcalHLT_Events_notimecut",
+						       "BX # of HcalHLT events (HFM,HFP HT>1, no time cut)",
+						       3600,0,3600);
+  h_LumiPlot_LS_HcalHLTEvents=dbe_->book1D("HcalHLTEventsPerLS",
+					   "Number of HcalHLT Events vs LS (HT cut and HFM-HFP time cut)",
+					   NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
+  h_LumiPlot_LS_HcalHLTEvents_notimecut=dbe_->book1D("HcalHLTEventsPerLS_notimecut",
+						     "Number of Events with HcalHLT vs LS (HFM,HFP HT>1,no time cut)",
+						     NLumiBlocks_,0.5,NLumiBlocks_+0.5); 
+  
+
+  dbe_->setCurrentFolder(subdir_+"Distributions_PassedHcalHLTriggers/");
+  h_HF_HcalHLT_weightedtimedifference = dbe_->book1D("HF_HcalHLT_weightedtimeDifference",
+					     "Energy-Weighted time difference between HF+ and HF- Hcal HLT",
+					     251,-250.5,250.5);
+  h_HE_HcalHLT_weightedtimedifference = dbe_->book1D("HE_HcalHLT_weightedtimeDifference",
+					     "Energy-Weighted time difference between HE+ and HE- Hcal HLT",
+					     251,-250.5,250.5);
+  h_HF_HcalHLT_energydifference = dbe_->book1D("HF_HcalHLT_energyDifference",
 					     "Sum(E_HFPlus - E_HFMinus)/Sum(E_HFPlus + E_HFMinus)",
 					     200,-1,1);
-  h_HEnotBPTXenergydifference = dbe_->book1D("HEnotBPTXenergyDifference",
+  h_HE_HcalHLT_energydifference = dbe_->book1D("HE_HcalHLT_energyDifference",
 					     "Sum(E_HEPlus - E_HEMinus)/Sum(E_HEPlus + E_HEMinus)",
 					     200,-1,1);
 
-  // Do we want separate directories for BPTX, non BPTX flags at some point?
+  // Do we want separate directories for Minbias, other flags at some point?
   dbe_->setCurrentFolder(subdir_+"AnomalousCellFlags");// HB Flag Histograms
 
   h_HF_FlagCorr=dbe_->book2D("HF_FlagCorrelation",
@@ -344,9 +378,11 @@ void HcalRecHitMonitor::setup()
   h_HFflagcounter->getTH1F()->LabelsOption("v");
 
 
-  // Diagnostic plots are currently filled for all rechits (no BPTX requirement)
+  // Diagnostic plots are currently filled for all rechits (no trigger/threshold requirement)
   // hb
   dbe_->setCurrentFolder(subdir_+"diagnostics/hb");
+  
+  h_HBTimeVsEnergy=dbe_->book2D("HBTimeVsEnergy","HB Time Vs Energy (All RecHits);Energy (GeV); time(nS)",100,0,500,300,-150,150);
 
   h_HBsizeVsLS=dbe_->bookProfile("HBRecHitsVsLB","HB RecHits vs Luminosity Block",
 				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
@@ -360,6 +396,8 @@ void HcalRecHitMonitor::setup()
   //he
   dbe_->setCurrentFolder(subdir_+"diagnostics/he");
 
+  h_HETimeVsEnergy=dbe_->book2D("HETimeVsEnergy","HE Time Vs Energy (All RecHits);Energy (GeV); time(nS)",100,0,500,300,-150,150);
+
   h_HEsizeVsLS=dbe_->bookProfile("HERecHitsVsLB","HE RecHits vs Luminosity Block",
 				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
 				 100,0,10000);
@@ -370,6 +408,8 @@ void HcalRecHitMonitor::setup()
    
   // ho
   dbe_->setCurrentFolder(subdir_+"diagnostics/ho");	
+
+  h_HOTimeVsEnergy=dbe_->book2D("HOTimeVsEnergy","HO Time Vs Energy (All RecHits);Energy (GeV); time(nS)",100,0,500,300,-150,150);
 
   h_HOsizeVsLS=dbe_->bookProfile("HORecHitsVsLB","HO RecHits vs Luminosity Block",
 				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
@@ -382,6 +422,9 @@ void HcalRecHitMonitor::setup()
   
   // hf
   dbe_->setCurrentFolder(subdir_+"diagnostics/hf");
+
+  h_HFTimeVsEnergy=dbe_->book2D("HFTimeVsEnergy","HF Time Vs Energy (All RecHits);Energy (GeV); time(nS)",100,0,500,300,-150,150);
+
   h_HFsizeVsLS=dbe_->bookProfile("HFRecHitsVsLB",
 				 "HF RecHits vs Luminosity Block",
 				 NLumiBlocks_,0.5,NLumiBlocks_+0.5,
@@ -409,17 +452,21 @@ void HcalRecHitMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
     this->reset();
 
   if (tevt_!=0) return;
-  // create histograms displaying trigger parameters
+  // create histograms displaying trigger parameters?  Specify names?
   dbe_->setCurrentFolder(subdir_+"rechit_parameters");
-  MonitorElement* THR;
-  THR=dbe_->book1D("BPTX_Requirements","Tech Bits that Satisfy BPTX Trigger Requirement;Tech Trigger Bit",102,-1.5,100.5);
-  for (unsigned int x=0;x<BPTXBits_.size();++x)
-    if (Online_) THR->Fill(BPTXBits_[x],1);
-    
-  THR=dbe_->book1D("Tech Trigger_Requirements","Tech Bits that Satisfy Trigger Requirement;Tech Trigger Bit",102,-1.5,100.5);
-  for (unsigned int x=0;x<L1TriggerBits_.size();++x)
-    if (Online_) THR->Fill(L1TriggerBits_[x],1);
-
+  MonitorElement* trig;
+  std::string tnames="";
+  if (HcalHLTBits_.size()>0)
+    tnames=HcalHLTBits_[0];
+  for (unsigned int i=1;i<HcalHLTBits_.size();++i)
+    tnames=tnames + " OR " + HcalHLTBits_[i];
+  trig=dbe_->bookString("HcalHLTriggerRequirements",tnames);
+  tnames="";
+  if (MinBiasHLTBits_.size()>0)
+    tnames=MinBiasHLTBits_[0];
+  for (unsigned int i=1;i<MinBiasHLTBits_.size();++i)
+    tnames=tnames + " OR " + MinBiasHLTBits_[i];
+  trig=dbe_->bookString("MinBiasHLTriggerRequirements",tnames);
   return;
   
 } //void HcalRecHitMonitor::beginRun(...)
@@ -468,10 +515,10 @@ void HcalRecHitMonitor::cleanup()
       dbe_->setCurrentFolder(subdir_+"rechit_parameters/thresholds"); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits"); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"Distributions_AllRecHits/sumplots"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"Distributions_PassedBPTX/sumplots"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX"); dbe_->removeContents();
-      dbe_->setCurrentFolder(subdir_+"Distributions_FailedBPTX/passedTechTriggers/"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedMinBias"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedMinBias/sumplots"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedHcalHLTriggers"); dbe_->removeContents();
+      dbe_->setCurrentFolder(subdir_+"Distributions_PassedHcalHLTriggers/passedTechTriggers/"); dbe_->removeContents();
 
       dbe_->setCurrentFolder(subdir_+"AnomalousCellFlags"); dbe_->removeContents();
       dbe_->setCurrentFolder(subdir_+"diagnostics/hb"); dbe_->removeContents();
@@ -533,69 +580,50 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
 
   
   if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent> Processing event..."<<endl;
-  /*
-    bool passedHLT=false;
-  edm::Handle<edm::TriggerResults> hltResults;
-  iEvent.getByLabel("HLT",hltResults);
-  const edm::TriggerNames & triggerNames = iEvent.triggerNames(*hltResults);
-  for (unsigned int i=0;i<hltResults->size();++i)
+
+
+  bool passedHcalHLT=false;
+  bool passedMinBiasHLT=false;
+
+  edm::Handle<edm::TriggerResults> hltRes;
+  if (!(iEvent.getByLabel(hltresultsLabel_,hltRes)))
     {
-      string trigName = triggerNames.triggerName(i);
-      if (trigName!="HLT_L1_HFtech")
-	continue;
-      if (hltResults->accept(i))
-	{
-	  passedHLT=true;
-	  break;
-	}
+      if (debug_>0) LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
     }
-  */
-
-  bool BPTX=false;
-  bool passedL1=false;
-
-  if (Online_)
+  else
     {
-      edm::Handle<L1GlobalTriggerReadoutRecord> gtRecord;
-      if (!iEvent.getByLabel(l1gtLabel_,gtRecord))
+      const edm::TriggerNames & triggerNames = iEvent.triggerNames(*hltRes);
+      const unsigned int nTrig(triggerNames.size());
+      for (unsigned int i=0;i<nTrig;++i)
 	{
-	  edm::LogWarning("HcalMonitorTasks")<<" HcalRecHitMonitor:  l1GtUnpack L1GlobalTriggerReadoutRecord not found";
-	  return;
-	}
-
-      if (gtRecord.isValid())
-	{
-	  const DecisionWord dWord = gtRecord->decisionWord();
-	  const TechnicalTriggerWord tWord = gtRecord->technicalTriggerWord();
-	  for (std::vector<int>::const_iterator i=BPTXBits_.begin();i!=BPTXBits_.end();++i)
+	  // trigger decision is based on 'OR' of any specified trigger names
+	  for (unsigned int k=0;k<HcalHLTBits_.size();++k)
 	    {
-	      if ((*i)<0) {BPTX=true; break;}
-	      if (!(tWord.at(*i))) continue;
-	      BPTX=true;
-	      break;
+	      if (triggerNames.triggerName(i)==HcalHLTBits_[k] && hltRes->accept(i))
+		{ 
+		  passedHcalHLT=true;
+		  break;
+		}
 	    }
-
-	  for (std::vector<int>::const_iterator i=L1TriggerBits_.begin();i!=L1TriggerBits_.end();++i)
+	  // repeat for minbias triggers
+	  for (unsigned int k=0;k<MinBiasHLTBits_.size();++k)
 	    {
-	      if ((*i)<0) {passedL1=true; break;}
-	      if (!(tWord.at(*i))) continue;
-	      passedL1=true;
-	      break;
+	      if (triggerNames.triggerName(i)==MinBiasHLTBits_[k] && hltRes->accept(i))
+		{ 
+		  passedMinBiasHLT=true;
+		  break;
+		}
 	    }
 	}
-      if (debug_>2 && passedL1)  std::cout <<"\t<HcalRecHitMonitor::processEvent>  Passed L1 trigger  "<<std::endl;
-      if (debug_>2 && BPTX)  std::cout <<"\t<HcalRecHitMonitor::processEvent>  Passed BPTX trigger  "<<std::endl;
+    } //else
 
-    }
-
-  if (!Online_) 
-    {
-      // triggers aren't available offline yet;  assume both are true for the purposes of threshold plots
-      BPTX = true;
-      passedL1=true;
-    }
-
-  processEvent_rechit(hbHits, hoHits, hfHits,passedL1,BPTX,BCN);
+  if (debug_>2 && passedHcalHLT)  std::cout <<"\t<HcalRecHitMonitor::processEvent>  Passed Hcal HLT trigger  "<<std::endl;
+  if (debug_>2 && passedMinBiasHLT)  std::cout <<"\t<HcalRecHitMonitor::processEvent>  Passed MinBias HLT trigger  "<<std::endl;
+  
+  h_TriggeredEvents->Fill(0); // all events
+  if (passedMinBiasHLT) h_TriggeredEvents->Fill(1); // Minbias;
+  if (passedHcalHLT)    h_TriggeredEvents->Fill(2); // hcal HLT
+  processEvent_rechit(hbHits, hoHits, hfHits,passedHcalHLT,passedMinBiasHLT,BCN);
 
   return;
 } // void HcalRecHitMonitor::processEvent(...)
@@ -607,12 +635,12 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
 void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHits,
 					     const HORecHitCollection& hoHits,
 					     const HFRecHitCollection& hfHits,
-					     bool passedHLT,
-					     bool BPTX,
+					     bool passedHcalHLT,
+					     bool passedMinBiasHLT,
 					     int BCN)
 {
   // Gather rechit info
- 
+  
   //const float area[]={0.111,0.175,0.175,0.175,0.175,0.175,0.174,0.178,0.172,0.175,0.178,0.346,0.604};
 
   if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent_rechitenergy> Processing rechits..."<<endl;
@@ -625,10 +653,14 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   int     heoccthresh=0;
 
   double HtPlus =0, HtMinus=0;
-  double tPlus=0, tMinus=0;
-  double ePlus=0, eMinus=0;
+  double HFePlus=0, HFeMinus=0;
+  double HBePlus=0, HBeMinus=0;
+  double HEePlus=0, HEeMinus=0;
+  double HFtPlus=0, HFtMinus=0;
+  double HBtPlus=0, HBtMinus=0;
+  double HEtPlus=0, HEtMinus=0;
 
-  int hepocc=0, hemocc=0, hfpocc=0, hfmocc=0;
+  int hbpocc=0, hbmocc=0, hepocc=0, hemocc=0, hfpocc=0, hfmocc=0;
 
   for (unsigned int i=0;i<4;++i)
     {
@@ -665,6 +697,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
       if (subdet==HcalBarrel)
 	{
+	  h_HBTimeVsEnergy->Fill(en,ti);
 	  //Looping over HB searching for flags --- cris
 	  for (int f=0;f<32;f++)
 	    {
@@ -693,33 +726,50 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  energy_[calcEta][iphi-1][depth-1]+=en;
           energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_[calcEta][iphi-1][depth-1]+=ti;
-	  if (
-	      en>=HBenergyThreshold_ && 
-	      en/cosh(fEta)>HBETThreshold_ && 
-	      BPTX==true
-	      ) 
-	    {
-	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
-	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
-	      energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
-	      time_thresh_[calcEta][iphi-1][depth-1]+=ti;
-	      
-	      ++hboccthresh;
-	      if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
-		h_HBThreshTime->Fill(ti);
-	      else
-		++HBtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
-	    }
-
-	  ++hbocc;
 	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	    h_HBTime->Fill(ti);
 	  else
 	    ++HBtime_[int(ti-RECHITMON_TIME_MIN)];
+	  ++hbocc; 
+
+	  // Threshold plots;  require E> threshold and minbias trigger
+	  if (
+	      en>=HBenergyThreshold_ && 
+	      en/cosh(fEta)>=HBETThreshold_ 
+	      ) 
+	    {
+	      if (passedMinBiasHLT==true)
+		{
+		  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
+		  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+		  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
+		  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
+		  
+		  ++hboccthresh;
+		  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
+		    h_HBThreshTime->Fill(ti);
+		  else
+		    ++HBtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
+		}
+
+	      if (ieta>0)
+		{
+		  HBePlus+=en;
+		  HBtPlus+=ti*en;
+		  hbpocc++;
+		}
+	      else
+		{
+		  HBeMinus+=en;
+		  HBtMinus+=ti*en;
+		  hbmocc++;
+		}
+	    } // if (HB  en>thresh, ET>thresh)
 	} // if (id.subdet()==HcalBarrel)
 
       else if (subdet==HcalEndcap)
 	{
+	  h_HETimeVsEnergy->Fill(en,ti);
 	  //Looping over HE searching for flags --- cris
 	  for (int f=0;f<32;f++)
             {
@@ -745,16 +795,16 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	  ++heocc;
 	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
 	    h_HETime->Fill(ti);
-	      else
-		++HEtime_[int(ti-RECHITMON_TIME_MIN)];
+	  else
+	    ++HEtime_[int(ti-RECHITMON_TIME_MIN)];
 
 	  // Threshold plots require e>E_thresh, ET>ET_thresh
 	  if (en>=HEenergyThreshold_
-	      && en/cosh(fEta)>HEETThreshold_
+	      && en/cosh(fEta)>=HEETThreshold_
 	      )
 	    {
-	      // occupancy plots also require BPTX
-	      if (BPTX==true)
+	      // occupancy plots also require passedMinBiasHLT
+	      if (passedMinBiasHLT==true)
 		{
 		  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 		  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
@@ -766,16 +816,17 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 		  else
 		    ++HEtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
 		}
+	      // ePlus, tPlus calculated regardless of trigger
 	      if (ieta>0)
 		{
-		  ePlus+=en;
-		  tPlus+=ti*en;
+		  HEePlus+=en;
+		  HEtPlus+=ti*en;
 		  hepocc++;
 		}
 	      else
 		{
-		  eMinus+=en;
-		  tMinus+=ti*en;
+		  HEeMinus+=en;
+		  HEtMinus+=ti*en;
 		  hemocc++;
 		}
 	    } // if (en>=HEenergyThreshold_ && ET>threshold)
@@ -783,28 +834,36 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	} // else if (id.subdet()==HcalEndcap)
      
     } //for (HBHERecHitCollection::const_iterator HBHEiter=...)
+  
+  // Calculate normalized time
+  HEePlus>0  ?  HEtPlus/=HEePlus   :  HEtPlus=10000;
+  HEeMinus>0 ?  HEtMinus/=HEeMinus :  HEtMinus=-10000;
+  HBePlus>0  ?  HBtPlus/=HBePlus   :  HBtPlus=10000;
+  HBeMinus>0 ?  HBtMinus/=HBeMinus :  HBtMinus=-10000;
 
-  if (Online_ && 
-      //passedHLT && 
-      BPTX==true)
+  if (passedMinBiasHLT==true)  // require > threshold occupancy 
     {
-      if (ePlus >0 && eMinus > 0)
-	{
-	  h_HEtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
-	  h_HEenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
-	}
-    } // if BPTX==true
 
-  else if (Online_ && 
-	   passedHLT && 
-	   BPTX==false)
-    {
-      if (ePlus > 0 && eMinus > 0)
+      h_HBP_weightedTime->Fill(HBtPlus);
+      h_HBM_weightedTime->Fill(HBtMinus);
+
+      h_HEP_weightedTime->Fill(HEtPlus);
+      h_HEM_weightedTime->Fill(HEtMinus);
+      if (hepocc>0 && hemocc>0)
 	{
-	  h_HEnotBPTXtimedifference->Fill((tPlus/ePlus)-(tMinus/eMinus));
-	  h_HEnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
+	  h_HEtimedifference->Fill(HEtPlus-HEtMinus);
+	  if (HEePlus-HEeMinus!=0) h_HEenergydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
 	}
-    } // if BPTX==false
+    } // if passedMinBiasHLT==true
+
+  if ( passedHcalHLT ==true)
+    {
+      if  (hepocc>0 && hemocc>0)
+	{
+	  h_HE_HcalHLT_weightedtimedifference->Fill(HEtPlus-HEtMinus);
+	  if (HEePlus-HEeMinus!=0) h_HE_HcalHLT_energydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
+	}
+    } // if passedHcalHLT==true
   
   ++HB_occupancy_[hbocc/10];
   ++HE_occupancy_[heocc/10];
@@ -822,7 +881,8 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
     { // loop over all hits
       float en = HOiter->energy();
       float ti = HOiter->time();
-      
+      h_HOTimeVsEnergy->Fill(en,ti);
+
       HcalDetId id(HOiter->detid().rawId());
       int ieta = id.ieta();
       int iphi = id.iphi();
@@ -852,53 +912,50 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       energy_[calcEta][iphi-1][depth-1]+=en;
       energy2_[calcEta][iphi-1][depth-1]+=pow(en,2);
       time_[calcEta][iphi-1][depth-1]+=ti;
-      
-      if (en>=HOenergyThreshold_  && en/cosh(fEta)>HOETThreshold_
-	  && BPTX==true
+      ++hoocc;
+      if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
+	h_HOTime->Fill(ti);
+      else
+	++HOtime_[int(ti-RECHITMON_TIME_MIN)];
+
+      // We don't calculate HOplus/HOminus values (independent of trigger), so require min bias trigger 
+      // along with E, ET thresholds directly in this HO loop:
+
+      if (en>=HOenergyThreshold_  
+	  && en/cosh(fEta)>=HOETThreshold_
+	  && passedMinBiasHLT==true   
 	  )
 	{
 	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
 	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
 	  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
 	  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
-	}
-      {
-	++hoocc;
-	if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
-	  h_HOTime->Fill(ti);
-	else
-	  ++HOtime_[int(ti-RECHITMON_TIME_MIN)];
-	if (en>=HOenergyThreshold_)
-	  {
-	    ++hooccthresh;
-	    if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
-	      h_HOThreshTime->Fill(ti);
-	    else
-	      ++HOtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
-	  } // if (en>=HOenergyThreshold_)
-      } 
+
+	  ++hooccthresh;
+	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
+	    h_HOThreshTime->Fill(ti);
+	  else
+	    ++HOtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
+	} 
     } // loop over all HO hits
-  {
-    ++HO_occupancy_[hoocc/10];
-    ++HO_occupancy_thresh_[hooccthresh/10];
-  }
- 
+
+  ++HO_occupancy_[hoocc/10];
+  ++HO_occupancy_thresh_[hooccthresh/10];
+   
   // loop over HF
   h_HFsizeVsLS->Fill(currentLS,hfHits.size());
 
   HtPlus=0; HtMinus=0;
-  tPlus=0; tMinus=0;
-  ePlus=0; eMinus=0;
-
+  
   int hfocc=0;
   int hfoccthresh=0;
   for (HFRecHitCollection::const_iterator HFiter=hfHits.begin(); HFiter!=hfHits.end(); ++HFiter) 
     { // loop over all hits
       float en = HFiter->energy();
       float ti = HFiter->time();
+      h_HFTimeVsEnergy->Fill(en,ti);
 
       HcalDetId id(HFiter->detid().rawId());
-	 
       int ieta = id.ieta();
       int iphi = id.iphi();
       int depth = id.depth();
@@ -929,7 +986,6 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 	    HFflagcounter_[f]++;
 	}
 
-
       // Occupancy plots, without threshold
       ++occupancy_[calcEta][iphi-1][depth-1];
       energy_[calcEta][iphi-1][depth-1]+=en;
@@ -941,109 +997,109 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
       else
 	++HFtime_[int(ti-RECHITMON_TIME_MIN)];
 
-      // Occupancy plots require BPTX and thresholds exceeded
+      ieta>0 ?  HtPlus+=en/cosh(fEta)  : HtMinus+=en/cosh(fEta);  // add energy from all cells, or only those > threshold?
+
       if (en>=HFenergyThreshold_ && 
-	  en/cosh(fEta)>=HFETThreshold_ &&
-	  BPTX)
+	  en/cosh(fEta)>=HFETThreshold_ 
+	  )
 	{
-	  ++occupancy_thresh_[calcEta][iphi-1][depth-1];
-	  energy_thresh_[calcEta][iphi-1][depth-1]+=en;
-	  energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
-	  time_thresh_[calcEta][iphi-1][depth-1]+=ti;
-
-	  ++hfoccthresh;
-	  if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
-	    h_HFThreshTime->Fill(ti);
-	  else
-	    ++HFtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
-	}
-
-      // we want to track average energies, times without necessarily
-      // requiring BPTX
-      if (ieta>0)
-	{
-	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+	  // Occupancy plots require min bias trigger, along with thresholds exceeded
+	  if (passedMinBiasHLT)
 	    {
-	      tPlus+=en*ti;
-	      ePlus+=en;
-	      hfpocc++;
-	      HtPlus+=en/cosh(fEta); // add all energies, or only those > threshold?
+	      ++occupancy_thresh_[calcEta][iphi-1][depth-1];
+	      energy_thresh_[calcEta][iphi-1][depth-1]+=en;
+	      energy2_thresh_[calcEta][iphi-1][depth-1]+=pow(en,2);
+	      time_thresh_[calcEta][iphi-1][depth-1]+=ti;
+	      
+	      ++hfoccthresh;
+	      if (ti<RECHITMON_TIME_MIN || ti>RECHITMON_TIME_MAX)
+		h_HFThreshTime->Fill(ti);
+	      else
+		++HFtime_thresh_[int(ti-RECHITMON_TIME_MIN)];
 	    }
-	}
-      else if (ieta<0)
-	{
-	  if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+
+	  if (ieta>0)
 	    {
-	      tMinus+=en*ti;
-	      eMinus+=en;
-	      hfmocc++;
-	      HtMinus+=en/cosh(fEta); //add all energies, or only those > threshold?
+	      if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+		{
+		  HFtPlus+=en*ti;
+		  HFePlus+=en;
+		  hfpocc++;
+		}
 	    }
-	}
+	  else if (ieta<0)
+	    {
+	      if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
+		{
+		  HFtMinus+=en*ti;
+		  HFeMinus+=en;
+		  hfmocc++;
+		}
+	    }
+	} // if (en>thresh, ET>thresh)
     } // loop over all HF hits
      
+  ++HF_occupancy_[hfocc/10];
+  ++HF_occupancy_thresh_[hfoccthresh/10];
+
+  
+  // Form event-wide variables (time averages, etc.), and plot them
+
   // Calculate weighted times.  (Set tPlus, tMinus to overflow in case where total energy < 0)
-  ePlus>0 ? tPlus/=ePlus    : tPlus  =  10000;
-  eMinus>0 ? tMinus/=eMinus : tMinus = -10000;
+  HFePlus>0  ? HFtPlus/=HFePlus    : HFtPlus  =  10000;
+  HFeMinus>0 ? HFtMinus/=HFeMinus  : HFtMinus = -10000;
      
   double mintime=99;  // used to be min(tPlus,tMinus);
   double minHT=min(HtMinus,HtPlus);
-  minHT==HtMinus ?  mintime=tMinus : mintime = tPlus;
-  mintime = min(tPlus,tMinus); // I think we might want to use this value for mintime
+  minHT==HtMinus ?  mintime=HFtMinus : mintime = HFtPlus;
+  //mintime = min(HFtPlus,HFtMinus); // I think we might want to use this value for mintime?
+
 
   h_LumiPlot_MinTime_vs_MinHT->Fill(minHT, mintime);
-  h_LumiPlot_timeHT_HFM->Fill(HtMinus,tMinus);
-  h_LumiPlot_timeHT_HFP->Fill(HtPlus,tPlus);
+  h_LumiPlot_timeHT_HFM->Fill(HtMinus,HFtMinus);
+  h_LumiPlot_timeHT_HFP->Fill(HtPlus,HFtPlus);
 
-  if (BPTX)
+  if (passedMinBiasHLT)
     {
+      h_HFP_weightedTime->Fill(HFtPlus);
+      h_HFM_weightedTime->Fill(HFtMinus);
       h_LumiPlot_SumHT_HFPlus_vs_HFMinus->Fill(HtMinus,HtPlus);
-      h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(eMinus,ePlus);
-      h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(tMinus,tPlus);
+      h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(HFeMinus,HFePlus);
+      h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(HFtMinus,HFtPlus);
       
-      if (
-	  fabs(tPlus/hfpocc-tMinus/hfmocc)<timediffThresh_
-	  && (HtMinus>1 && HtPlus>1) // unnecessary condition?
-	  )
-	{
-	  h_LumiPlot_EventsPerLS->Fill(currentLS);
-	  h_LumiPlot_BX_goodevents->Fill(BCN);
+      if (HtMinus>1 && HtPlus > 1) // is this the condition we want, or do we want hfmocc>0 && hfpocc >0?
+      	{
+	  h_LumiPlot_LS_MinBiasEvents_notimecut->Fill(currentLS);
+	  h_LumiPlot_BX_MinBiasEvents_notimecut->Fill(BCN);
+	  if (fabs(HFtPlus-HFtMinus)<timediffThresh_)
+	    {
+	      h_LumiPlot_LS_MinBiasEvents->Fill(currentLS);
+	      h_LumiPlot_BX_MinBiasEvents->Fill(BCN);
+	    }
 	}
+ 
+      if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<HFtPlus<<"  EPLUS = "<<HFePlus<<"  TMINUS = "<<HFtMinus<<"  EMINUS = "<<HFeMinus<<"  Weighted Time Diff = "<<((HFtPlus)-(HFtMinus))<<std::endl;
       
-      if (
-	  (HtMinus>1 && HtPlus>1) 
-	  )
+      //if (hfpocc>0 && hfmocc>0)  // which condition do we want?
+      if (HtMinus>1 && HtPlus > 1)
 	{
-	  h_LumiPlot_EventsPerLS_notimecut->Fill(currentLS);
-	  h_LumiPlot_BX_goodevents_notimecut->Fill(BCN);
+	  h_HFtimedifference->Fill((HFtPlus)-(HFtMinus));
+	  if (HFePlus+HFeMinus!=0) h_HFenergydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
 	}
-      
-    } // if (BPTX)
+    } // if (passedMinBiasHLT)
 
-  if (Online_ && 
-      BPTX==true)
+  if (passedHcalHLT && HtMinus>1 && HtPlus> 1 )
     {
-      if (ePlus >0 && eMinus > 0)
+      h_HF_HcalHLT_weightedtimedifference->Fill(HFtPlus-HFtMinus);
+      if (HFePlus+HFeMinus!=0) h_HF_HcalHLT_energydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
+      h_LumiPlot_LS_HcalHLTEvents_notimecut->Fill(currentLS);
+      h_LumiPlot_BX_HcalHLTEvents_notimecut->Fill(BCN);
+      if (fabs(HFtPlus-HFtMinus)<timediffThresh_)
 	{
-	  if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<tPlus<<"  EPLUS = "<<ePlus<<"  TMINUS = "<<tMinus<<"  EMINUS = "<<eMinus<<"  Weighted Time Diff = "<<((tPlus)-(tMinus))<<std::endl;
-	  h_HFtimedifference->Fill((tPlus)-(tMinus));
-	  if (ePlus+eMinus!=0) h_HFenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
+	  h_LumiPlot_LS_HcalHLTEvents->Fill(currentLS);
+	  h_LumiPlot_BX_HcalHLTEvents->Fill(BCN);
 	}
-    } // if (passedHLT)
-
-  else if (Online_ && 
-	   passedHLT && 
-	   BPTX==false)
-    {
-      if (ePlus >0 && eMinus > 0)
-	{
-	  h_HFnotBPTXtimedifference->Fill((tPlus)-(tMinus));
-	  if (ePlus+eMinus!=0) h_HFnotBPTXenergydifference->Fill((ePlus-eMinus)/(ePlus+eMinus));
-	}
-    } // passsed HLT , BPTX = false
-
-  ++HF_occupancy_[hfocc/10];
-  ++HF_occupancy_thresh_[hfoccthresh/10];
+     } // passsed Hcal HLT
    
  return;
 } // void HcalRecHitMonitor::processEvent_rechitenergy

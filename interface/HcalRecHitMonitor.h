@@ -10,8 +10,8 @@
 
 /** \class HcalRecHitMonitor
   *
-  * $Date: 2010/03/08 19:59:52 $
-  * $Revision: 1.46.2.5 $
+  * $Date: 2010/03/10 11:40:04 $
+  * $Revision: 1.46.2.6 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -45,8 +45,8 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   void processEvent_rechit( const HBHERecHitCollection& hbheHits,
 			    const HORecHitCollection& hoHits,
 			    const HFRecHitCollection& hfHits,
-			    bool passedHLT,
-			    bool BPTX,
+			    bool passedHcalHLT,
+			    bool passedMinBiasHLT,
 			    int BCN);
 
  private:
@@ -177,14 +177,17 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   MonitorElement* h_HEtimedifference;
   MonitorElement* h_HEenergydifference;
 
-  MonitorElement* h_HFnotBPTXtimedifference;
-  MonitorElement* h_HFnotBPTXenergydifference;
-  MonitorElement* h_HEnotBPTXtimedifference;
-  MonitorElement* h_HEnotBPTXenergydifference;
+  MonitorElement* h_HF_HcalHLT_weightedtimedifference;
+  MonitorElement* h_HF_HcalHLT_energydifference;
+  MonitorElement* h_HE_HcalHLT_weightedtimedifference;
+  MonitorElement* h_HE_HcalHLT_energydifference;
 
   MonitorElement* h_LumiPlot_LS_allevents;
-  MonitorElement* h_LumiPlot_EventsPerLS;
-  MonitorElement* h_LumiPlot_EventsPerLS_notimecut;
+  MonitorElement* h_LumiPlot_LS_MinBiasEvents;
+  MonitorElement* h_LumiPlot_LS_MinBiasEvents_notimecut;
+  MonitorElement* h_LumiPlot_LS_HcalHLTEvents;
+  MonitorElement* h_LumiPlot_LS_HcalHLTEvents_notimecut;
+
 
   MonitorElement* h_LumiPlot_SumHT_HFPlus_vs_HFMinus;
   MonitorElement* h_LumiPlot_timeHFPlus_vs_timeHFMinus;
@@ -192,20 +195,36 @@ class HcalRecHitMonitor: public HcalBaseDQMonitor {
   MonitorElement* h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus;
   
   MonitorElement* h_LumiPlot_BX_allevents;
-  MonitorElement* h_LumiPlot_BX_goodevents;
-  MonitorElement* h_LumiPlot_BX_goodevents_notimecut;
+  MonitorElement* h_LumiPlot_BX_MinBiasEvents;
+  MonitorElement* h_LumiPlot_BX_MinBiasEvents_notimecut;
+  MonitorElement* h_LumiPlot_BX_HcalHLTEvents;
+  MonitorElement* h_LumiPlot_BX_HcalHLTEvents_notimecut;
 
   MonitorElement* h_LumiPlot_MinTime_vs_MinHT;
   MonitorElement* h_LumiPlot_timeHT_HFM;
   MonitorElement* h_LumiPlot_timeHT_HFP;
+
+  MonitorElement* h_TriggeredEvents;
+  MonitorElement* h_HFP_weightedTime;
+  MonitorElement* h_HFM_weightedTime;
+  MonitorElement* h_HEP_weightedTime;
+  MonitorElement* h_HEM_weightedTime;
+  MonitorElement* h_HBP_weightedTime;
+  MonitorElement* h_HBM_weightedTime;
+
+  MonitorElement* h_HBTimeVsEnergy;
+  MonitorElement* h_HETimeVsEnergy;
+  MonitorElement* h_HOTimeVsEnergy;
+  MonitorElement* h_HFTimeVsEnergy;
 
 
   bool HBpresent_, HEpresent_, HOpresent_, HFpresent_;
 
   edm::InputTag hbheRechitLabel_, hoRechitLabel_, hfRechitLabel_;
   edm::InputTag l1gtLabel_;
-  std::vector <int> L1TriggerBits_;
-  std::vector <int> BPTXBits_;
+  edm::InputTag hltresultsLabel_;
+  std::vector <std::string> HcalHLTBits_;
+  std::vector <std::string> MinBiasHLTBits_;
 };
 
 #endif
