@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Wed Mar  3 12:14:16 CET 2010
-// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.3 2010/03/15 12:52:05 temple Exp $
+// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.4 2010/03/16 20:04:15 temple Exp $
 //
 //
 
@@ -210,7 +210,6 @@ class HcalDetDiagLaserMonitor : public HcalBaseDQMonitor {
       edm::InputTag inputLabelDigi_;
 
       void SaveReference();
-      void SaveHTML();
       void LoadReference();
       bool get_ave_rbx(int sd,int side,int rbx,float *ave,float *rms);
       bool get_ave_subdet(int sd,float *ave_t,float *ave_e,float *ave_t_r,float *ave_e_r);
@@ -235,7 +234,7 @@ class HcalDetDiagLaserMonitor : public HcalBaseDQMonitor {
       std::string prefixME_;
       bool        Online_;
 
-      MonitorElement *meEVT_;
+      MonitorElement *meEVT_,*meRUN_;
       MonitorElement *RefRun_;
       MonitorElement *hbheEnergy;
       MonitorElement *hbheTime;
@@ -269,6 +268,9 @@ class HcalDetDiagLaserMonitor : public HcalBaseDQMonitor {
       EtaPhiHists* ProblemCellsByDepth_timing;
       EtaPhiHists* ProblemCellsByDepth_energy;
       std::vector<std::string> problemnames_;
+
+      EtaPhiHists* ProblemCellsByDepth_timing_val;
+      EtaPhiHists* ProblemCellsByDepth_energy_val;
 
       HcalDetDiagLaserData hb_data[85][72][4];
       HcalDetDiagLaserData he_data[85][72][4];
@@ -315,6 +317,7 @@ void HcalDetDiagLaserMonitor::beginRun(const edm::Run& run, const edm::EventSetu
  
   dbe_->setCurrentFolder(subdir_);   
   meEVT_ = dbe_->bookInt("HcalDetDiagLaserMonitor Event Number");
+  meRUN_ = dbe_->bookInt("HcalDetDiagLaserMonitor Run Number");
 
   ProblemCellsByDepth_timing = new EtaPhiHists();
   ProblemCellsByDepth_timing->setup(dbe_," Problem Bad Laser Timing");
@@ -388,17 +391,22 @@ void HcalDetDiagLaserMonitor::beginRun(const edm::Run& run, const edm::EventSetu
   refTime2Dho->setAxisRange(0,2,3);
   refEnergy2Dhbhehf->setAxisRange(0.5,1.5,3);
   refEnergy2Dho->setAxisRange(0.5,1.5,3);
-  
-  dbe_->setCurrentFolder(subdir_+"Raddam Plots");
-  for(int i=0;i<56;i++){
-     sprintf(str,"RADDAM (%i %i)",RADDAM_CH[i].eta,RADDAM_CH[i].phi);                                             
-     Raddam[i] = dbe_->book1D(str,str,10,-0.5,9.5);  
-  }
 
   ReferenceRun="UNKNOWN";
   LoadReference();
   dbe_->setCurrentFolder(subdir_);
   RefRun_= dbe_->bookString("HcalDetDiagLaserMonitor Reference Run",ReferenceRun);
+
+  dbe_->setCurrentFolder(subdir_+"Raddam Plots");
+  for(int i=0;i<56;i++){
+     sprintf(str,"RADDAM (%i %i)",RADDAM_CH[i].eta,RADDAM_CH[i].phi);                                             
+     Raddam[i] = dbe_->book1D(str,str,10,-0.5,9.5);  
+  }
+  dbe_->setCurrentFolder(subdir_+"Plots for client");
+  ProblemCellsByDepth_timing_val = new EtaPhiHists();
+  ProblemCellsByDepth_timing_val->setup(dbe_," Laser Timing difference");
+  ProblemCellsByDepth_energy_val = new EtaPhiHists();
+  ProblemCellsByDepth_energy_val->setup(dbe_," Laser Energy difference");
 }
 
 
@@ -419,6 +427,7 @@ static int  lastHBHEorbit,lastHOorbit,lastHForbit,nChecksHBHE,nChecksHO,nChecksH
    bool LaserEvent=false;
    bool LaserRaddam=false;
    int orbit=iEvent.orbitNumber();
+   meRUN_->Fill(iEvent.id().run());
    // for local runs 
    edm::Handle<HcalTBTriggerData> trigger_data;
    iEvent.getByType(trigger_data);
@@ -450,7 +459,6 @@ static int  lastHBHEorbit,lastHOorbit,lastHForbit,nChecksHBHE,nChecksHO,nChecksH
          nChecksHF++; 
          if(nChecksHF==1 || (nChecksHF>1 && ((nChecksHF-1)%8)==0)){
              SaveReference();
-             SaveHTML();
          }
          for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++) hf_data[i][j][k].reset();
       }
@@ -611,7 +619,7 @@ float ave_t,ave_e,ave_t_r,ave_e_r;
        phi=hid.iphi();
        depth=hid.depth();
      }catch(...){ continue; }
-
+     int e=CalcEtaBin(sd,eta,depth)+1;
      if(detid.subdetId()==HcalBarrel && sd==HcalBarrel){
 	double val=0,rms=0,time=0,time_rms=0,VAL=0,RMS=0,TIME=0,TIME_RMS=0;
 	if(!hb_data[eta+42][phi-1][depth-1].get_reference(&val,&rms,&time,&time_rms)) continue;
@@ -619,10 +627,16 @@ float ave_t,ave_e,ave_t_r,ave_e_r;
 	if(!hb_data[eta+42][phi-1][depth-1].get_average_time(&TIME,&TIME_RMS)) continue;
         hb_data[eta+42][phi-1][depth-1].nChecks++;
         float diff_t=(TIME-ave_t)-(time-ave_t_r); if(diff_t<0) diff_t=-diff_t;
-        if(diff_t>LaserTimingThreshold) hb_data[eta+42][phi-1][depth-1].nBadTime++;
+        if(diff_t>LaserTimingThreshold){
+             hb_data[eta+42][phi-1][depth-1].nBadTime++; 
+             ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,(TIME-ave_t)-(time-ave_t_r));
+        }else ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,0); 
         if(VAL!=0 && val!=0 && ave_e!=0 && ave_e_r!=0){
-          float diff_e=((VAL/ave_e)-(val/ave_e_r))/(val/ave_e_r); if(diff_e<0) diff_e=-diff_e;
-          if(diff_e>LaserEnergyThreshold) hb_data[eta+42][phi-1][depth-1].nBadEnergy++;
+          float diff_e=((VAL/ave_e))/(val/ave_e_r);
+          if(diff_e>(1+LaserEnergyThreshold) ||diff_e<(1-LaserEnergyThreshold) ){
+               hb_data[eta+42][phi-1][depth-1].nBadEnergy++;
+               ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,((VAL/ave_e))/(val/ave_e_r));
+          }else ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,0);
         }
      }
      if(detid.subdetId()==HcalEndcap && sd==HcalEndcap){
@@ -632,10 +646,16 @@ float ave_t,ave_e,ave_t_r,ave_e_r;
 	if(!he_data[eta+42][phi-1][depth-1].get_average_time(&TIME,&TIME_RMS)) continue;
         he_data[eta+42][phi-1][depth-1].nChecks++;
         float diff_t=(TIME-ave_t)-(time-ave_t_r); if(diff_t<0) diff_t=-diff_t;
-        if(diff_t>LaserTimingThreshold) he_data[eta+42][phi-1][depth-1].nBadTime++;
+        if(diff_t>LaserTimingThreshold){
+          he_data[eta+42][phi-1][depth-1].nBadTime++;
+          ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,(TIME-ave_t)-(time-ave_t_r));
+        }else ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,0); 
         if(VAL!=0 && val!=0 && ave_e!=0 && ave_e_r!=0){
-          float diff_e=((VAL/ave_e)-(val/ave_e_r))/(val/ave_e_r); if(diff_e<0) diff_e=-diff_e;
-          if(diff_e>LaserEnergyThreshold) he_data[eta+42][phi-1][depth-1].nBadEnergy++;
+          float diff_e=((VAL/ave_e))/(val/ave_e_r);
+          if(diff_e>(1+LaserEnergyThreshold) ||diff_e<(1-LaserEnergyThreshold) ){
+            he_data[eta+42][phi-1][depth-1].nBadEnergy++;
+            ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,((VAL/ave_e))/(val/ave_e_r));
+          }else ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,0);
         }
      }
      if(detid.subdetId()==HcalOuter && sd==HcalOuter){
@@ -645,10 +665,16 @@ float ave_t,ave_e,ave_t_r,ave_e_r;
 	if(!ho_data[eta+42][phi-1][depth-1].get_average_time(&TIME,&TIME_RMS)) continue;
         ho_data[eta+42][phi-1][depth-1].nChecks++;
         float diff_t=(TIME-ave_t)-(time-ave_t_r); if(diff_t<0) diff_t=-diff_t;
-        if(diff_t>LaserTimingThreshold) ho_data[eta+42][phi-1][depth-1].nBadTime++;
+        if(diff_t>LaserTimingThreshold){
+           ho_data[eta+42][phi-1][depth-1].nBadTime++;
+           ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,(TIME-ave_t)-(time-ave_t_r));
+        }else ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,0); 
         if(VAL!=0 && val!=0 && ave_e!=0 && ave_e_r!=0){
-          float diff_e=((VAL/ave_e)-(val/ave_e_r))/(val/ave_e_r); if(diff_e<0) diff_e=-diff_e;
-          if(diff_e>LaserEnergyThreshold) ho_data[eta+42][phi-1][depth-1].nBadEnergy++;
+          float diff_e=((VAL/ave_e))/(val/ave_e_r);
+          if(diff_e>(1+LaserEnergyThreshold) ||diff_e<(1-LaserEnergyThreshold) ){
+            ho_data[eta+42][phi-1][depth-1].nBadEnergy++;
+            ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,((VAL/ave_e))/(val/ave_e_r));
+          }else ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,0);
         }
      }
      if(detid.subdetId()==HcalForward && sd==HcalForward){
@@ -658,10 +684,16 @@ float ave_t,ave_e,ave_t_r,ave_e_r;
 	if(!hf_data[eta+42][phi-1][depth-1].get_average_time(&TIME,&TIME_RMS)) continue;
         hf_data[eta+42][phi-1][depth-1].nChecks++;
         float diff_t=(TIME-ave_t)-(time-ave_t_r); if(diff_t<0) diff_t=-diff_t;
-        if(diff_t>LaserTimingThreshold) hf_data[eta+42][phi-1][depth-1].nBadTime++;
+        if(diff_t>LaserTimingThreshold){
+           hf_data[eta+42][phi-1][depth-1].nBadTime++;
+           ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,(TIME-ave_t)-(time-ave_t_r));
+        }else ProblemCellsByDepth_timing_val->depth[depth-1]->setBinContent(e,phi,0); 
         if(VAL!=0 && val!=0 && ave_e!=0 && ave_e_r!=0){
-          float diff_e=((VAL/ave_e)-(val/ave_e_r))/(val/ave_e_r); if(diff_e<0) diff_e=-diff_e;
-          if(diff_e>LaserEnergyThreshold) hf_data[eta+42][phi-1][depth-1].nBadEnergy++;
+          float diff_e=((VAL/ave_e))/(val/ave_e_r);
+          if(diff_e>(1+LaserEnergyThreshold) ||diff_e<(1-LaserEnergyThreshold) ){
+            hf_data[eta+42][phi-1][depth-1].nBadEnergy++;
+            ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,((VAL/ave_e))/(val/ave_e_r));
+          }else ProblemCellsByDepth_energy_val->depth[depth-1]->setBinContent(e,phi,0);
         }
      }
    }
@@ -912,7 +944,7 @@ void HcalDetDiagLaserMonitor::fillHistos(int sd){
 	      T+=time; nT++; E+=ave; nE++;
            }
         } 
-        if(nT>0){Time2Dhbhehf->setBinContent(eta+44,phi,T/nT);Energy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE); }
+        if(nT>0){Time2Dhbhehf->setBinContent(eta+44,phi+1,T/nT);Energy2Dhbhehf->setBinContent(eta+44,phi+1,E/nE); }
      } 
      // HE histograms
      for(int eta=-29;eta<=29;eta++) for(int phi=1;phi<=72;phi++){
@@ -1285,14 +1317,9 @@ void HcalDetDiagLaserMonitor::endRun(const edm::Run& run, const edm::EventSetup&
        fillProblems(HcalOuter); 
        fillProblems(HcalForward); 
        SaveReference();
-       SaveHTML();
     }
 }
 
-void HcalDetDiagLaserMonitor::SaveHTML(){
-
-
-}
 void HcalDetDiagLaserMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
 void HcalDetDiagLaserMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
 

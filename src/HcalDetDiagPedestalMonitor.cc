@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.4 2010/03/16 17:05:33 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.3 2010/03/10 16:25:56 temple Exp $
 //
 //
 // user include files
@@ -167,7 +167,7 @@ class HcalDetDiagPedestalMonitor : public HcalBaseDQMonitor {
       std::string prefixME_;
       bool        Online_;
 
-  MonitorElement * meEVT_;
+      MonitorElement *meEVT_,*meRUN_;
       MonitorElement *RefRun_;
       MonitorElement *PedestalsAve4HB;
       MonitorElement *PedestalsAve4HE;
@@ -201,6 +201,11 @@ class HcalDetDiagPedestalMonitor : public HcalBaseDQMonitor {
       EtaPhiHists* ProblemCellsByDepth_unstable;
       EtaPhiHists* ProblemCellsByDepth_badped;
       EtaPhiHists* ProblemCellsByDepth_badrms;
+
+      EtaPhiHists* ProblemCellsByDepth_missing_val;
+      EtaPhiHists* ProblemCellsByDepth_unstable_val;
+      EtaPhiHists* ProblemCellsByDepth_badped_val;
+      EtaPhiHists* ProblemCellsByDepth_badrms_val;
       std::vector<std::string> problemnames_;
  
       HcalDetDiagPedestalData hb_data[85][72][4][4];
@@ -231,7 +236,6 @@ HcalDetDiagPedestalMonitor::HcalDetDiagPedestalMonitor(const edm::ParameterSet& 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  debug_           = iConfig.getUntrackedParameter<int>("debug",0);
 
   HBMeanTreshold   = iConfig.getUntrackedParameter<double>("HBMeanPedestalTreshold" , 0.2);
   HBRmsTreshold    = iConfig.getUntrackedParameter<double>("HBRmsPedestalTreshold"  , 0.3);
@@ -255,6 +259,7 @@ void HcalDetDiagPedestalMonitor::beginRun(const edm::Run& run, const edm::EventS
 
   dbe_->setCurrentFolder(subdir_);   
   meEVT_ = dbe_->bookInt("HcalDetDiagPedestalMonitor Event Number");
+  meRUN_ = dbe_->bookInt("HcalDetDiagPedestalMonitor Run Number");
 
   ProblemCellsByDepth_missing = new EtaPhiHists();
   ProblemCellsByDepth_missing->setup(dbe_," Problem Missing Channels");
@@ -343,123 +348,138 @@ void HcalDetDiagPedestalMonitor::beginRun(const edm::Run& run, const edm::EventS
   LoadReference();
   dbe_->setCurrentFolder(subdir_);
   RefRun_= dbe_->bookString("HcalDetDiagLaserMonitor Reference Run",ReferenceRun);
+
+  dbe_->setCurrentFolder(subdir_+"Plots for client");
+  ProblemCellsByDepth_missing_val = new EtaPhiHists();
+  ProblemCellsByDepth_missing_val->setup(dbe_," Missing channels");
+  ProblemCellsByDepth_unstable_val = new EtaPhiHists();
+  ProblemCellsByDepth_unstable_val->setup(dbe_," Channel instability value");
+  ProblemCellsByDepth_badped_val = new EtaPhiHists();
+  ProblemCellsByDepth_badped_val->setup(dbe_," Bad Pedestal-Ref Value");
+  ProblemCellsByDepth_badrms_val = new EtaPhiHists();
+  ProblemCellsByDepth_badrms_val->setup(dbe_," Bad Rms-ref Value");
 }
+
+
 
 void HcalDetDiagPedestalMonitor::analyze(const edm::Event& iEvent, const edm::EventSetup& iSetup){
   HcalBaseDQMonitor::analyze(iEvent, iSetup); // increments counters
-  int  eta,phi,depth,nTS;
-  static bool PEDseq;
-  static int  lastPEDorbit,nChecksPED;
-  if(ievt_==0)
-    { PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
-  int orbit=iEvent.orbitNumber();
-  
-  bool PedestalEvent=false;
-  
-  // for local runs 
-  edm::Handle<HcalTBTriggerData> trigger_data;
-  iEvent.getByType(trigger_data);
-  if(trigger_data.isValid()){
-    if(trigger_data->triggerWord()==5) PedestalEvent=true;
-    LocalRun=true;
-  }
-  if(LocalRun && !PedestalEvent) return; 
+int  eta,phi,depth,nTS;
+static bool PEDseq;
+static int  lastPEDorbit,nChecksPED;
+   if(ievt_==0){ PEDseq=false; lastPEDorbit=-1;nChecksPED=0; }
+   int orbit=iEvent.orbitNumber();
+   meRUN_->Fill(iEvent.id().run());
+
+   bool PedestalEvent=false;
+
+   // for local runs 
+   edm::Handle<HcalTBTriggerData> trigger_data;
+   iEvent.getByType(trigger_data);
+   if(trigger_data.isValid()){
+       if(trigger_data->triggerWord()==5) PedestalEvent=true;
+       LocalRun=true;
+   }
+   if(LocalRun && !PedestalEvent) return; 
 
 
-  if(!LocalRun && Online_)
-    {
-      if(PEDseq && (orbit-lastPEDorbit)>(11223*10))
-	{
-	  PEDseq=false;
-	  fillHistos();
-	  CheckStatus();
-	  nChecksPED++;
-	  if(nChecksPED==1 || (nChecksPED>1 && ((nChecksPED-1)%8)==0)){
-	    SaveReference();
-	    SaveHTML();
-	  }
-	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hb_data[i][j][k][l].reset();
-	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) he_data[i][j][k][l].reset();
-	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) ho_data[i][j][k][l].reset();
-	  for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hf_data[i][j][k][l].reset();
-	}
-    } // if (!LocalRun && Online_)
-
-  
-  // Abort Gap pedestals 
-  int calibType = -1 ;
-  if(LocalRun==false)
-    {
-      if (!IsAllowedCalibType()) return; // not a pedestal event!
-      // If we get this far, we know the event is a pedestal event
-      PEDseq=true;
-      lastPEDorbit=orbit;
-      calibType = hc_Pedestal; // if it passes our AllowedCalibType, treat it like a pedestal from this point on
-    }
-  //if(!LocalRun && calibType!=hc_Pedestal) return; 
-   
-  ievt_++;
-  meEVT_->Fill(ievt_);
-  run_number=iEvent.id().run();
-
-  edm::Handle<HBHEDigiCollection> hbhe; 
-  iEvent.getByLabel(inputLabelDigi_,hbhe);
-  if(hbhe.isValid()){
-    if(hbhe->size()<30 && calibType==hc_Pedestal){
-      ievt_--;
-      meEVT_->Fill(ievt_);
-      return;	 
-    }
-    for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
-      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-      if(nTS>8) nTS=8;
-      if(nTS<8) continue;
-      if(digi->id().subdet()==HcalBarrel){
-	for(int i=0;i<nTS;i++) hb_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-      }	 
-      if(digi->id().subdet()==HcalEndcap){
-	for(int i=0;i<nTS;i++) he_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+  if(!LocalRun && Online_){
+      if(PEDseq && (orbit-lastPEDorbit)>(11223*10)){
+         PEDseq=false;
+         fillHistos();
+         CheckStatus();
+         nChecksPED++;
+         if(nChecksPED==1 || (nChecksPED>1 && ((nChecksPED-1)%8)==0)){
+             SaveReference();
+             SaveHTML();
+         }
+         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hb_data[i][j][k][l].reset();
+         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) he_data[i][j][k][l].reset();
+         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) ho_data[i][j][k][l].reset();
+         for(int i=0;i<85;i++)for(int j=0;j<72;j++)for(int k=0;k<4;k++)for(int l=0;l<4;l++) hf_data[i][j][k][l].reset();
+         ievt_=0;
       }
-    }   
-  }
-  edm::Handle<HODigiCollection> ho; 
-  iEvent.getByLabel(inputLabelDigi_,ho);
-  if(ho.isValid()){
-    for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
-      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-      if(nTS>8) nTS=8;
-      if(nTS<8) continue;
-      for(int i=0;i<nTS;i++) ho_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-    }   
-  }
-  edm::Handle<HFDigiCollection> hf;
-  iEvent.getByLabel(inputLabelDigi_,hf);
-  if(hf.isValid()){
-    for(HFDigiCollection::const_iterator digi=hf->begin();digi!=hf->end();digi++){
-      eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
-      if(nTS>8) nTS=8;
-      if(nTS<8) continue;
-      for(int i=0;i<nTS;i++) hf_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
-    }   
-  }
+   }
+
+  
+   // Abort Gap pedestals 
+   int calibType = -1 ;
+   if(LocalRun==false){
+       edm::Handle<FEDRawDataCollection> rawdata;
+       iEvent.getByLabel(inputLabelRawData_,rawdata);
+       //checking FEDs for calibration information
+       for (int i=FEDNumbering::MINHCALFEDID;i<=FEDNumbering::MAXHCALFEDID; i++){
+         const FEDRawData& fedData = rawdata->FEDData(i) ;
+	 if ( fedData.size() < 24 ) continue ;
+	 int value = ((const HcalDCCHeader*)(fedData.data()))->getCalibType() ;
+	 if ( calibType < 0 )  calibType = value ;
+         if(value==hc_Pedestal){   PEDseq=true;  lastPEDorbit=orbit; break;} 
+       }
+   }
+   if(!LocalRun && calibType!=hc_Pedestal) return; 
+
+   ievt_++;
+   meEVT_->Fill(ievt_);
+   run_number=iEvent.id().run();
+
+   edm::Handle<HBHEDigiCollection> hbhe; 
+   iEvent.getByLabel(inputLabelDigi_,hbhe);
+   if(hbhe.isValid()){
+	 if(hbhe->size()<30 && calibType==hc_Pedestal){
+             ievt_--;
+             meEVT_->Fill(ievt_);
+             return;	 
+	 }
+         for(HBHEDigiCollection::const_iterator digi=hbhe->begin();digi!=hbhe->end();digi++){
+             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+             if(nTS>8) nTS=8;
+	     if(nTS<8) continue;
+	     if(digi->id().subdet()==HcalBarrel){
+		for(int i=0;i<nTS;i++) hb_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+	     }	 
+             if(digi->id().subdet()==HcalEndcap){
+		for(int i=0;i<nTS;i++) he_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+	     }
+         }   
+   }
+   edm::Handle<HODigiCollection> ho; 
+   iEvent.getByLabel(inputLabelDigi_,ho);
+   if(ho.isValid()){
+         for(HODigiCollection::const_iterator digi=ho->begin();digi!=ho->end();digi++){
+             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+	     if(nTS>8) nTS=8;
+	     if(nTS<8) continue;
+             for(int i=0;i<nTS;i++) ho_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+         }   
+   }
+   edm::Handle<HFDigiCollection> hf;
+   iEvent.getByLabel(inputLabelDigi_,hf);
+   if(hf.isValid()){
+         for(HFDigiCollection::const_iterator digi=hf->begin();digi!=hf->end();digi++){
+             eta=digi->id().ieta(); phi=digi->id().iphi(); depth=digi->id().depth(); nTS=digi->size();
+	     if(nTS>8) nTS=8;
+	     if(nTS<8) continue;
+	     for(int i=0;i<nTS;i++) hf_data[eta+42][phi-1][depth-1][digi->sample(i).capid()].add_statistics(digi->sample(i).adc());
+         }   
+   }
 }
 
 void HcalDetDiagPedestalMonitor::fillHistos(){
-  PedestalsRmsHB->Reset();
-  PedestalsAve4HB->Reset();
-  PedestalsRmsHE->Reset();
-  PedestalsAve4HE->Reset();
-  PedestalsRmsHO->Reset();
-  PedestalsAve4HO->Reset();
-  PedestalsRmsHF->Reset();
-  PedestalsAve4HF->Reset();
-  PedestalsRmsSimp->Reset();
-  PedestalsAve4Simp->Reset();
-  Pedestals2DRmsHBHEHF->Reset();
-  Pedestals2DRmsHO->Reset();
-  Pedestals2DHBHEHF->Reset();
-  Pedestals2DHO->Reset();
-  // HBHEHF summary map
+   PedestalsRmsHB->Reset();
+   PedestalsAve4HB->Reset();
+   PedestalsRmsHE->Reset();
+   PedestalsAve4HE->Reset();
+   PedestalsRmsHO->Reset();
+   PedestalsAve4HO->Reset();
+   PedestalsRmsHF->Reset();
+   PedestalsAve4HF->Reset();
+   PedestalsRmsSimp->Reset();
+   PedestalsAve4Simp->Reset();
+   Pedestals2DRmsHBHEHF->Reset();
+   Pedestals2DRmsHO->Reset();
+   Pedestals2DHBHEHF->Reset();
+   Pedestals2DHO->Reset();
+   // HBHEHF summary map
    for(int eta=-42;eta<=42;eta++) for(int phi=1;phi<=72;phi++){ 
       double PED=0,RMS=0,nped=0,nrms=0,ave=0,rms=0;
       for(int depth=1;depth<=3;depth++){
@@ -596,6 +616,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
               hb_data[eta+42][phi-1][depth-1][0].nMissing++;
               double val=hb_data[eta+42][phi-1][depth-1][0].nMissing/hb_data[eta+42][phi-1][depth-1][0].nChecks;
               ProblemCellsByDepth_missing->depth[depth-1]->setBinContent(e,phi,val);
+              ProblemCellsByDepth_missing_val->depth[depth-1]->setBinContent(e,phi,1);
           }
           if(status) hb_data[eta+42][phi-1][depth-1][0].change_status(1); 
 	  if(stat>0 && stat!=(ievt_*2)){ status=(double)stat/(double)(ievt_*2); 
@@ -604,6 +625,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                 hb_data[eta+42][phi-1][depth-1][0].nUnstable++;
                 double val=hb_data[eta+42][phi-1][depth-1][0].nUnstable/hb_data[eta+42][phi-1][depth-1][0].nChecks;
                 ProblemCellsByDepth_unstable->depth[depth-1]->setBinContent(e,phi,val);
+                ProblemCellsByDepth_unstable_val->depth[depth-1]->setBinContent(e,phi,status);
 	        hb_data[eta+42][phi-1][depth-1][0].change_status(2);
 	      }
 	  }
@@ -620,13 +642,14 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
 	     double deltaPed=ave-ave_ref; PedestalsAve4HBref->Fill(deltaPed); if(deltaPed<0) deltaPed=-deltaPed;
 	     double deltaRms=rms[0]-rms_ref[0]; PedestalsRmsHBref->Fill(deltaRms); if(deltaRms<0) deltaRms=-deltaRms;
 	     for(int i=1;i<4;i++){
-	        double tmp=rms[0]-rms_ref[0]; PedestalsRmsHBref->Fill(tmp); if(tmp<0) tmp=-tmp;
-		if(tmp>deltaRms) deltaRms=tmp;
+	        double tmp=rms[i]-rms_ref[i]; PedestalsRmsHBref->Fill(tmp); 
+		if(fabs(tmp)>fabs(deltaRms)) deltaRms=tmp;
 	     }
 	     if(deltaPed>HBMeanTreshold){ 
                  int e=CalcEtaBin(sd,eta,depth)+1; 
                  hb_data[eta+42][phi-1][depth-1][0].nBadPed++;
                  double val=hb_data[eta+42][phi-1][depth-1][0].nBadPed/hb_data[eta+42][phi-1][depth-1][0].nChecks;
+                 ProblemCellsByDepth_badped_val->depth[depth-1]->setBinContent(e,phi,ave-ave_ref);
                  ProblemCellsByDepth_badped->depth[depth-1]->setBinContent(e,phi,val);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
@@ -635,6 +658,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                  hb_data[eta+42][phi-1][depth-1][0].nBadRms++;
                  double val=hb_data[eta+42][phi-1][depth-1][0].nBadRms/hb_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badrms->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badrms_val->depth[depth-1]->setBinContent(e,phi,deltaRms);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
 	  } 
@@ -651,6 +675,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
               he_data[eta+42][phi-1][depth-1][0].nMissing++;
               double val=he_data[eta+42][phi-1][depth-1][0].nMissing/he_data[eta+42][phi-1][depth-1][0].nChecks;
               ProblemCellsByDepth_missing->depth[depth-1]->setBinContent(e,phi,val);
+              ProblemCellsByDepth_missing_val->depth[depth-1]->setBinContent(e,phi,1);
           }
 	  if(status) he_data[eta+42][phi-1][depth-1][0].change_status(1); 
 	  if(stat>0 && stat!=(ievt_*2)){ status=(double)stat/(double)(ievt_*2);
@@ -659,6 +684,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                 he_data[eta+42][phi-1][depth-1][0].nUnstable++;
                 double val=he_data[eta+42][phi-1][depth-1][0].nUnstable/he_data[eta+42][phi-1][depth-1][0].nChecks;
                 ProblemCellsByDepth_unstable->depth[depth-1]->setBinContent(e,phi,val);
+                ProblemCellsByDepth_unstable_val->depth[depth-1]->setBinContent(e,phi,status);
 	        he_data[eta+42][phi-1][depth-1][0].change_status(2); 
 	     }
 	  }
@@ -675,14 +701,15 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
 	     double deltaPed=ave-ave_ref; PedestalsAve4HEref->Fill(deltaPed); if(deltaPed<0) deltaPed=-deltaPed;
 	     double deltaRms=rms[0]-rms_ref[0]; PedestalsRmsHEref->Fill(deltaRms); if(deltaRms<0) deltaRms=-deltaRms;
 	     for(int i=1;i<4;i++){
-	        double tmp=rms[0]-rms_ref[0]; PedestalsRmsHEref->Fill(tmp); if(tmp<0) tmp=-tmp;
-		if(tmp>deltaRms) deltaRms=tmp;
+	        double tmp=rms[i]-rms_ref[i]; PedestalsRmsHEref->Fill(tmp); 
+		if(fabs(tmp)>fabs(deltaRms)) deltaRms=tmp;
 	     }
 	     if(deltaPed>HEMeanTreshold){
                  int e=CalcEtaBin(sd,eta,depth)+1; 
                  he_data[eta+42][phi-1][depth-1][0].nBadPed++;
                  double val=he_data[eta+42][phi-1][depth-1][0].nBadPed/he_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badped->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badped_val->depth[depth-1]->setBinContent(e,phi,ave-ave_ref);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
 	     if(deltaRms>HERmsTreshold){ 
@@ -690,6 +717,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                  he_data[eta+42][phi-1][depth-1][0].nBadRms++;
                  double val=he_data[eta+42][phi-1][depth-1][0].nBadRms/he_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badrms->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badrms_val->depth[depth-1]->setBinContent(e,phi,deltaRms);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
 	  } 
@@ -706,6 +734,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
               ho_data[eta+42][phi-1][depth-1][0].nMissing++;
               double val=ho_data[eta+42][phi-1][depth-1][0].nMissing/ho_data[eta+42][phi-1][depth-1][0].nChecks;
               ProblemCellsByDepth_missing->depth[depth-1]->setBinContent(e,phi,val);
+              ProblemCellsByDepth_missing_val->depth[depth-1]->setBinContent(e,phi,1);
           }
 	  if(status) ho_data[eta+42][phi-1][depth-1][0].change_status(1); 
 	  if(stat>0 && stat!=(ievt_*2)){ status=(double)stat/(double)(ievt_*2); 
@@ -714,6 +743,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                 ho_data[eta+42][phi-1][depth-1][0].nUnstable++;
                 double val=ho_data[eta+42][phi-1][depth-1][0].nUnstable/ho_data[eta+42][phi-1][depth-1][0].nChecks;
                 ProblemCellsByDepth_unstable->depth[depth-1]->setBinContent(e,phi,val);
+                ProblemCellsByDepth_unstable_val->depth[depth-1]->setBinContent(e,phi,status);
 	        ho_data[eta+42][phi-1][depth-1][0].change_status(2); 
 	     }
 	  }
@@ -733,14 +763,15 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
 	     double deltaPed=ave-ave_ref; PedestalsAve4HOref->Fill(deltaPed);if(deltaPed<0) deltaPed=-deltaPed;
 	     double deltaRms=rms[0]-rms_ref[0]; PedestalsRmsHOref->Fill(deltaRms); if(deltaRms<0) deltaRms=-deltaRms;
 	     for(int i=1;i<4;i++){
-	        double tmp=rms[0]-rms_ref[0]; PedestalsRmsHOref->Fill(tmp); if(tmp<0) tmp=-tmp;
-		if(tmp>deltaRms) deltaRms=tmp;
+	        double tmp=rms[i]-rms_ref[i]; PedestalsRmsHOref->Fill(tmp); 
+		if(fabs(tmp)>fabs(deltaRms)) deltaRms=tmp;
 	     }
 	     if(deltaPed>HOMeanTreshold){ 
                  int e=CalcEtaBin(sd,eta,depth)+1; 
                  ho_data[eta+42][phi-1][depth-1][0].nBadPed++;
                  double val=ho_data[eta+42][phi-1][depth-1][0].nBadPed/ho_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badped->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badped_val->depth[depth-1]->setBinContent(e,phi,ave-ave_ref);
                  Pedestals2DErrorHO->Fill(eta,phi,1);
              }
 	     if(deltaRms>THRESTHOLD){ 
@@ -748,6 +779,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                  ho_data[eta+42][phi-1][depth-1][0].nBadRms++;
                  double val=ho_data[eta+42][phi-1][depth-1][0].nBadRms/ho_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badrms->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badrms_val->depth[depth-1]->setBinContent(e,phi,deltaRms);
                  Pedestals2DErrorHO->Fill(eta,phi,1);
              }
 	  } 
@@ -764,6 +796,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
              hf_data[eta+42][phi-1][depth-1][0].nMissing++;
              double val=hf_data[eta+42][phi-1][depth-1][0].nMissing/hf_data[eta+42][phi-1][depth-1][0].nChecks;
              ProblemCellsByDepth_missing->depth[depth-1]->setBinContent(e,phi,val);
+             ProblemCellsByDepth_missing_val->depth[depth-1]->setBinContent(e,phi,1);
           }
 	  if(status) hf_data[eta+42][phi-1][depth-1][0].change_status(1); 
 	  if(stat>0 && stat!=(ievt_*2)){ status=(double)stat/(double)(ievt_*2); 
@@ -772,6 +805,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                 hf_data[eta+42][phi-1][depth-1][0].nUnstable++;
                 double val=hf_data[eta+42][phi-1][depth-1][0].nUnstable/hf_data[eta+42][phi-1][depth-1][0].nChecks;
                 ProblemCellsByDepth_unstable->depth[depth-1]->setBinContent(e,phi,val);
+                ProblemCellsByDepth_unstable_val->depth[depth-1]->setBinContent(e,phi,status);
 	        hf_data[eta+42][phi-1][depth-1][0].change_status(2); 
 	     }
 	  }
@@ -788,14 +822,15 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
 	     double deltaPed=ave-ave_ref; PedestalsAve4HFref->Fill(deltaPed); if(deltaPed<0) deltaPed=-deltaPed;
 	     double deltaRms=rms[0]-rms_ref[0]; PedestalsRmsHFref->Fill(deltaRms); if(deltaRms<0) deltaRms=-deltaRms;
 	     for(int i=1;i<4;i++){
-	        double tmp=rms[0]-rms_ref[0]; PedestalsRmsHFref->Fill(tmp); if(tmp<0) tmp=-tmp;
-		if(tmp>deltaRms) deltaRms=tmp;
+	        double tmp=rms[i]-rms_ref[i]; PedestalsRmsHFref->Fill(tmp); 
+		if(fabs(tmp)>fabs(deltaRms)) deltaRms=tmp;
 	     }
 	     if(deltaPed>HFMeanTreshold){ 
                  int e=CalcEtaBin(sd,eta,depth)+1; 
                  hf_data[eta+42][phi-1][depth-1][0].nBadPed++;
                  double val=hf_data[eta+42][phi-1][depth-1][0].nBadPed/hf_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badped->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badped_val->depth[depth-1]->setBinContent(e,phi,ave-ave_ref);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
 	     if(deltaRms>HFRmsTreshold){ 
@@ -803,6 +838,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
                  hf_data[eta+42][phi-1][depth-1][0].nBadRms++;
                  double val=hf_data[eta+42][phi-1][depth-1][0].nBadRms/hf_data[eta+42][phi-1][depth-1][0].nChecks;
                  ProblemCellsByDepth_badrms->depth[depth-1]->setBinContent(e,phi,val);
+                 ProblemCellsByDepth_badrms_val->depth[depth-1]->setBinContent(e,phi,deltaRms);
                  Pedestals2DErrorHBHEHF->Fill(eta,phi,1);
              }
 	  } 
@@ -811,7 +847,7 @@ void HcalDetDiagPedestalMonitor::CheckStatus(){
 }
 
 void HcalDetDiagPedestalMonitor::endRun(const edm::Run& run, const edm::EventSetup& c){
-    if((LocalRun || !Online_) && ievt_>500){
+    if((LocalRun || !Online_) && ievt_>=100){
        fillHistos();
        CheckStatus();
        SaveReference();
@@ -963,10 +999,7 @@ void HcalDetDiagPedestalMonitor::SaveHTML(){
 
 }
 void HcalDetDiagPedestalMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
-void HcalDetDiagPedestalMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c)
-{
-  //if (debug_<-9999) fillHistos();  // special debugging; don't use this unless you know what you're doing!
-}
+void HcalDetDiagPedestalMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,const edm::EventSetup& c){}
 
 //define this as a plug-in
 DEFINE_ANOTHER_FWK_MODULE(HcalDetDiagPedestalMonitor);
