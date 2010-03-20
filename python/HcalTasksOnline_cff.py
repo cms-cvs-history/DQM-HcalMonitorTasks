@@ -74,7 +74,6 @@ hcalNZSMonitor.skipOutOfOrderLS             =  False
 # Make diagnostics where appropriate
 hcalDeadCellMonitor.makeDiagnostics   = True
 hcalRecHitMonitor.makeDiagnostics     = True
-hcalDigiMonitor.makeDiagnostics       = True
 
 # Require at least 2000 events for the dead cell monitor to process at end of lumi block
 hcalDeadCellMonitor.minDeadEventCount = 2000

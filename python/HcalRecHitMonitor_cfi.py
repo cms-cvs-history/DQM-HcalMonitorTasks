@@ -22,8 +22,10 @@ hcalRecHitMonitor=cms.EDAnalyzer("HcalRecHitMonitor",
                                  
                                  L1GTLabel                    = cms.untracked.InputTag("l1GtUnpack"),
 
-                                 L1TriggerBits                = cms.untracked.vint32(9,10), # passes L1 if any of the bits are true; negative values will force the check to be always true
-                                 BPTXBits                     = cms.untracked.vint32(0), # passes BPTX if any of the bits are true; negative values will force the check to be always true 
+                                 HLTResultsLabel              = cms.untracked.InputTag("TriggerResults","","HLT"),
+                                 # triggers required to meet Hcal HLT or Min Bias conditions
+                                 HcalHLTBits                  = cms.untracked.vstring("HLT_L1Tech_HCAL_HF_coincidence_PM"),
+                                 MinBiasHLTBits               = cms.untracked.vstring("HLT_MinBiasBSC"),
 
                                  # Energy thresholds for some BPTX plots
                                  energyThreshold              = cms.untracked.double(2.),
