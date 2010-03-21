@@ -15,8 +15,8 @@
 
 /** \class HcalBeamMonitor
   *
-  * $Date: 2010/03/01 19:13:46 $
-  * $Revision: 1.16.4.2 $
+  * $Date: 2010/03/12 13:24:27 $
+  * $Revision: 1.16.4.3 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -107,6 +107,8 @@ class HcalBeamMonitor:  public HcalBaseDQMonitor {
   MonitorElement* HFlumi_occ_LS;
   MonitorElement* HFlumi_total_hotcells;
   MonitorElement* HFlumi_total_deadcells;
+  MonitorElement* HFlumi_diag_hotcells;
+  MonitorElement* HFlumi_diag_deadcells;
 
   MonitorElement* HFlumi_Ring1Status_vs_LS;
   MonitorElement* HFlumi_Ring2Status_vs_LS;
@@ -129,6 +131,8 @@ class HcalBeamMonitor:  public HcalBaseDQMonitor {
   unsigned int lastProcessedLS_;
   int runNumber_;
  
+
+  int minBadCells_;  // number of channels that must be bad to be included in problem summary
   edm::InputTag digiLabel_;
   edm::InputTag hbheRechitLabel_, hfRechitLabel_, hoRechitLabel_;
 }; // class HcalBeamMonitor

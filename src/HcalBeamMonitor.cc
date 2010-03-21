@@ -66,6 +66,7 @@ HcalBeamMonitor::HcalBeamMonitor(const edm::ParameterSet& ps):
     lumiqualitydir_.append("/");
   occThresh_ = ps.getUntrackedParameter<double>("occupancyThresh",0.0625);  // energy required to be counted by dead/hot checks
   hotrate_        = ps.getUntrackedParameter<double>("hotrate",0.25);
+  minBadCells_    = ps.getUntrackedParameter<int>("minBadCells",10);
 }
 
 
@@ -127,6 +128,9 @@ void HcalBeamMonitor::reset()
   HFlumi_occ_LS->Reset();
   HFlumi_total_hotcells->Reset();
   HFlumi_total_deadcells->Reset();
+  HFlumi_diag_hotcells->Reset();
+  HFlumi_diag_deadcells->Reset();
+
 
   HFlumi_Ring1Status_vs_LS->Reset();
   HFlumi_Ring2Status_vs_LS->Reset();
@@ -295,12 +299,20 @@ void HcalBeamMonitor::setup()
 				8,0,8,36, 0.5,72.5);
   SetEtaLabels(HFlumi_occ_LS);
       
-  HFlumi_total_deadcells = dbe_->book2D("HFlumi_total_deadcells","# of times each HFlumi cell was dead for 1 full LS",
+  HFlumi_total_deadcells = dbe_->book2D("HFlumi_total_deadcells","Number of dead lumi channels for LS with at least 10 bad channels",
 					 8,0,8,36,0.5,72.5);
   SetEtaLabels(HFlumi_total_deadcells);
-  HFlumi_total_hotcells = dbe_->book2D("HFlumi_total_hotcells","# of times each HFlumi cell was hot for 1 full LS",
+  HFlumi_total_hotcells = dbe_->book2D("HFlumi_total_hotcells","Number of hot lumi channels for LS with at least 10 bad channels",
 					8,0,8,36,0.5,72.5);
   SetEtaLabels(HFlumi_total_hotcells);
+
+  HFlumi_diag_deadcells = dbe_->book2D("HFlumi_diag_deadcells","Channels that had no hit for at least one LS",
+				       8,0,8,36,0.5,72.5);
+  SetEtaLabels(HFlumi_diag_deadcells);
+  HFlumi_diag_hotcells = dbe_->book2D("HFlumi_diag_hotcells","Channels that appeared hot for at least one LS",
+				      8,0,8,36,0.5,72.5);
+  SetEtaLabels(HFlumi_diag_hotcells);
+
 
 
   Occ_rphi_S=dbe_->book2D("Occ 2D phi and radius Short Fiber","Occupancy 2D phi and radius Short Fiber",12, radiusbins, 70, phibins);
@@ -1138,12 +1150,18 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 
   HFlumi_total_deadcells->Fill(-1,-1,1); // counts good lumi sections in underflow bin
   HFlumi_total_hotcells->Fill(-1,-1,1);
+  HFlumi_diag_deadcells->Fill(-1,-1,1); // counts good lumi sections in underflow bin
+  HFlumi_diag_hotcells->Fill(-1,-1,1);
 
   // ADD IETA MAP
   int ietamap[8]={-36,-35,-34,-33,33,34,35,36};
   int ieta=-1, iphi = -1, depth=-1;
   int badring1=0;
   int badring2=0;
+  int ndeadcells=0;
+  int nhotcells=0;
+  
+  // Loop over cells once to count hot & dead chanels
   for (int x=1;x<=HFlumi_occ_LS->getTH2F()->GetNbinsX();++x)
     {
       for (int y=1;y<=HFlumi_occ_LS->getTH2F()->GetNbinsY();++y)
@@ -1167,17 +1185,15 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 	  double Ncellhits=HFlumi_occ_LS->getBinContent(x,y);
 	  if (Ncellhits==0)
 	    {
-	      // One new luminosity section found with no entries for the cell in question
-	      // Add protection requiring a minimum number of entries before counting as dead?
-	      HFlumi_total_deadcells->Fill(x-1,2*y-1,1);
-	    } // dead cell check
-
+	      ++ndeadcells;
+	      HFlumi_diag_deadcells->Fill(x-1,2*y-1,1);
+	    }
 	  // hot if present in more than 25% of events in the LS
-	  if (Ncellhits>hotrate_*Nentries)
+	  if (Ncellhits>hotrate_*Nentries) 
 	    {
+	      ++nhotcells;
 	      HFlumi_total_hotcells->Fill(x-1,2*y-1,1);
-	    } // hot cell check
-
+	    }
 	  if (Ncellhits==0 || Ncellhits>hotrate_*Nentries) // cell was either hot or dead
 	    {
 	      if (depth==1)  badring1++;
@@ -1185,6 +1201,43 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 	    }
 	} // loop over y
     } // loop over x
+
+  if (ndeadcells+nhotcells>=minBadCells_)
+    {
+      for (int x=1;x<=HFlumi_occ_LS->getTH2F()->GetNbinsX();++x)
+	{
+	  for (int y=1;y<=HFlumi_occ_LS->getTH2F()->GetNbinsY();++y)
+	    {
+	      if (x<=8)
+		ieta=ietamap[x-1];
+	      else
+		ieta=-1;
+	      iphi=2*y-1;
+	      if (abs(ieta)==33 || abs(ieta)==34)  depth=1;
+	      else if (abs(ieta)==35 || abs(ieta)==36) depth =2;
+	      else depth = -1;
+	      if (depth !=-1 && ieta!=1)
+		{
+		  // skip over channels that are flagged as bad
+		  HcalDetId thisID(HcalForward, ieta, iphi, depth);
+		  if (BadCells_.find(thisID)!=BadCells_.end())
+		    continue;
+		}
+	      double Ncellhits=HFlumi_occ_LS->getBinContent(x,y);
+	      if (Ncellhits==0)
+		{
+		  // One new luminosity section found with no entries for the cell in question
+		  HFlumi_total_deadcells->Fill(x-1,2*y-1,1);
+		} // dead cell check
+	      
+	      // hot if present in more than 25% of events in the LS
+	      if (Ncellhits>hotrate_*Nentries)
+		{
+		  HFlumi_total_hotcells->Fill(x-1,2*y-1,1);
+		} // hot cell check
+	    } // loop over y
+	} // loop over x
+    } // if (ndeadcells+nhotcells>=minBadCells_)
 
   // Fill fraction of bad channels found in this LS
   double ring1status=0;
