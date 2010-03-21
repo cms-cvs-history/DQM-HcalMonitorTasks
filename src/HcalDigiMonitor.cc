@@ -759,22 +759,22 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
   ++occupancyVME[static_cast<int>(2*(digi.elecId().htrSlot()+0.5*digi.elecId().htrTopBottom()))][static_cast<int>(digi.elecId().readoutVMECrateId())];
   ++occupancySpigot[static_cast<int>(digi.elecId().spigot())][static_cast<int>(digi.elecId().dccid())];
 
-  // Pawel's code for HF timing checks -- run only in online mode
-  if (digi.id().subdet()==HcalForward && Online_)
+  // Pawel's code for HF timing checks -- run only in online mode for non-calib events
+  if (digi.id().subdet()==HcalForward && Online_ && currenttype_==0)
     {
       int maxtime=-1;
       double maxenergy=-1;
       int digisize=digi.size();
       for (int ff=0;ff<digisize;++ff)
 	{
-	  if (digi.sample(ff).nominal_fC()>maxenergy)
+	  if (digi.sample(ff).nominal_fC()-2.5>maxenergy)
 	    {
-	      maxenergy=digi.sample(ff).nominal_fC();
+	      maxenergy=digi.sample(ff).nominal_fC()-2.5;
 	      maxtime=ff;
 	    }
 	}
       
-      if (maxtime>-1) // should always happen!
+      if (maxtime>-1 &&maxenergy>20 && maxenergy<100)
 	{
 	  double time_den=0, time_num=0;
 	  // form weighted time sum
@@ -786,6 +786,15 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	      time_num+=ss*(digi.sample(ss).nominal_fC()-2.5);
 	      time_den+=digi.sample(ss).nominal_fC()-2.5;
 	    }
+	  /*
+	  cout <<"HF("<<iEta<<", "<<iPhi<<", "<<iDepth<<")  start time slice = "<<startslice<<"  end time slice = "<<endslice<<"  WEIGHTED TIME = "<<(time_num)/(time_den)<<"  time_num = "<<time_num<<"  time_den = "<<time_den<<endl;
+	  if (startslice<2 || startslice>6)
+	    {
+	      cout <<"\tSOMETHING WEIRD!"<<endl;
+	      for (int i=0;i<digisize;++i)
+		cout <<"\t\t i = "<<i<<"  fC - 2.5 = "<<digi.sample(i).nominal_fC()-2.5<<"  ADC = "<<digi.sample(i).adc()<<endl;
+	    }
+	  */
 	  int myiphi=iPhi;
 	  if (iDepth==2) ++myiphi;
 	  if (HFtiming_etaProfile!=0 && time_den!=0)
