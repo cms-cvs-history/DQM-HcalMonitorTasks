@@ -176,7 +176,7 @@ void HcalDigiMonitor::setup()
     {
       // Special histograms for Pawel's timing study
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy");
-      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;abs(ieta);average time (ns)",13,28.5,41.5,300,-150,150);
+      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;ieta;average time (time slice)",83,-41.5,41.5,10,0,10);
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy/sumplots");
       HFtiming_totaltime2D=dbe_->book2D("HFTiming_Total_Time","HFTiming Total Time",83,-41.5,41.5,72,0.5,72.5);
       HFtiming_occupancy2D=dbe_->book2D("HFTiming_Occupancy","HFTiming Occupancy",83,-41.5,41.5,72,0.5,72.5);
@@ -774,7 +774,7 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	    }
 	}
       
-      if (maxtime>-1 &&maxenergy>20 && maxenergy<100)
+      if (maxtime>=2 && maxtime<=5 &&maxenergy>20 && maxenergy<100)  // only look between time slices 2-5; anything else should be nonsense
 	{
 	  double time_den=0, time_num=0;
 	  // form weighted time sum
@@ -786,19 +786,11 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	      time_num+=ss*(digi.sample(ss).nominal_fC()-2.5);
 	      time_den+=digi.sample(ss).nominal_fC()-2.5;
 	    }
-	  /*
-	  cout <<"HF("<<iEta<<", "<<iPhi<<", "<<iDepth<<")  start time slice = "<<startslice<<"  end time slice = "<<endslice<<"  WEIGHTED TIME = "<<(time_num)/(time_den)<<"  time_num = "<<time_num<<"  time_den = "<<time_den<<endl;
-	  if (startslice<2 || startslice>6)
-	    {
-	      cout <<"\tSOMETHING WEIRD!"<<endl;
-	      for (int i=0;i<digisize;++i)
-		cout <<"\t\t i = "<<i<<"  fC - 2.5 = "<<digi.sample(i).nominal_fC()-2.5<<"  ADC = "<<digi.sample(i).adc()<<endl;
-	    }
-	  */
+
 	  int myiphi=iPhi;
 	  if (iDepth==2) ++myiphi;
 	  if (HFtiming_etaProfile!=0 && time_den!=0)
-	    HFtiming_etaProfile->Fill(abs(iEta),time_num/time_den);
+	    HFtiming_etaProfile->Fill(iEta,time_num/time_den);
 	  if (HFtiming_totaltime2D!=0 && time_den!=0)
 	    HFtiming_totaltime2D->Fill(iEta,myiphi,time_num/time_den);
 	  if (HFtiming_occupancy2D!=0 && time_den!=0)
