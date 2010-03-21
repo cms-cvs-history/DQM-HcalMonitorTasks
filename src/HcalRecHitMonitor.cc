@@ -840,30 +840,6 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   HEeMinus>0 ?  HEtMinus/=HEeMinus :  HEtMinus=-10000;
   HBePlus>0  ?  HBtPlus/=HBePlus   :  HBtPlus=10000;
   HBeMinus>0 ?  HBtMinus/=HBeMinus :  HBtMinus=-10000;
-
-  if (passedMinBiasHLT==true)  // require > threshold occupancy 
-    {
-
-      h_HBP_weightedTime->Fill(HBtPlus);
-      h_HBM_weightedTime->Fill(HBtMinus);
-
-      h_HEP_weightedTime->Fill(HEtPlus);
-      h_HEM_weightedTime->Fill(HEtMinus);
-      if (hepocc>0 && hemocc>0)
-	{
-	  h_HEtimedifference->Fill(HEtPlus-HEtMinus);
-	  if (HEePlus-HEeMinus!=0) h_HEenergydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
-	}
-    } // if passedMinBiasHLT==true
-
-  if ( passedHcalHLT ==true)
-    {
-      if  (hepocc>0 && hemocc>0)
-	{
-	  h_HE_HcalHLT_weightedtimedifference->Fill(HEtPlus-HEtMinus);
-	  if (HEePlus-HEeMinus!=0) h_HE_HcalHLT_energydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
-	}
-    } // if passedHcalHLT==true
   
   ++HB_occupancy_[hbocc/10];
   ++HE_occupancy_[heocc/10];
@@ -1020,21 +996,15 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
 
 	  if (ieta>0)
 	    {
-	      if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
-		{
-		  HFtPlus+=en*ti;
-		  HFePlus+=en;
-		  hfpocc++;
-		}
+	      HFtPlus+=en*ti;
+	      HFePlus+=en;
+	      hfpocc++;
 	    }
 	  else if (ieta<0)
 	    {
-	      if (en>HFenergyThreshold_ && en/cosh(fEta)>HFETThreshold_)
-		{
-		  HFtMinus+=en*ti;
-		  HFeMinus+=en;
-		  hfmocc++;
-		}
+	      HFtMinus+=en*ti;
+	      HFeMinus+=en;
+	      hfmocc++;
 	    }
 	} // if (en>thresh, ET>thresh)
     } // loop over all HF hits
@@ -1059,16 +1029,36 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   h_LumiPlot_timeHT_HFM->Fill(HtMinus,HFtMinus);
   h_LumiPlot_timeHT_HFP->Fill(HtPlus,HFtPlus);
 
-  if (passedMinBiasHLT)
+  if (passedMinBiasHLT==true)
     {
-      h_HFP_weightedTime->Fill(HFtPlus);
-      h_HFM_weightedTime->Fill(HFtMinus);
       h_LumiPlot_SumHT_HFPlus_vs_HFMinus->Fill(HtMinus,HtPlus);
-      h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(HFeMinus,HFePlus);
-      h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(HFtMinus,HFtPlus);
+      // HtMinus, HtPlus require no energy cuts for their contributing cells
+      // HFeMinus, HFePlus require that cells be > threshold cut
       
       if (HtMinus>1 && HtPlus > 1) // is this the condition we want, or do we want hfmocc>0 && hfpocc >0?
       	{
+	  h_LumiPlot_SumEnergy_HFPlus_vs_HFMinus->Fill(HFeMinus,HFePlus);
+	  h_LumiPlot_timeHFPlus_vs_timeHFMinus->Fill(HFtMinus,HFtPlus);
+
+	  h_HFP_weightedTime->Fill(HFtPlus);
+	  h_HFM_weightedTime->Fill(HFtMinus);
+	  h_HBP_weightedTime->Fill(HBtPlus);
+	  h_HBM_weightedTime->Fill(HBtMinus);
+	  
+	  h_HEP_weightedTime->Fill(HEtPlus);
+	  h_HEM_weightedTime->Fill(HEtMinus);
+
+	  if (hepocc>0 && hemocc>0)
+	    {
+	      h_HEtimedifference->Fill(HEtPlus-HEtMinus);
+	      if (HEePlus-HEeMinus!=0) h_HEenergydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
+	    }
+	  if (hfpocc>0 && hfmocc>0)  // which condition do we want?
+	    {
+	      h_HFtimedifference->Fill((HFtPlus)-(HFtMinus));
+	      if (HFePlus+HFeMinus!=0) h_HFenergydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
+	    }
+
 	  h_LumiPlot_LS_MinBiasEvents_notimecut->Fill(currentLS);
 	  h_LumiPlot_BX_MinBiasEvents_notimecut->Fill(BCN);
 	  if (fabs(HFtPlus-HFtMinus)<timediffThresh_)
@@ -1080,18 +1070,22 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
  
       if (debug_>1) std::cout <<"\t<HcalRecHitMonitor:: HF averages>  TPLUS = "<<HFtPlus<<"  EPLUS = "<<HFePlus<<"  TMINUS = "<<HFtMinus<<"  EMINUS = "<<HFeMinus<<"  Weighted Time Diff = "<<((HFtPlus)-(HFtMinus))<<std::endl;
       
-      //if (hfpocc>0 && hfmocc>0)  // which condition do we want?
-      if (HtMinus>1 && HtPlus > 1)
-	{
-	  h_HFtimedifference->Fill((HFtPlus)-(HFtMinus));
-	  if (HFePlus+HFeMinus!=0) h_HFenergydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
-	}
+
     } // if (passedMinBiasHLT)
 
   if (passedHcalHLT && HtMinus>1 && HtPlus> 1 )
     {
-      h_HF_HcalHLT_weightedtimedifference->Fill(HFtPlus-HFtMinus);
-      if (HFePlus+HFeMinus!=0) h_HF_HcalHLT_energydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
+      if (hfpocc>0 && hfmocc>0)
+	{
+	  h_HF_HcalHLT_weightedtimedifference->Fill(HFtPlus-HFtMinus);
+	  if (HFePlus+HFeMinus!=0) h_HF_HcalHLT_energydifference->Fill((HFePlus-HFeMinus)/(HFePlus+HFeMinus));
+	}
+      if  (hepocc>0 && hemocc>0)
+	{
+	  h_HE_HcalHLT_weightedtimedifference->Fill(HEtPlus-HEtMinus);
+	  if (HEePlus-HEeMinus!=0) h_HE_HcalHLT_energydifference->Fill((HEePlus-HEeMinus)/(HEePlus+HEeMinus));
+	}
+
       h_LumiPlot_LS_HcalHLTEvents_notimecut->Fill(currentLS);
       h_LumiPlot_BX_HcalHLTEvents_notimecut->Fill(BCN);
       if (fabs(HFtPlus-HFtMinus)<timediffThresh_)
