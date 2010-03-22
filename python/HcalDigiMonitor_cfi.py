@@ -21,6 +21,10 @@ hcalDigiMonitor=cms.EDAnalyzer("HcalDigiMonitor",
                                shapeThreshHO          = cms.untracked.int32(50),
                                shapeThreshHF          = cms.untracked.int32(50),
                                
+                               HLTResultsLabel              = cms.untracked.InputTag("TriggerResults","","HLT"),
+                               # triggers required to Min Bias conditions
+                               MinBiasHLTBits               = cms.untracked.vstring("HLT_MinBiasBSC"),
+                               
                                # problem checks
                                checkForMissingDigis   = cms.untracked.bool(False),
                                checkCapID             = cms.untracked.bool(True),
