@@ -13,8 +13,8 @@
 
 /** \class HcalDigiMonitor
   *  
-  * $Date: 2010/03/01 19:13:46 $
-  * $Revision: 1.56.2.4 $
+  * $Date: 2010/03/20 20:56:30 $
+  * $Revision: 1.56.2.5 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -85,7 +85,8 @@ public:
   void reset();
 
 private:  ///Methods, variables accessible only within class code
-
+  bool passedMinBiasHLT_;
+ 
   void fill_Nevents();
   void zeroCounters();
   void setupSubdetHists(DigiHists& hist,  std::string subdet); // enable this feature at some point
@@ -190,6 +191,8 @@ private:  ///Methods, variables accessible only within class code
 
   edm::ESHandle<HcalDbService> conditions_;
 
+  edm::InputTag hltresultsLabel_;
+  std::vector <std::string> MinBiasHLTBits_;
 };
 
 float bins_cellcount_new[]={-0.5, 0.5, 1.5, 2.5, 3.5, 4.5,

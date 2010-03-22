@@ -2,6 +2,10 @@
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
 #include <cmath>
 
+#include "FWCore/Common/interface/TriggerNames.h" 
+#include "DataFormats/Common/interface/TriggerResults.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
+
 using namespace std;
 using namespace edm;
 
@@ -30,6 +34,9 @@ HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps)
   shapeThreshHE_ = ps.getUntrackedParameter<int>("shapeThreshHE",shapeThresh_);
   shapeThreshHF_ = ps.getUntrackedParameter<int>("shapeThreshHF",shapeThresh_);
   shapeThreshHO_ = ps.getUntrackedParameter<int>("shapeThreshHO",shapeThresh_);
+  
+  hltresultsLabel_       = ps.getUntrackedParameter<edm::InputTag>("HLTResultsLabel");
+  MinBiasHLTBits_        = ps.getUntrackedParameter<std::vector<std::string> >("MinBiasHLTBits");
 
   if (debug_>0)
     std::cout <<"<HcalDigiMonitor> Digi shape ADC threshold set to: >" << shapeThresh_ << std::endl;
@@ -176,7 +183,7 @@ void HcalDigiMonitor::setup()
     {
       // Special histograms for Pawel's timing study
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy");
-      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;ieta;average time (time slice)",83,-41.5,41.5,500,0,10);
+      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;ieta;average time (time slice)",83,-41.5,41.5,200,0,10);
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy/sumplots");
       HFtiming_totaltime2D=dbe_->book2D("HFTiming_Total_Time","HFTiming Total Time",83,-41.5,41.5,72,0.5,72.5);
       HFtiming_occupancy2D=dbe_->book2D("HFTiming_Occupancy","HFTiming Occupancy",83,-41.5,41.5,72,0.5,72.5);
@@ -338,6 +345,31 @@ void HcalDigiMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
   if (!IsAllowedCalibType()) return;
   if (LumiInOrder(e.luminosityBlock())==false) return;
+
+  // Get HLT trigger information for HF timing study
+  passedMinBiasHLT_=false;
+
+  edm::Handle<edm::TriggerResults> hltRes;
+  if (!(e.getByLabel(hltresultsLabel_,hltRes)))
+    {
+      if (debug_>0) LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
+    }
+  else
+    {
+      const edm::TriggerNames & triggerNames = e.triggerNames(*hltRes);
+      const unsigned int nTrig(triggerNames.size());
+      for (unsigned int i=0;i<nTrig;++i){
+	  // repeat for minbias triggers
+	  for (unsigned int k=0;k<MinBiasHLTBits_.size();++k)
+	    {
+	      if (triggerNames.triggerName(i)==MinBiasHLTBits_[k] && hltRes->accept(i))
+		{ 
+		  passedMinBiasHLT_=true;
+		  break;
+		}
+	    }
+	}
+    } //else
   
   // Now get collections we need
 
@@ -760,7 +792,11 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
   ++occupancySpigot[static_cast<int>(digi.elecId().spigot())][static_cast<int>(digi.elecId().dccid())];
 
   // Pawel's code for HF timing checks -- run only in online mode for non-calib events
-  if (digi.id().subdet()==HcalForward && Online_ && currenttype_==0)
+  if (digi.id().subdet()==HcalForward 
+      && Online_  //only run online 
+      && currenttype_==0  // require non-calibration event
+      && passedMinBiasHLT_ // require min bias trigger
+      )
     {
       int maxtime=-1;
       double maxenergy=-1;
@@ -774,7 +810,7 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	    }
 	}
       
-      if (maxtime>=2 && maxtime<=5 &&maxenergy>20 && maxenergy<100)  // only look between time slices 2-5; anything else should be nonsense
+      if (maxtime>=2 && maxtime<=5 && maxenergy>20 && maxenergy<100)  // only look between time slices 2-5; anything else should be nonsense
 	{
 	  double time_den=0, time_num=0;
 	  // form weighted time sum
