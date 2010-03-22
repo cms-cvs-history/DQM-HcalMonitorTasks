@@ -176,7 +176,7 @@ void HcalDigiMonitor::setup()
     {
       // Special histograms for Pawel's timing study
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy");
-      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;ieta;average time (time slice)",83,-41.5,41.5,10,0,10);
+      HFtiming_etaProfile=dbe_->bookProfile("HFTiming_etaProfile","HFTiming Eta Profile;ieta;average time (time slice)",83,-41.5,41.5,500,0,10);
       dbe_->setCurrentFolder(subdir_+"HFTimingStudy/sumplots");
       HFtiming_totaltime2D=dbe_->book2D("HFTiming_Total_Time","HFTiming Total Time",83,-41.5,41.5,72,0.5,72.5);
       HFtiming_occupancy2D=dbe_->book2D("HFTiming_Occupancy","HFTiming Occupancy",83,-41.5,41.5,72,0.5,72.5);
