@@ -21,7 +21,7 @@ hcalDeadCellMonitor=cms.EDAnalyzer("HcalDeadCellMonitor",
                                    hfRechitLabel          = cms.untracked.InputTag("hfreco"),
                                    digiLabel              = cms.untracked.InputTag("hcalDigis"),
                                    # minimum number of events necessary for lumi-block-based checking to commence
-                                   minDeadEventCount      = cms.untracked.int32(2000),
+                                   minDeadEventCount      = cms.untracked.int32(1000),
 
                                    #booleans for dead cell tests
                                    test_digis             = cms.untracked.bool(True), # test for recent missing digis
