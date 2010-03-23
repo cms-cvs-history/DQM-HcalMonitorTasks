@@ -873,7 +873,7 @@ void HcalDetDiagLEDMonitor::done(){
    if(ievt_>=100){
       fillHistos();
       CheckStatus();
-      SaveReference();
+      //SaveReference(); // disabled by Jeff on 23 March 2010 -- cannot run within online DQM!
    }   
 } 
 DEFINE_ANOTHER_FWK_MODULE (HcalDetDiagLEDMonitor);

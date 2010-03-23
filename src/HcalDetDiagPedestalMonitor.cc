@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.3 2010/03/10 16:25:56 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.6 2010/03/20 20:56:46 temple Exp $
 //
 //
 // user include files
@@ -850,8 +850,9 @@ void HcalDetDiagPedestalMonitor::endRun(const edm::Run& run, const edm::EventSet
     if((LocalRun || !Online_) && ievt_>=100){
        fillHistos();
        CheckStatus();
-       SaveReference();
-       SaveHTML();
+       // Disabled by Jeff on 23 March 2010 -- cannot run in online DQM!
+       //SaveReference();
+       //SaveHTML();
     }
 }
 
