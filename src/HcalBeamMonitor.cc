@@ -1192,7 +1192,7 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 	  if (Ncellhits>hotrate_*Nentries) 
 	    {
 	      ++nhotcells;
-	      HFlumi_total_hotcells->Fill(x-1,2*y-1,1);
+	      HFlumi_diag_hotcells->Fill(x-1,2*y-1,1);
 	    }
 	  if (Ncellhits==0 || Ncellhits>hotrate_*Nentries) // cell was either hot or dead
 	    {
