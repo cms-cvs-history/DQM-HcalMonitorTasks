@@ -6,8 +6,8 @@
 /*
  * \file HcalBaseDQMonitor.cc
  *
- * $Date: 2010/03/08 19:59:53 $
- * $Revision: 1.1.2.11 $
+ * $Date: 2010/03/10 16:26:59 $
+ * $Revision: 1.1.2.12 $
  * \author J Temple
  *
  * Base class for all Hcal DQM analyzers
@@ -15,25 +15,22 @@
 
 */
 
-using namespace std;
-using namespace edm;
-
 // constructor
 
-HcalBaseDQMonitor::HcalBaseDQMonitor(const ParameterSet& ps)
+HcalBaseDQMonitor::HcalBaseDQMonitor(const edm::ParameterSet& ps)
 {
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/"); 
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/"); 
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","Test/"); 
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","Test/"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",false);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -60,8 +57,8 @@ HcalBaseDQMonitor::~HcalBaseDQMonitor()
 void HcalBaseDQMonitor::beginJob(void)
 {
 
-  if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginJob():  task =  '"<<subdir_<<"'"<<endl;
-  dbe_ = Service<DQMStore>().operator->();
+  if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginJob():  task =  '"<<subdir_<<"'"<<std::endl;
+  dbe_ = edm::Service<DQMStore>().operator->();
 
   ievt_=0;
   levt_=0;
@@ -83,7 +80,7 @@ void HcalBaseDQMonitor::endJob(void)
 
 void HcalBaseDQMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 {
-  if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginRun():  task =  '"<<subdir_<<"'"<<endl;
+  if (debug_>0) std::cout <<"HcalBaseDQMonitor::beginRun():  task =  '"<<subdir_<<"'"<<std::endl;
   if (mergeRuns_ && tevt_>0) return;
   this->setup();
   this->reset();

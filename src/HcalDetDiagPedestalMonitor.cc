@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Tue Mar  9 12:59:18 CET 2010
-// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.6 2010/03/20 20:56:46 temple Exp $
+// $Id: HcalDetDiagPedestalMonitor.cc,v 1.9.4.7 2010/03/23 11:45:17 temple Exp $
 //
 //
 // user include files
@@ -30,8 +30,7 @@
 #include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 
 #include <math.h>
-using namespace edm;
-using namespace std;
+
 // this is to retrieve HCAL digi's
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 // to retrive trigger information (local runs only)
@@ -225,14 +224,14 @@ HcalDetDiagPedestalMonitor::HcalDetDiagPedestalMonitor(const edm::ParameterSet& 
   inputLabelDigi_    = iConfig.getUntrackedParameter<edm::InputTag>("digiLabel");
   inputLabelRawData_ = iConfig.getUntrackedParameter<edm::InputTag>("rawDataLabel");
   enableHTML       = iConfig.getUntrackedParameter<bool>  ("enableHTML",false);
-  BaseHTMLpath     = iConfig.getUntrackedParameter<string>("BaseHTMLpath","");
-  ReferenceData    = iConfig.getUntrackedParameter<string>("PedestalReferenceData" ,"");
-  OutputFilePath   = iConfig.getUntrackedParameter<string>("OutputFilePath", "");
+  BaseHTMLpath     = iConfig.getUntrackedParameter<std::string>("BaseHTMLpath","");
+  ReferenceData    = iConfig.getUntrackedParameter<std::string>("PedestalReferenceData" ,"");
+  OutputFilePath   = iConfig.getUntrackedParameter<std::string>("OutputFilePath", "");
   Online_          = iConfig.getUntrackedParameter<bool>  ("online",false);
-  prefixME_        = iConfig.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_        = iConfig.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.size()>0 && prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_          = iConfig.getUntrackedParameter<string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
+  subdir_          = iConfig.getUntrackedParameter<std::string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
@@ -948,7 +947,7 @@ TFile *f;
       if(!f->IsOpen()) return ;
       TObjString *STR=(TObjString *)f->Get("run number");
       
-      if(STR){ string Ref(STR->String()); ReferenceRun=Ref;}
+      if(STR){ std::string Ref(STR->String()); ReferenceRun=Ref;}
       
       TTree*  t=(TTree*)f->Get("HCAL Pedestal data");
       if(!t) return;

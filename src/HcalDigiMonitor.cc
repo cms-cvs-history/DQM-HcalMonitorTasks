@@ -6,24 +6,21 @@
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerReadoutRecord.h"
 
-using namespace std;
-using namespace edm;
-
 // constructor
-HcalDigiMonitor::HcalDigiMonitor(const ParameterSet& ps) 
+HcalDigiMonitor::HcalDigiMonitor(const edm::ParameterSet& ps) 
 {
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DigiMonitor_Hcal"); 
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","DigiMonitor_Hcal"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -132,9 +129,9 @@ void HcalDigiMonitor::setup()
 
   /******* Set up all histograms  ********/
   if (debug_>1)
-    std::cout <<"<HcalDigiMonitor::beginRun>  Setting up histograms"<<endl;
+    std::cout <<"<HcalDigiMonitor::beginRun>  Setting up histograms"<<std::endl;
 
-  ostringstream name;
+  std::ostringstream name;
   dbe_->setCurrentFolder(subdir_);
   
   dbe_->setCurrentFolder(subdir_+"digi_parameters");
@@ -302,7 +299,7 @@ void HcalDigiMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 void HcalDigiMonitor::setupSubdetHists(DigiHists& hist, std::string subdet)
 {
   if (!dbe_) return;
-  stringstream name;
+  std::stringstream name;
   int nChan=0;
   if (subdet=="HB" || subdet=="HE") nChan=2592;
   else if (subdet == "HO") nChan=2160;
@@ -352,7 +349,7 @@ void HcalDigiMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
   edm::Handle<edm::TriggerResults> hltRes;
   if (!(e.getByLabel(hltresultsLabel_,hltRes)))
     {
-      if (debug_>0) LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
+      if (debug_>0) edm::LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
     }
   else
     {
@@ -380,29 +377,29 @@ void HcalDigiMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(digiLabel_,hbhe_digi)))
     {
-      LogWarning("HcalDigiMonitor")<< digiLabel_<<" hbhe_digi not available";
+      edm::LogWarning("HcalDigiMonitor")<< digiLabel_<<" hbhe_digi not available";
       return;
     }
   
   if (!(e.getByLabel(digiLabel_,hf_digi)))
     {
-      LogWarning("HcalDigiMonitor")<< digiLabel_<<" hf_digi not available";
+      edm::LogWarning("HcalDigiMonitor")<< digiLabel_<<" hf_digi not available";
       return;
     }
   if (!(e.getByLabel(digiLabel_,ho_digi)))
     {
-      LogWarning("HcalDigiMonitor")<< digiLabel_<<" ho_digi not available";
+      edm::LogWarning("HcalDigiMonitor")<< digiLabel_<<" ho_digi not available";
       return;
     }
   edm::Handle<HcalUnpackerReport> report;  
   if (!(e.getByLabel(digiLabel_,report)))
     {
-      LogWarning("HcalDigiMonitor")<< digiLabel_<<" unpacker report not available";
+      edm::LogWarning("HcalDigiMonitor")<< digiLabel_<<" unpacker report not available";
       return;
     }
 
   // all objects grabbed; event is good
-  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+  if (debug_>1) std::cout <<"\t<HcalDigiMonitor::analyze>  Processing good event! event # = "<<ievt_<<std::endl;
 
   HcalBaseDQMonitor::analyze(e,s); // base class increments ievt_, etc. counters
 
@@ -814,8 +811,8 @@ int HcalDigiMonitor::process_Digi(DIGI& digi, DigiHists& h, int& firstcap)
 	{
 	  double time_den=0, time_num=0;
 	  // form weighted time sum
-	  int startslice=max(0,maxtime-1);
-	  int endslice=min(digisize-1,maxtime+1);
+	  int startslice=std::max(0,maxtime-1);
+	  int endslice=std::min(digisize-1,maxtime+1);
 	  for (int ss=startslice;ss<=endslice;++ss)
 	    {
 	      // subtract 'default' pedestal of 2.5 fC

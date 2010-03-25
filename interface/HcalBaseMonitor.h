@@ -36,11 +36,10 @@
 // Temporary fix:  Add this into base class until I figure why multiple inclusions are a problem -- Jeff, 23 May 2008
 #include "CalibFormats/HcalObjects/interface/HcalCalibrationWidths.h"
 
-using namespace std;
 /** \class HcalBaseMonitor
   *  
-  * $Date: 2010/02/05 18:54:30 $
-  * $Revision: 1.38 $
+  * $Date: 2010/03/03 18:07:09 $
+  * $Revision: 1.38.2.1 $
   * \author W. Fisher - FNAL
   */
 class HcalBaseMonitor {
@@ -114,11 +113,11 @@ protected:
   
   DQMStore* m_dbe;
   bool Online_; // tracks whether code is run online or offline 
-  vector<string> badCells_; // keeps list of bad cells that should be ignored
-  string rootFolder_;
-  string baseFolder_;
+  std::vector<std::string> badCells_; // keeps list of bad cells that should be ignored
+  std::string rootFolder_;
+  std::string baseFolder_;
 
-  vector<int> AllowedCalibTypes_;
+  std::vector<int> AllowedCalibTypes_;
   // Eventually, remove these -- problem cells get processed in client
   MonitorElement* ProblemCells;
   EtaPhiHists ProblemCellsByDepth;

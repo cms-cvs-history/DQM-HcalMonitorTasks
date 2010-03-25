@@ -13,7 +13,7 @@
 //
 // Original Author:  Dmitry Vishnevskiy,591 R-013,+41227674265,
 //         Created:  Wed Mar  3 12:14:16 CET 2010
-// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.4 2010/03/16 20:04:15 temple Exp $
+// $Id: HcalDetDiagLaserMonitor.cc,v 1.7.4.5 2010/03/20 20:56:46 temple Exp $
 //
 //
 
@@ -31,8 +31,7 @@
 #include "CalibFormats/HcalObjects/interface/HcalDbRecord.h"
 
 #include <math.h>
-using namespace edm;
-using namespace std;
+
 // this is to retrieve HCAL digi's
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 // to retrive trigger information (local runs only)
@@ -288,15 +287,15 @@ HcalDetDiagLaserMonitor::HcalDetDiagLaserMonitor(const edm::ParameterSet& iConfi
   nHBHEchecks=nHOchecks=nHFchecks=0;
 
   inputLabelDigi_  = iConfig.getUntrackedParameter<edm::InputTag>("digiLabel");
-  ReferenceData    = iConfig.getUntrackedParameter<string>("LaserReferenceData" ,"");
-  OutputFilePath   = iConfig.getUntrackedParameter<string>("OutputFilePath", "");
+  ReferenceData    = iConfig.getUntrackedParameter<std::string>("LaserReferenceData" ,"");
+  OutputFilePath   = iConfig.getUntrackedParameter<std::string>("OutputFilePath", "");
   enableHTML       = iConfig.getUntrackedParameter<bool>  ("enableHTML",false);
-  BaseHTMLpath     = iConfig.getUntrackedParameter<string>("BaseHTMLpath","");
+  BaseHTMLpath     = iConfig.getUntrackedParameter<std::string>("BaseHTMLpath","");
   Online_          = iConfig.getUntrackedParameter<bool>  ("online",false);
-  prefixME_        = iConfig.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_        = iConfig.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.size()>0 && prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_          = iConfig.getUntrackedParameter<string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
+  subdir_          = iConfig.getUntrackedParameter<std::string>("TaskFolder","DetDiagPedestalMonitor_Hcal/");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
@@ -1283,7 +1282,7 @@ TFile *f;
       if(!f->IsOpen()) return ;
       TObjString *STR=(TObjString *)f->Get("run number");
       
-      if(STR){ string Ref(STR->String()); ReferenceRun=Ref;}
+      if(STR){ std::string Ref(STR->String()); ReferenceRun=Ref;}
       
       TTree*  t=(TTree*)f->Get("HCAL Laser data");
       if(!t) return;

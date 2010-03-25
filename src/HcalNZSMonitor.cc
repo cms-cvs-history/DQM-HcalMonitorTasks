@@ -8,28 +8,25 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 #include <math.h>
 
-using namespace std;
-using namespace edm;
-
 HcalNZSMonitor::HcalNZSMonitor(const edm::ParameterSet& ps) 
 {
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","NZSMonitor_Hcal"); 
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","NZSMonitor_Hcal"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS","false");
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
 
-  triggers_=ps.getUntrackedParameter<vector<string> >("nzsHLTnames"); //["HLT_HcalPhiSym","HLT_HcalNZS_8E29]
+  triggers_=ps.getUntrackedParameter<std::vector<std::string> >("nzsHLTnames"); //["HLT_HcalPhiSym","HLT_HcalNZS_8E29]
   period_=ps.getUntrackedParameter<int>("NZSeventPeriod",4096); //4096
   rawdataLabel_          = ps.getUntrackedParameter<edm::InputTag>("RawDataLabel");
   hltresultsLabel_       = ps.getUntrackedParameter<edm::InputTag>("HLTResultsLabel");
@@ -139,14 +136,14 @@ void HcalNZSMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(rawdataLabel_,rawraw)))
     {
-      LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<rawdataLabel_<<" not available";
+      edm::LogWarning("HcalNZSMonitor")<<" raw data with label "<<rawdataLabel_<<" not available";
       return;
     }
 
   edm::Handle<edm::TriggerResults> hltRes;
   if (!(e.getByLabel(hltresultsLabel_,hltRes)))
     {
-      if (debug_>0) LogWarning("HcalNZSMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
+      if (debug_>0) edm::LogWarning("HcalNZSMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
       return;
     }
 
@@ -172,7 +169,7 @@ void HcalNZSMonitor::processEvent(const FEDRawDataCollection& rawraw,
 
   const unsigned int nTrig(triggerNames.size());
  
-  vector<bool> trigAcc;
+  std::vector<bool> trigAcc;
   for (unsigned int i=0; i<triggers_.size(); i++) trigAcc.push_back(false);
   
    for (unsigned int k=0; k<nTrig; k++)

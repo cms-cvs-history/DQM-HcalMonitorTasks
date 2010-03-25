@@ -1,8 +1,5 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDeadCellMonitor.h"
 
-using namespace std;
-using namespace edm;
-
 HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
 {
   Online_                = ps.getUntrackedParameter<bool>("online",false);
@@ -10,14 +7,14 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DeadCellMonitor_Hcal"); // DeadCellMonitor_Hcal
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","DeadCellMonitor_Hcal"); // DeadCellMonitor_Hcal
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
 
@@ -127,8 +124,8 @@ void HcalDeadCellMonitor::setup()
   // ProblemCells plots are in HcalDeadCellClient!
       
   // Set up plots for each failure mode of dead cells
-  stringstream units; // We'll need to set the titles individually, rather than passing units to SetupEtaPhiHists (since this also would affect the name of the histograms)
-  stringstream name;
+  std::stringstream units; // We'll need to set the titles individually, rather than passing units to SetupEtaPhiHists (since this also would affect the name of the histograms)
+  std::stringstream name;
 
   // Never-present test will always be called, by definition of dead cell
 
@@ -462,37 +459,37 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(digiLabel_,hbhe_digi)))
     {
-      LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" hbhe_digi not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" hbhe_digi not available";
       return;
     }
   if (!(e.getByLabel(digiLabel_,ho_digi)))
     {
-      LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" ho_digi not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" ho_digi not available";
       return;
     }
   if (!(e.getByLabel(digiLabel_,hf_digi)))
     {
-      LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" hf_digi not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< digiLabel_<<" hf_digi not available";
       return;
     }
 
   if (!(e.getByLabel(hbheRechitLabel_,hbhe_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
       return;
     }
 
   if (!(e.getByLabel(hfRechitLabel_,hf_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
       return;
     }
   if (!(e.getByLabel(hoRechitLabel_,ho_rechit)))
     {
-      LogWarning("HcalDeadCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
+      edm::LogWarning("HcalDeadCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
-  if (debug_>1) std::cout <<"\t<HcalDeadCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<endl;
+  if (debug_>1) std::cout <<"\t<HcalDeadCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<std::endl;
   // Good event found; increment counter (via base class analyze method)
   // This also runs the allowed calibration /lumi in order tests again;  remove?
   HcalBaseDQMonitor::analyze(e,s);

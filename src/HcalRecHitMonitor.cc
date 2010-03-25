@@ -12,9 +12,6 @@
 #include "FWCore/MessageLogger/interface/MessageLogger.h"
 #include <cmath>
 
-using namespace std;
-using namespace edm;
-
 HcalRecHitMonitor::HcalRecHitMonitor(const edm::ParameterSet& ps)
 {
   // Common Base Class parameters
@@ -22,14 +19,14 @@ HcalRecHitMonitor::HcalRecHitMonitor(const edm::ParameterSet& ps)
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","RecHitMonitor_Hcal/"); 
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","RecHitMonitor_Hcal/"); 
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",false);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -74,7 +71,7 @@ void HcalRecHitMonitor::setup()
 
 
   if (debug_>0)
-    std::cout <<"<HcalRecHitMonitor::setup>  Setting up histograms"<<endl;
+    std::cout <<"<HcalRecHitMonitor::setup>  Setting up histograms"<<std::endl;
 
   // Can we include this just in the setup, or do we need to get a new logical map with every run?
   HcalLogicalMapGenerator gen;
@@ -83,7 +80,7 @@ void HcalRecHitMonitor::setup()
   // RecHit Monitor - specific cfg variables
 
   if (debug_>1)
-    std::cout <<"<HcalRecHitMonitor::setup>  Creating Histograms"<<endl;
+    std::cout <<"<HcalRecHitMonitor::setup>  Creating Histograms"<<std::endl;
 
   dbe_->setCurrentFolder(subdir_);
   h_TriggeredEvents=dbe_->book1D("EventTriggers","EventTriggers",3,-0.5,2.5);
@@ -443,7 +440,7 @@ void HcalRecHitMonitor::setup()
 void HcalRecHitMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 {
 
-  if (debug_>0) std::cout <<"HcalRecHitMonitor::beginRun():  task =  '"<<subdir_<<"'"<<endl;
+  if (debug_>0) std::cout <<"HcalRecHitMonitor::beginRun():  task =  '"<<subdir_<<"'"<<std::endl;
   HcalBaseDQMonitor::beginRun(run, c);
   if (tevt_==0) // create histograms, if they haven't been created already
     this->setup();
@@ -474,7 +471,7 @@ void HcalRecHitMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
 
 void HcalRecHitMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
 {
-  if (debug_>0) std::cout <<"HcalRecHitMonitor::endRun():  task =  '"<<subdir_<<"'"<<endl;
+  if (debug_>0) std::cout <<"HcalRecHitMonitor::endRun():  task =  '"<<subdir_<<"'"<<std::endl;
 
   //Any special fill calls needed?  Shouldn't be necessary; last endLuminosityBlock should do necessary fills
 } // void HcalRecHitMonitor::endrun(...)
@@ -545,19 +542,19 @@ void HcalRecHitMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 
   if (!(e.getByLabel(hbheRechitLabel_,hbhe_rechit)))
     {
-      LogWarning("HcalHotCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
+      edm::LogWarning("HcalHotCellMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
       return;
     }
 
   if (!(e.getByLabel(hfRechitLabel_,hf_rechit)))
     {
-      LogWarning("HcalHotCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
+      edm::LogWarning("HcalHotCellMonitor")<< hfRechitLabel_<<" hf_rechit not available";
       return;
     }
   
   if (!(e.getByLabel(hoRechitLabel_,ho_rechit)))
     {
-      LogWarning("HcalHotCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
+      edm::LogWarning("HcalHotCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
 
@@ -579,7 +576,7 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
 {
 
   
-  if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent> Processing event..."<<endl;
+  if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent> Processing event..."<<std::endl;
 
 
   bool passedHcalHLT=false;
@@ -588,7 +585,7 @@ void HcalRecHitMonitor::processEvent(const HBHERecHitCollection& hbHits,
   edm::Handle<edm::TriggerResults> hltRes;
   if (!(iEvent.getByLabel(hltresultsLabel_,hltRes)))
     {
-      if (debug_>0) LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
+      if (debug_>0) edm::LogWarning("HcalRecHitMonitor")<<" Could not get HLT results with tag "<<hltresultsLabel_<<std::endl;
     }
   else
     {
@@ -643,7 +640,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   
   //const float area[]={0.111,0.175,0.175,0.175,0.175,0.175,0.174,0.178,0.172,0.175,0.178,0.346,0.604};
 
-  if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent_rechitenergy> Processing rechits..."<<endl;
+  if (debug_>1) std::cout <<"<HcalRecHitMonitor::processEvent_rechitenergy> Processing rechits..."<<std::endl;
   
   // loop over HBHE
   
@@ -1020,7 +1017,7 @@ void HcalRecHitMonitor::processEvent_rechit( const HBHERecHitCollection& hbheHit
   HFeMinus>0 ? HFtMinus/=HFeMinus  : HFtMinus = -10000;
      
   double mintime=99;  // used to be min(tPlus,tMinus);
-  double minHT=min(HtMinus,HtPlus);
+  double minHT=std::min(HtMinus,HtPlus);
   minHT==HtMinus ?  mintime=HFtMinus : mintime = HFtPlus;
   //mintime = min(HFtPlus,HFtMinus); // I think we might want to use this value for mintime?
 
@@ -1118,7 +1115,7 @@ void HcalRecHitMonitor::fill_Nevents(void)
   if (debug_>0)
     {
       for (int k = 0; k < 32; k++){
-	std::cout << "<HcalRecHitMonitor::fill_Nevents>  HF Flag counter:  Bin #" << k+1 << " = "<< HFflagcounter_[k] << endl;
+	std::cout << "<HcalRecHitMonitor::fill_Nevents>  HF Flag counter:  Bin #" << k+1 << " = "<< HFflagcounter_[k] << std::endl;
       }
     }
 
@@ -1266,7 +1263,7 @@ void HcalRecHitMonitor::fill_Nevents(void)
   //zeroCounters();
 
   if (debug_>0)
-    std::cout <<"<HcalRecHitMonitor::fill_Nevents> FILLED REC HIT CELL PLOTS"<<endl;
+    std::cout <<"<HcalRecHitMonitor::fill_Nevents> FILLED REC HIT CELL PLOTS"<<std::endl;
 
 } // void HcalRecHitMonitor::fill_Nevents(void)
 

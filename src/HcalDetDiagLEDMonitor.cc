@@ -17,8 +17,6 @@
 #include "TTree.h"
 #include <math.h>
 
-using namespace edm;
-using namespace std;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 static const float adc2fC[128]={-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5, 10.5,11.5,12.5,
@@ -128,14 +126,14 @@ HcalDetDiagLEDMonitor::HcalDetDiagLEDMonitor(const edm::ParameterSet& ps) {
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","DetDiagLEDMonitor_Hcal");
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","DetDiagLEDMonitor_Hcal");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS","false");
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -144,8 +142,8 @@ HcalDetDiagLEDMonitor::HcalDetDiagLEDMonitor(const edm::ParameterSet& ps) {
   LEDRmsTreshold   = ps.getUntrackedParameter<double>("LEDRmsTreshold"  , 0.1);
   UseDB            = ps.getUntrackedParameter<bool>  ("UseDB"  , false);
   
-  ReferenceData    = ps.getUntrackedParameter<string>("LEDReferenceData" ,"");
-  OutputFilePath   = ps.getUntrackedParameter<string>("OutputFilePath", "");
+  ReferenceData    = ps.getUntrackedParameter<std::string>("LEDReferenceData" ,"");
+  OutputFilePath   = ps.getUntrackedParameter<std::string>("OutputFilePath", "");
 
   digiLabel_       = ps.getUntrackedParameter<edm::InputTag>("digiLabel", edm::InputTag("hcalDigis"));
   calibDigiLabel_  = ps.getUntrackedParameter<edm::InputTag>("calibDigiLabel",edm::InputTag("hcalDigis"));
@@ -673,7 +671,7 @@ TFile *f;
       if(!f->IsOpen()) return ;
       TObjString *STR=(TObjString *)f->Get("run number");
       
-      if(STR){ string Ref(STR->String()); ReferenceRun=Ref;}
+      if(STR){ std::string Ref(STR->String()); ReferenceRun=Ref;}
       
       TTree*  t=(TTree*)f->Get("HCAL LED data");
       if(!t) return;

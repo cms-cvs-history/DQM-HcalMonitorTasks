@@ -61,9 +61,6 @@
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
 
 #include <math.h>
-using namespace edm;
-using namespace std;
-using namespace reco;
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 static const float adc2fC[128]={-0.5,0.5,1.5,2.5,3.5,4.5,5.5,6.5,7.5,8.5,9.5, 10.5,11.5,12.5,
@@ -586,7 +583,7 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
 
      if (!iEvent.getByLabel(hlTriggerResults_, hltTriggerResultHandle))
        {
-	 if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Trigger results handle "<<hlTriggerResults_<<" not found!";
+	 if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Trigger results handle "<<hlTriggerResults_<<" not found!";
 	 return;
        }
 
@@ -620,7 +617,7 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
      bool passedVertexCuts = true;
      if(UseVertexCuts_) {
        // vertex collection
-       Handle<VertexCollection> _primaryEventVertexCollection;
+       edm::Handle<VertexCollection> _primaryEventVertexCollection;
        iEvent.getByLabel(VertexSource_, _primaryEventVertexCollection);
        if(_primaryEventVertexCollection.isValid()) {
          const reco::Vertex& thePrimaryEventVertex = (*(_primaryEventVertexCollection)->begin());
@@ -639,7 +636,7 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
 
      if (!iEvent.getByLabel(MetSource_, metHandle))
        {
-	 if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloMET collection with handle "<<MetSource_<<" not found!";
+	 if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloMET collection with handle "<<MetSource_<<" not found!";
 	 return;
        }
 
@@ -671,24 +668,24 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
      if(!found) {lumi.push_back(iEvent.luminosityBlock()); NLumiSections->Fill(0.5);}
 
      // jet collection
-     Handle<CaloJetCollection> calojetHandle;
+     edm::Handle<CaloJetCollection> calojetHandle;
      if (!iEvent.getByLabel(JetSource_, calojetHandle))
        {
-        if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloJet collection with handle "<<JetSource_<<" not found!";
+        if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloJet collection with handle "<<JetSource_<<" not found!";
          return;
        }
      // track collection
-     Handle<TrackCollection> trackHandle;
+     edm::Handle<TrackCollection> trackHandle;
      if (!iEvent.getByLabel(TrackSource_, trackHandle))
        {
-         if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Track collection with handle "<<TrackSource_<<" not found!";
+         if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  Track collection with handle "<<TrackSource_<<" not found!";
          return;
        }
      // HcalNoise RBX collection
-     Handle<HcalNoiseRBXCollection> rbxnoisehandle;
+     edm::Handle<HcalNoiseRBXCollection> rbxnoisehandle;
      if (!iEvent.getByLabel(rbxCollName_, rbxnoisehandle))
        {
-         if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  HcalNoiseRBX collection with handle "<<rbxCollName_<<" not found!";
+         if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  HcalNoiseRBX collection with handle "<<rbxCollName_<<" not found!";
          return;
        }
 
@@ -740,7 +737,7 @@ void HcalDetDiagNoiseMonitor::analyze(const edm::Event& iEvent, const edm::Event
      edm::Handle<CaloTowerCollection> towerhandle;
      if (!iEvent.getByLabel(caloTowerCollName_, towerhandle))
        {
-         if (debug_>0) LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloTower collection with handle "<<caloTowerCollName_<<" not found!";
+         if (debug_>0) edm::LogWarning("HcalMonitorTasks")<<" HcalDetDiagNoiseMonitor:  CaloTower collection with handle "<<caloTowerCollName_<<" not found!";
          return;
        }
 

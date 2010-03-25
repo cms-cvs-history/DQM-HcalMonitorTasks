@@ -5,24 +5,21 @@
 #include "DataFormats/FEDRawData/interface/FEDTrailer.h"
 #include <iostream>
 
-using namespace std;
-using namespace edm;
-
-HcalDataIntegrityTask::HcalDataIntegrityTask(const ParameterSet& ps) 
+HcalDataIntegrityTask::HcalDataIntegrityTask(const edm::ParameterSet& ps) 
 {
 
   Online_                = ps.getUntrackedParameter<bool>("online",false);
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal"); 
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal"); 
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","HcalDataIntegrityTask");
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","HcalDataIntegrityTask");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",false);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -59,7 +56,7 @@ void HcalDataIntegrityTask::cleanup()
 void HcalDataIntegrityTask::beginRun(const edm::Run& run, const edm::EventSetup& c)
 {
 
-  if (debug_>0) std::cout <<"HcalDataIntegrityTask::beginRun():  task =  '"<<subdir_<<"'"<<endl;
+  if (debug_>0) std::cout <<"HcalDataIntegrityTask::beginRun():  task =  '"<<subdir_<<"'"<<std::endl;
 
   HcalBaseDQMonitor::beginRun(run, c);
   if (mergeRuns_ && tevt_>0) return;
@@ -103,18 +100,18 @@ void HcalDataIntegrityTask::setup()
   problemHO.clear();
 
   // ... nothing goes at ieta=0, so an extra bin goes there.
-  phatmap = vector< vector < uint64_t> > ( ietarange + 1, phatv);
-  HBmap   = vector< vector < uint64_t> > ( ietarange + 1, phatv);
-  HEmap   = vector< vector < uint64_t> > ( ietarange + 1, phatv);
-  HFmap   = vector< vector < uint64_t> > ( ietarange + 1, phatv);
-  HOmap   = vector< vector < uint64_t> > ( ietarange + 1, phatv);
+  phatmap = std::vector< std::vector < uint64_t> > ( ietarange + 1, phatv);
+  HBmap   = std::vector< std::vector < uint64_t> > ( ietarange + 1, phatv);
+  HEmap   = std::vector< std::vector < uint64_t> > ( ietarange + 1, phatv);
+  HFmap   = std::vector< std::vector < uint64_t> > ( ietarange + 1, phatv);
+  HOmap   = std::vector< std::vector < uint64_t> > ( ietarange + 1, phatv);
   std::vector<bool> probvect (iphirange + 1, 0);
   // ... nothing goes at ieta=0, so an extra bin goes there.
-  problemhere = vector< vector <bool> > ( ietarange + 1, probvect);
-  problemHB   = vector< vector <bool> > ( ietarange + 1, probvect);
-  problemHE   = vector< vector <bool> > ( ietarange + 1, probvect);
-  problemHF   = vector< vector <bool> > ( ietarange + 1, probvect);
-  problemHO   = vector< vector <bool> > ( ietarange + 1, probvect);
+  problemhere = std::vector< std::vector <bool> > ( ietarange + 1, probvect);
+  problemHB   = std::vector< std::vector <bool> > ( ietarange + 1, probvect);
+  problemHE   = std::vector< std::vector <bool> > ( ietarange + 1, probvect);
+  problemHF   = std::vector< std::vector <bool> > ( ietarange + 1, probvect);
+  problemHO   = std::vector< std::vector <bool> > ( ietarange + 1, probvect);
 
 
 
@@ -160,14 +157,14 @@ void HcalDataIntegrityTask::analyze(edm::Event const&e, edm::EventSetup const&s)
   // Trying new getByLabel
   if (!(e.getByLabel(inputLabelRawData_,rawraw)))
     {
-      if (debug_>0) LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<inputLabelRawData_<<" not available";
+      if (debug_>0) edm::LogWarning("HcalDataIntegrityTask")<<" raw data with label "<<inputLabelRawData_<<" not available";
       return;
     }
   
   edm::Handle<HcalUnpackerReport> report;
   if (!(e.getByLabel(inputLabelReport_,report)))
     {
-      if (debug_>0) LogWarning("HcalDataIntegrityTask")<<" UnpackerReport with label "<<inputLabelReport_<<" \not available";
+      if (debug_>0) edm::LogWarning("HcalDataIntegrityTask")<<" UnpackerReport with label "<<inputLabelReport_<<" \not available";
       return;
     }
   
@@ -190,7 +187,7 @@ void HcalDataIntegrityTask::processEvent(const FEDRawDataCollection& rawraw,
     }
 
   // Loop over all FEDs reporting the event, unpacking if good.
-  for (vector<int>::const_iterator i=fedUnpackList_.begin();i!=fedUnpackList_.end(); i++) 
+  for (std::vector<int>::const_iterator i=fedUnpackList_.begin();i!=fedUnpackList_.end(); i++) 
     {
       const FEDRawData& fed = rawraw.FEDData(*i);
       if (fed.size()<12) continue; // Was 16. How do such tiny events even get here?
@@ -226,7 +223,7 @@ void HcalDataIntegrityTask::unpack(const FEDRawData& raw,
   CDFvers_it = CDFversionNumber_list.find(dccid);
   if (CDFvers_it  == CDFversionNumber_list.end()) 
     {
-      CDFversionNumber_list.insert(pair<int,short>
+      CDFversionNumber_list.insert(std::pair<int,short>
 				   (dccid,dccHeader->getCDFversionNumber() ) );
       CDFvers_it = CDFversionNumber_list.find(dccid);
     } // then check against it.
@@ -240,7 +237,7 @@ void HcalDataIntegrityTask::unpack(const FEDRawData& raw,
   CDFEvT_it = CDFEventType_list.find(dccid);
   if (CDFEvT_it  == CDFEventType_list.end()) 
     {
-      CDFEventType_list.insert(pair<int,short>
+      CDFEventType_list.insert(std::pair<int,short>
 			       (dccid,dccHeader->getCDFEventType() ) );
       CDFEvT_it = CDFEventType_list.find(dccid);
     } // then check against it.
@@ -267,7 +264,7 @@ void HcalDataIntegrityTask::unpack(const FEDRawData& raw,
 
   CDFReservedBits_it = CDFReservedBits_list.find(dccid);
   if (CDFReservedBits_it  == CDFReservedBits_list.end()) {
-    CDFReservedBits_list.insert(pair<int,short>
+    CDFReservedBits_list.insert(std::pair<int,short>
 				(dccid,dccHeader->getSlink64ReservedBits() ) );
     CDFReservedBits_it = CDFReservedBits_list.find(dccid);
   } // then check against it.

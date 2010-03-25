@@ -7,8 +7,6 @@
 #include "EventFilter/HcalRawToDigi/interface/HcalDCCHeader.h"
 
 #include <math.h>
-using namespace edm;
-using namespace std;
 
 // this is to retrieve HCAL digi's
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
@@ -168,7 +166,7 @@ void HcalDetDiagTimingMonitor::analyze(const edm::Event& iEvent, const edm::Even
   /////////////////////////////////////////////////////////////////////////////////////////
   bool GCTTrigger1=false,GCTTrigger2=false,GCTTrigger3=false,GCTTrigger4=false,GCTTrigger5=false,HOselfTrigger=false;
   // Check GCT trigger bits
-  Handle< L1GlobalTriggerReadoutRecord > gtRecord;
+  edm::Handle< L1GlobalTriggerReadoutRecord > gtRecord;
   iEvent.getByLabel(L1ADataLabel_, gtRecord);
   if(gtRecord.isValid()){
     const TechnicalTriggerWord tWord = gtRecord->technicalTriggerWord();

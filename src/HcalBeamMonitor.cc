@@ -14,7 +14,6 @@
 #define HOETASIZE 32  // ""
 #define HFETASIZE 84  // ""
 
-using namespace std;
 /*  Task calculates various moments of Hcal recHits 
 
     v1.0
@@ -22,9 +21,6 @@ using namespace std;
     by Jeff Temple
 
 */
-
-using namespace edm;
-using namespace std;
 
 // constructor
 HcalBeamMonitor::HcalBeamMonitor(const edm::ParameterSet& ps):
@@ -39,14 +35,14 @@ HcalBeamMonitor::HcalBeamMonitor(const edm::ParameterSet& ps):
   mergeRuns_             = ps.getUntrackedParameter<bool>("mergeRuns",false);
   enableCleanup_         = ps.getUntrackedParameter<bool>("enableCleanup",false);
   debug_                 = ps.getUntrackedParameter<int>("debug",0);
-  prefixME_              = ps.getUntrackedParameter<string>("subSystemFolder","Hcal/");
+  prefixME_              = ps.getUntrackedParameter<std::string>("subSystemFolder","Hcal/");
   if (prefixME_.substr(prefixME_.size()-1,prefixME_.size())!="/")
     prefixME_.append("/");
-  subdir_                = ps.getUntrackedParameter<string>("TaskFolder","BeamMonitor_Hcal");
+  subdir_                = ps.getUntrackedParameter<std::string>("TaskFolder","BeamMonitor_Hcal");
   if (subdir_.size()>0 && subdir_.substr(subdir_.size()-1,subdir_.size())!="/")
     subdir_.append("/");
   subdir_=prefixME_+subdir_;
-  AllowedCalibTypes_     = ps.getUntrackedParameter<vector<int> > ("AllowedCalibTypes");
+  AllowedCalibTypes_     = ps.getUntrackedParameter<std::vector<int> > ("AllowedCalibTypes");
   skipOutOfOrderLS_      = ps.getUntrackedParameter<bool>("skipOutOfOrderLS",true);
   NLumiBlocks_           = ps.getUntrackedParameter<int>("NLumiBlocks",4000);
   makeDiagnostics_       = ps.getUntrackedParameter<bool>("makeDiagnostics",false);
@@ -327,7 +323,7 @@ void HcalBeamMonitor::setup()
   Occ_map_L=dbe_->book2D("Occ_map Long Fiber","Occ Map long Fiber (above threshold)",27,0,27,36,0.5,72.5);
   Occ_map_S=dbe_->book2D("Occ_map Short Fiber","Occ Map Short Fiber (above threshold)",27,0,27,36,0.5,72.5);
 
-  stringstream binlabel;
+  std::stringstream binlabel;
   for (int zz=0;zz<27;++zz)
     {
       if (zz<13)
@@ -400,9 +396,9 @@ void HcalBeamMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c)
   if (lumiqualitydir_.size()>0 && Online_==true)
     {
       outfile_ <<lumiqualitydir_<<"HcalHFLumistatus_"<<runNumber_<<".txt";
-      std::ofstream outStream(outfile_.str().c_str(),ios::app);
-      outStream<<"## Run "<<runNumber_<<endl;
-      outStream<<"## LumiBlock\tRing1Status\t\tRing2Status\t\tGlobalStatus\tNentries"<<endl;
+      std::ofstream outStream(outfile_.str().c_str(),std::ios::app);
+      outStream<<"## Run "<<runNumber_<<std::endl;
+      outStream<<"## LumiBlock\tRing1Status\t\tRing2Status\t\tGlobalStatus\tNentries"<<std::endl;
       outStream.close();
     }
 
@@ -468,24 +464,24 @@ void HcalBeamMonitor::analyze(const edm::Event& e, const edm::EventSetup& c)
   
   if (!(e.getByLabel(digiLabel_,hf_digi)))
     {
-      LogWarning("HcalBeamMonitor")<< digiLabel_<<" hf_digi not available";
+      edm::LogWarning("HcalBeamMonitor")<< digiLabel_<<" hf_digi not available";
       return;
     }
 
   if (!(e.getByLabel(hbheRechitLabel_,hbhe_rechit)))
     {
-      LogWarning("HcalBeamMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
+      edm::LogWarning("HcalBeamMonitor")<< hbheRechitLabel_<<" hbhe_rechit not available";
       return;
     }
 
   if (!(e.getByLabel(hfRechitLabel_,hf_rechit)))
     {
-      LogWarning("HcalBeamMonitor")<< hfRechitLabel_<<" hf_rechit not available";
+      edm::LogWarning("HcalBeamMonitor")<< hfRechitLabel_<<" hf_rechit not available";
       return;
     }
   if (!(e.getByLabel(hoRechitLabel_,ho_rechit)))
     {
-      LogWarning("HcalBeamMonitor")<< hoRechitLabel_<<" ho_rechit not available";
+      edm::LogWarning("HcalBeamMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
 
@@ -919,7 +915,7 @@ void HcalBeamMonitor::processEvent(const HBHERecHitCollection& hbheHits,
 	    //use only lumi rings
 	    if (((i+29) < 33) || ((i+29) > 36)) continue;
 	    ratiop=fabs((fabs(hitsp[i][j][0])-fabs(hitsp[i][j][1]))/(fabs(hitsp[i][j][0])+fabs(hitsp[i][j][1])));
-	    //cout<<ratiop<<endl;
+	    //cout<<ratiop<<std::endl;
 	    if ((hitsp_Et[i][j][0] > 5. && hitsp[i][j][1] < 1.8) || (hitsp_Et[i][j][1] > 5. &&  hitsp[i][j][0] < 1.2)){
 	      Etsum_ratio_p->Fill(ratiop);
 	      if(abs(ratiop>0.95)) Etsum_ratio_map->Fill(i,2*j+1); // i=4,5,6,7 for HFlumi rings 
@@ -1108,7 +1104,7 @@ void HcalBeamMonitor::beginLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
 
   if (lumiSeg.luminosityBlock()==lastProcessedLS_) return; // we're seeing more events from current lumi section (after some break) -- should not reset histogram
   HFlumi_occ_LS->Reset();
-  stringstream title;
+  std::stringstream title;
   title <<"HFlumi occupancy for LS # " <<currentLS;
   HFlumi_occ_LS->getTH2F()->SetTitle(title.str().c_str());
   return;
@@ -1140,8 +1136,8 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
       if (lumiqualitydir_.size()==0)
 	return;
       // dump out lumi quality file
-      std::ofstream outStream(outfile_.str().c_str(),ios::app);
-      outStream<<currentLS<<"\t\t-1\t\t\t-1\t\t\t-1\t\t"<<Nentries<<endl;
+      std::ofstream outStream(outfile_.str().c_str(),std::ios::app);
+      outStream<<currentLS<<"\t\t-1\t\t\t-1\t\t\t-1\t\t"<<Nentries<<std::endl;
       outStream.close();
       return;
     }
@@ -1268,9 +1264,9 @@ void HcalBeamMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg,
   if (lumiqualitydir_.size()==0)
     return;
   // dump out lumi quality file
-  std::ofstream outStream(outfile_.str().c_str(),ios::app);
+  std::ofstream outStream(outfile_.str().c_str(),std::ios::app);
   outStream.precision(6);
-  outStream<<currentLS<<"\t\t"<<ring1status<<"\t\t"<<ring2status<<"\t\t"<<totalstatus<<"\t\t"<<Nentries<<endl;
+  outStream<<currentLS<<"\t\t"<<ring1status<<"\t\t"<<ring2status<<"\t\t"<<totalstatus<<"\t\t"<<Nentries<<std::endl;
   outStream.close();
   return;
 }
