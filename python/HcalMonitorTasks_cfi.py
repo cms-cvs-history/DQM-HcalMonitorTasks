@@ -1,24 +1,23 @@
 import FWCore.ParameterSet.Config as cms
 
-from DQM.HcalMonitorTasks.HcalDigiMonitor_cfi            import *
-from DQM.HcalMonitorTasks.HcalHotCellMonitor_cfi         import *
-from DQM.HcalMonitorTasks.HcalDeadCellMonitor_cfi        import *
-from DQM.HcalMonitorTasks.HcalRecHitMonitor_cfi          import *
-from DQM.HcalMonitorTasks.HcalNZSMonitor_cfi             import *
-from DQM.HcalMonitorTasks.HcalBeamMonitor_cfi            import *
-from DQM.HcalMonitorTasks.HcalRawDataMonitor_cfi         import *
-from DQM.HcalMonitorTasks.HcalTrigPrimMonitor_cfi        import *
+from DQM.HcalMonitorTasks.HcalDigiMonitor_cfi          import *
+from DQM.HcalMonitorTasks.HcalHotCellMonitor_cfi       import *
+from DQM.HcalMonitorTasks.HcalDeadCellMonitor_cfi      import *
+from DQM.HcalMonitorTasks.HcalRecHitMonitor_cfi        import *
+from DQM.HcalMonitorTasks.HcalNZSMonitor_cfi           import *
+from DQM.HcalMonitorTasks.HcalBeamMonitor_cfi          import *
+from DQM.HcalMonitorTasks.HcalRawDataMonitor_cfi       import *
+from DQM.HcalMonitorTasks.HcalTrigPrimMonitor_cfi      import *
 
-from DQM.HcalMonitorTasks.HcalDataIntegrityTask_cfi      import *
+from DQM.HcalMonitorTasks.HcalDataIntegrityTask_cfi    import *
 
-from DQM.HcalMonitorTasks.HcalDetDiagLaserMonitor_cfi    import *
+from DQM.HcalMonitorTasks.HcalDetDiagLaserMonitor_cfi  import *
 from DQM.HcalMonitorTasks.HcalDetDiagPedestalMonitor_cfi import*
-from DQM.HcalMonitorTasks.HcalDetDiagLEDMonitor_cfi      import*
-from DQM.HcalMonitorTasks.HcalDetDiagNoiseMonitor_cfi    import*
-from DQM.HcalMonitorTasks.HcalDetDiagTimingMonitor_cfi   import*
+from DQM.HcalMonitorTasks.HcalDetDiagLEDMonitor_cfi import*
+from DQM.HcalMonitorTasks.HcalDetDiagNoiseMonitor_cfi import*
+from DQM.HcalMonitorTasks.HcalDetDiagTimingMonitor_cfi import*
 
-from DQM.HcalMonitorTasks.HcalLSbyLSMonitor_cfi          import*
-from DQM.HcalMonitorTasks.HcalCoarsePedestalMonitor_cfi  import *
+from DQM.HcalMonitorTasks.HcalLSbyLSMonitor_cfi import*
 
 hcalMonitorTasksTestSequence=cms.Sequence(hcalDigiMonitor
                                           *hcalHotCellMonitor
@@ -38,7 +37,6 @@ hcalMonitorTasksOnlineSequence = cms.Sequence(hcalDigiMonitor
                                               *hcalBeamMonitor
                                               *hcalRawDataMonitor
                                               *hcalTrigPrimMonitor
-                                              *hcalCoarsePedestalMonitor
                                               #*hcalDetDiagPedestalMonitor
                                               #*hcalDetDiagLaserMonitor
                                               #*hcalDetDiagLEDMonitor
@@ -84,7 +82,7 @@ def SetTaskParams(process,param, value):
     tasks=[hcalDigiMonitor,hcalRecHitMonitor,hcalHotCellMonitor,hcalDeadCellMonitor,
            hcalRawDataMonitor, hcalBeamMonitor, hcalTrigPrimMonitor, hcalNZSMonitor,
            hcalDataIntegrityMonitor, hcalDetDiagLaserMonitor, hcalDetDiagLEDMonitor,
-           hcalDetDiagNoiseMonitor, hcalDetDiagPedestalMonitor, hcalCoarsePedestalMonitor,
+           hcalDetDiagNoiseMonitor, hcalDetDiagPedestalMonitor,
            hcalDetDiagTimingMonitor, hcalLSbyLSMonitor]
     
     for i in tasks:
