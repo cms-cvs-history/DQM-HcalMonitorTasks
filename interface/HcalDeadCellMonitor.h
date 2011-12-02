@@ -7,6 +7,7 @@
 #include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
 #include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
 #include "DataFormats/Scalers/interface/DcsStatus.h"
+#include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerEvmReadoutRecord.h"
 
 // Channel status DB stuff
 
@@ -96,17 +97,18 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
   MonitorElement *NumberOfNeverPresentRecHits, *NumberOfNeverPresentRecHitsHB, *NumberOfNeverPresentRecHitsHE, *NumberOfNeverPresentRecHitsHO, *NumberOfNeverPresentRecHitsHF;
 
   MonitorElement *Nevents;
+  int beamMode_;
 
   MonitorElement *HBDeadVsEvent, *HEDeadVsEvent, *HODeadVsEvent, *HFDeadVsEvent;
   bool present_digi[85][72][4]; // tests that a good digi was present at least once
   bool present_rechit[85][72][4]; // tests that rechit with energy > threshold at least once
   unsigned int recentoccupancy_digi[85][72][4]; // tests that cells haven't gone missing for long periods
   unsigned int recentoccupancy_rechit[85][72][4]; // tests that cells haven't dropped below threshold for long periods
-  unsigned int occupancy_RBX[132];
+  unsigned int occupancy_RBX[156];
   
   int deadevt_; // running count of events processed since last dead cell check
   int is_RBX_loss_;
-  int rbxlost[132];
+  int rbxlost[156];
   int alarmer_counter_;
   bool hbhedcsON, hfdcsON;
   unsigned int NumBadHB, NumBadHE, NumBadHO, NumBadHF, NumBadHFLUMI, NumBadHO0, NumBadHO12;

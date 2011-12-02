@@ -34,6 +34,7 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
   minDeadEventCount_    = ps.getUntrackedParameter<int>("minDeadEventCount",1000);
   excludeHORing2_       = ps.getUntrackedParameter<bool>("excludeHORing2",false);
   excludeHO1P02_        = ps.getUntrackedParameter<bool>("excludeHO1P02",false);
+  endLumiProcessed_     = false;
 
   // Set which dead cell checks will be performed
   /* Dead cells can be defined in the following ways:
@@ -117,7 +118,7 @@ void HcalDeadCellMonitor::setup()
 
   RBX_loss_VS_LB=dbe_->book2D("RBX_loss_VS_LB",
 			      "RBX loss vs LS; Lumi Section; Index of lost RBX", 
-			      NLumiBlocks_,0.5,NLumiBlocks_+0.5,132,0,132);
+			      NLumiBlocks_,0.5,NLumiBlocks_+0.5,156,0,156);
 
   ProblemsInLastNLB_HBHEHF_alarm=dbe_->book1D("ProblemsInLastNLB_HBHEHF_alarm",
 					      "Total Number of Dead HBHEHF Cells in last 10 LS. Last bin contains OverFlow",
@@ -402,6 +403,7 @@ void HcalDeadCellMonitor::reset()
   zeroCounters();
   deadevt_=0;
   is_RBX_loss_ = 0;
+  beamMode_ = 0 ;
   alarmer_counter_ = 0;
   hbhedcsON = true; hfdcsON = true;
   ProblemsVsLB->Reset(); ProblemsVsLB_HB->Reset(); ProblemsVsLB_HE->Reset(); ProblemsVsLB_HO->Reset(); ProblemsVsLB_HF->Reset(); ProblemsVsLB_HBHEHF->Reset();
@@ -518,11 +520,12 @@ void HcalDeadCellMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg
     {
       fillNevents_problemCells();
       fillNevents_recentrechits();
+      fillNevents_recentdigis();
             
       endLumiProcessed_=true;
       is_RBX_loss_=0;
 
-      for (unsigned int i=0;i<132;++i)
+      for (unsigned int i=0;i<156;++i)
 	rbxlost[i] = 0;
 
       if (ProblemsCurrentLB)
@@ -561,7 +564,7 @@ void HcalDeadCellMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg
   zeroCounters();
   deadevt_=0;
   is_RBX_loss_=0;
-
+  beamMode_ = 0;
   return;
 } //endLuminosityBlock()
 
@@ -594,6 +597,8 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
   edm::Handle<HBHERecHitCollection> hbhe_rechit;
   edm::Handle<HORecHitCollection> ho_rechit;
   edm::Handle<HFRecHitCollection> hf_rechit;
+
+  edm::Handle<L1GlobalTriggerEvmReadoutRecord> gtEvm_handle;
  
   /////////////////////////////////////////////////////////////////
   // check if detectors whether they were ON
@@ -652,6 +657,13 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
       edm::LogWarning("HcalDeadCellMonitor")<< hoRechitLabel_<<" ho_rechit not available";
       return;
     }
+  if (!(e.getByLabel("gtEvmDigis", gtEvm_handle)))
+    {
+      edm::LogWarning("HcalDeadCellMonitor")<< "gtEvmDigis"<<" gtEvmDigis not available";
+      return;
+    }
+  L1GtfeExtWord gtfeEvmExtWord = gtEvm_handle.product()->gtfeWord();
+
   if (debug_>1) std::cout <<"\t<HcalDeadCellMonitor::analyze>  Processing good event! event # = "<<ievt_<<std::endl;
   // Good event found; increment counter (via base class analyze method)
   // This also runs the allowed calibration /lumi in order tests again;  remove?
@@ -688,15 +700,26 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 	    rbxlost[i] = 1;
 	  }
       
+      int intensity1_ = gtfeEvmExtWord.totalIntensityBeam1();
+      int intensity2_ = gtfeEvmExtWord.totalIntensityBeam2();
+      
+      for (unsigned int i=132;i<156;++i)
+	if(occupancy_RBX[i] == 0 && gtfeEvmExtWord.beamMode() == 11) 
+	  if(intensity1_>100 && intensity2_>100)                     // only in stable beam mode (11) and with circulating beams, otherwise 
+	  {                                                          // this check is too sensitive in HF
+	    is_RBX_loss_ = 1;
+	    rbxlost[i] = 1;
+	  }
+      
       // no RBX loss, reset the counters
       if (is_RBX_loss_ == 0)
-	for (unsigned int i=0;i<132;++i)
+	for (unsigned int i=0;i<156;++i)
 	  occupancy_RBX[i] = 0;
     }
 
   // if RBX is lost any time during the LS, don't allow the counters to increment
   if(is_RBX_loss_ == 1)
-    for (unsigned int i=0;i<132;++i)
+    for (unsigned int i=0;i<156;++i)
       if(rbxlost[i]==1) occupancy_RBX[i] = 0;
 
 } // void HcalDeadCellMonitor::analyze(...)
@@ -917,6 +940,12 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
 	  if (RecHitPresentByDepth.depth[depth-1])
 	    RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1);
 	}
+      /////////////////////////////
+      // RBX index, HF RBX indices are 132-155
+      int RBXindex = logicalMap_->getHcalFrontEndId(rechit->detid()).rbxIndex();
+      
+      occupancy_RBX[RBXindex]++;
+      /////////////////////////////
     }
   else if (id.subdet()==HcalOuter)
     {
@@ -975,7 +1004,7 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 		    HcalDetId TempID((HcalSubdetector)subdet, ieta, iphi, (int)depth+1);
 		    
 		    int index = logicalMap_->getHcalFrontEndId(TempID).rbxIndex();
-		    if(subdet==HcalForward) continue;
+		    // if(subdet==HcalForward) continue;
 		    
 		    if(occupancy_RBX[index]==0)
 		      {
@@ -1090,7 +1119,7 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
 		    HcalDetId TempID((HcalSubdetector)subdet, ieta, iphi, (int)depth+1);
 		    
 		    int index = logicalMap_->getHcalFrontEndId(TempID).rbxIndex();
-		    if(subdet==HcalForward) continue;
+		    // if(subdet==HcalForward) continue;
 		    
 		    if(occupancy_RBX[index]==0)
 		      {
@@ -1219,12 +1248,14 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
   unsigned int RBX_loss_HB=0;
   unsigned int RBX_loss_HE=0;
   unsigned int RBX_loss_HO=0;
+  unsigned int RBX_loss_HF=0;
 
   unsigned int counter_HB = 0;
   unsigned int counter_HE = 0;
   unsigned int counter_HO = 0;
+  unsigned int counter_HF = 0;
 
-  for(int i=0; i<132; i++)
+  for(int i=0; i<156; i++)
     {
       if(occupancy_RBX[i]==0 && is_RBX_loss_ == 1)
 	{
@@ -1232,8 +1263,10 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	    { counter_HB ++ ; RBX_loss_HB = 72*(counter_HB); }
 	  if(i>=36 && i<=71)   //HE
 	    { counter_HE ++ ; RBX_loss_HE = 72*(counter_HE); }
-	  if(i>=72 && i<=132)   //HO
+	  if(i>=72 && i<=131)   //HO
 	    { counter_HO ++ ; RBX_loss_HO = 72*(counter_HO); }
+	  if(i>=132 && i<=155)  //HF
+	    { counter_HF ++ ; RBX_loss_HF = 72*(counter_HF); }
 	  
 	  if(excludeHO1P02_==true && i==109) NumBadHO1P02 = 72; // exclude HO1P02
 	}
@@ -1250,14 +1283,17 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	NumBadHB+=RBX_loss_HB;
 	NumBadHE+=RBX_loss_HE;
 	NumBadHO+=RBX_loss_HO;
+	NumBadHF+=RBX_loss_HF;
 
 	belowenergyHB+=RBX_loss_HB;
 	belowenergyHE+=RBX_loss_HE;
 	belowenergyHO+=RBX_loss_HO;
+	belowenergyHF+=RBX_loss_HF;
 
 	unoccupiedHB+=RBX_loss_HB;
 	unoccupiedHE+=RBX_loss_HE;
 	unoccupiedHO+=RBX_loss_HO;
+	unoccupiedHF+=RBX_loss_HF;
       }
   ////////////////////////////
 
@@ -1436,6 +1472,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	NumBadHE+=RBX_loss_HE;
       if( NumBadHO<RBX_loss_HO )
 	NumBadHO+=RBX_loss_HO;
+      if( NumBadHF<RBX_loss_HF )
+	NumBadHF+=RBX_loss_HF;
 
       if( belowenergyHB<RBX_loss_HB )
 	belowenergyHB+=RBX_loss_HB;
@@ -1443,6 +1481,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	belowenergyHE+=RBX_loss_HE;
       if( belowenergyHO<RBX_loss_HO )
 	belowenergyHO+=RBX_loss_HO;
+      if( belowenergyHF<RBX_loss_HF )
+	belowenergyHF+=RBX_loss_HF;
 
       if( unoccupiedHB<RBX_loss_HB )
 	unoccupiedHB+=RBX_loss_HB;
@@ -1450,6 +1490,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	unoccupiedHE+=RBX_loss_HE;
       if( unoccupiedHO<RBX_loss_HO )
 	unoccupiedHO+=RBX_loss_HO;
+      if( unoccupiedHF<RBX_loss_HF )
+	unoccupiedHF+=RBX_loss_HF;
 
       is_RBX_loss_ = 0;
     }
@@ -1521,7 +1563,7 @@ void HcalDeadCellMonitor::zeroCounters(bool resetpresent)
 	}
     }
 
-  for (unsigned int i=0;i<132;++i)
+  for (unsigned int i=0;i<156;++i)
     {
       occupancy_RBX[i] = 0;
       rbxlost[i] = 0;
