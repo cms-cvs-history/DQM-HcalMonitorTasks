@@ -4,8 +4,6 @@
 #include "DQM/HcalMonitorTasks/interface/HcalBaseDQMonitor.h"
 #include "DataFormats/HcalDigi/interface/HcalDigiCollections.h"
 #include "DataFormats/HcalRecHit/interface/HcalRecHitCollections.h"
-#include "CalibCalorimetry/HcalAlgos/interface/HcalLogicalMapGenerator.h"
-#include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
 #include "DataFormats/Scalers/interface/DcsStatus.h"
 #include "DataFormats/L1GlobalTrigger/interface/L1GlobalTriggerEvmReadoutRecord.h"
 
@@ -25,8 +23,8 @@
 
 /** \class HcalDeadCellMonitor
   *
-  * $Date: 2011/05/23 14:54:10 $
-  * $Revision: 1.51 $
+  * $Date: 2012/06/27 13:20:28 $
+  * $Revision: 1.61 $
   * \author J. Temple - Univ. of Maryland
   */
 
@@ -46,7 +44,7 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
   void endJob();
   void cleanup(); // overrides base class function
   void reset();
-  
+
   void processEvent(const HBHERecHitCollection& hbHits,
                     const HORecHitCollection& hoHits,
                     const HFRecHitCollection& hfHits,
@@ -64,8 +62,6 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
 
   bool deadmon_makeDiagnostics_;
   int minDeadEventCount_;
-
-  HcalLogicalMap* logicalMap_;
 
   // Booleans to control which of the dead cell checking routines are used
   bool deadmon_test_digis_;
@@ -88,9 +84,10 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
   EtaPhiHists  RecHitPresentByDepth;
 
   // Problems vs. lumi block
-  MonitorElement *ProblemsVsLB, *ProblemsVsLB_HB, *ProblemsVsLB_HE, *ProblemsVsLB_HO, *ProblemsVsLB_HF;
+  MonitorElement *ProblemsVsLB, *ProblemsVsLB_HB, *ProblemsVsLB_HE, *ProblemsVsLB_HO, *ProblemsVsLB_HO2, *ProblemsVsLB_HF;
   MonitorElement *RBX_loss_VS_LB;
   MonitorElement *ProblemsInLastNLB_HBHEHF_alarm;
+  MonitorElement *ProblemsInLastNLB_HO01_alarm;
   MonitorElement *NumberOfNeverPresentDigis, *NumberOfNeverPresentDigisHB, *NumberOfNeverPresentDigisHE, *NumberOfNeverPresentDigisHO, *NumberOfNeverPresentDigisHF;
   MonitorElement *NumberOfRecentMissingDigis, *NumberOfRecentMissingDigisHB, *NumberOfRecentMissingDigisHE, *NumberOfRecentMissingDigisHO, *NumberOfRecentMissingDigisHF;
   MonitorElement *NumberOfRecentMissingRecHits, *NumberOfRecentMissingRecHitsHB, *NumberOfRecentMissingRecHitsHE, *NumberOfRecentMissingRecHitsHO, *NumberOfRecentMissingRecHitsHF;
@@ -98,6 +95,7 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
 
   MonitorElement *Nevents;
   int beamMode_;
+  bool doReset_;
 
   MonitorElement *HBDeadVsEvent, *HEDeadVsEvent, *HODeadVsEvent, *HFDeadVsEvent;
   bool present_digi[85][72][4]; // tests that a good digi was present at least once
@@ -105,13 +103,15 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
   unsigned int recentoccupancy_digi[85][72][4]; // tests that cells haven't gone missing for long periods
   unsigned int recentoccupancy_rechit[85][72][4]; // tests that cells haven't dropped below threshold for long periods
   unsigned int occupancy_RBX[156];
-  
+
   int deadevt_; // running count of events processed since last dead cell check
   int is_RBX_loss_;
   int rbxlost[156];
   int alarmer_counter_;
-  bool hbhedcsON, hfdcsON;
-  unsigned int NumBadHB, NumBadHE, NumBadHO, NumBadHF, NumBadHFLUMI, NumBadHO0, NumBadHO12;
+  int alarmer_counterHO01_;
+  bool is_stable_beam;
+  bool hbhedcsON, hfdcsON, hodcsON;
+  unsigned int NumBadHB, NumBadHE, NumBadHO, NumBadHO01, NumBadHO2, NumBadHF, NumBadHFLUMI, NumBadHO0, NumBadHO12;
   edm::InputTag digiLabel_;
   edm::InputTag hbheRechitLabel_, hoRechitLabel_, hfRechitLabel_;
 
@@ -119,6 +119,7 @@ class HcalDeadCellMonitor: public HcalBaseDQMonitor {
 
   bool excludeHORing2_;
   bool excludeHO1P02_;
+  bool setupDone_;
   int NumBadHO1P02;
 };
 

@@ -1,5 +1,6 @@
 #include "DQM/HcalMonitorTasks/interface/HcalDeadCellMonitor.h"
 #include "FWCore/Framework/interface/LuminosityBlock.h"
+#include "CondFormats/HcalObjects/interface/HcalLogicalMap.h"
 
 HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
 {
@@ -58,13 +59,12 @@ HcalDeadCellMonitor::HcalDeadCellMonitor(const edm::ParameterSet& ps)
   HOenergyThreshold_     = ps.getUntrackedParameter<double>("HO_energyThreshold",energyThreshold_);
   HFenergyThreshold_     = ps.getUntrackedParameter<double>("HF_energyThreshold",energyThreshold_);
 
-  HcalLogicalMapGenerator gen;
-  logicalMap_=new HcalLogicalMap(gen.createMap());
+  needLogicalMap_=true;
+  setupDone_=false;
 } //constructor
 
 HcalDeadCellMonitor::~HcalDeadCellMonitor()
 {
-  if (logicalMap_ == 0) delete logicalMap_;
 } //destructor
 
 
@@ -72,8 +72,19 @@ HcalDeadCellMonitor::~HcalDeadCellMonitor()
 
 void HcalDeadCellMonitor::setup()
 {
+  if (setupDone_)
+  {
+    // Always do a zeroing/resetting so that empty histograms/counter
+    // will always appear.
+    zeroCounters(1); // make sure arrays are set up
+    this->reset();
+
+    return;
+  }
+  else
+    setupDone_=true;
+  
   HcalBaseDQMonitor::setup();
-  zeroCounters(1); // make sure arrays are set up
   if (debug_>0)
     std::cout <<"<HcalDeadCellMonitor::setup>  Setting up histograms"<<std::endl;
 
@@ -100,7 +111,10 @@ void HcalDeadCellMonitor::setup()
 				     "Total Number of Dead HE Cells (excluding known problems) vs LS;Lumi Section;Dead Cells",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
   ProblemsVsLB_HO=dbe_->bookProfile("TotalDeadCells_HO_vs_LS",
-				     "Total Number of Dead HO Cells (excluding known problems) vs LS;Lumi Section;Dead Cells",
+				      "Total Number of Dead HO Cells Ring 0,1 |ieta|<=10 (excluding known problems) vs LS;Lumi Section;Dead Cells",
+				      NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
+  ProblemsVsLB_HO2=dbe_->bookProfile("TotalDeadCells_HO2_vs_LS",
+				     "Total Number of Dead HO Cells Ring 2 |ieta|>10 (excluding known problems) vs LS;Lumi Section;Dead Cells",
 				     NLumiBlocks_,0.5,NLumiBlocks_+0.5,100,0,10000);
   ProblemsVsLB_HF=dbe_->bookProfile("TotalDeadCells_HF_vs_LS",
 				     "Total Number of Dead HF Cells (excluding known problems) vs LS;Lumi Section;Dead Cells",
@@ -113,6 +127,7 @@ void HcalDeadCellMonitor::setup()
   (ProblemsVsLB_HB->getTProfile())->SetMarkerStyle(20);
   (ProblemsVsLB_HE->getTProfile())->SetMarkerStyle(20);
   (ProblemsVsLB_HO->getTProfile())->SetMarkerStyle(20);
+  (ProblemsVsLB_HO2->getTProfile())->SetMarkerStyle(20);
   (ProblemsVsLB_HF->getTProfile())->SetMarkerStyle(20);
   (ProblemsVsLB_HBHEHF->getTProfile())->SetMarkerStyle(20);
 
@@ -123,6 +138,9 @@ void HcalDeadCellMonitor::setup()
   ProblemsInLastNLB_HBHEHF_alarm=dbe_->book1D("ProblemsInLastNLB_HBHEHF_alarm",
 					      "Total Number of Dead HBHEHF Cells in last 10 LS. Last bin contains OverFlow",
 					      100,0,100);
+  ProblemsInLastNLB_HO01_alarm=dbe_->book1D("ProblemsInLastNLB_HO01_alarm",
+					    "Total Number of Dead Cells Ring 0,1 (abs(ieta)<=10) in last 10 LS. Last bin contains OverFlow",
+					    100,0,100);
 
 
   dbe_->setCurrentFolder(subdir_+"dead_cell_parameters");
@@ -357,7 +375,6 @@ void HcalDeadCellMonitor::setup()
       HFDeadVsEvent=dbe_->book1D("HFDeadVsEvent","HF Total Dead Cells Vs Event", NLumiBlocks_/10,-0.5,NLumiBlocks_-0.5);
     }
 
-  this->reset();
   return;
 
 } // void HcalDeadCellMonitor::setup(...)
@@ -370,6 +387,8 @@ void HcalDeadCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c
   if (tevt_==0) this->setup(); // set up histograms if they have not been created before
   if (mergeRuns_==false)
     this->reset();
+
+  doReset_ = true;
 
   // Get known dead cells for this run
   KnownBadCells_.clear();
@@ -387,9 +406,7 @@ void HcalDeadCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c
 	  HcalDetId id=HcalDetId(*i);
 	  int status=(chanquality->getValues(id))->getValue();
 	  if ((status & badChannelStatusMask_))
-	    {
-	      KnownBadCells_[id.rawId()]=status;
-	    }
+	    KnownBadCells_[id.rawId()]=status;
 	} 
       delete chanquality;
     } // if (badChannelStatusMask_>0)
@@ -399,21 +416,26 @@ void HcalDeadCellMonitor::beginRun(const edm::Run& run, const edm::EventSetup& c
 void HcalDeadCellMonitor::reset()
 {
   if (debug_>1) std::cout <<"HcalDeadCellMonitor::reset()"<<std::endl;
+  doReset_ = false;
+
   HcalBaseDQMonitor::reset();
   zeroCounters();
   deadevt_=0;
   is_RBX_loss_ = 0;
   beamMode_ = 0 ;
   alarmer_counter_ = 0;
-  hbhedcsON = true; hfdcsON = true;
-  ProblemsVsLB->Reset(); ProblemsVsLB_HB->Reset(); ProblemsVsLB_HE->Reset(); ProblemsVsLB_HO->Reset(); ProblemsVsLB_HF->Reset(); ProblemsVsLB_HBHEHF->Reset();
+  alarmer_counterHO01_ = 0;
+  is_stable_beam = true;
+  hbhedcsON = true; hfdcsON = true; hodcsON = true;
+  ProblemsVsLB->Reset(); ProblemsVsLB_HB->Reset(); ProblemsVsLB_HE->Reset(); ProblemsVsLB_HO->Reset(); ProblemsVsLB_HO2->Reset(); ProblemsVsLB_HF->Reset(); ProblemsVsLB_HBHEHF->Reset();
   RBX_loss_VS_LB->Reset();
   ProblemsInLastNLB_HBHEHF_alarm->Reset();
+  ProblemsInLastNLB_HO01_alarm->Reset();
   NumberOfNeverPresentDigis->Reset(); NumberOfNeverPresentDigisHB->Reset(); NumberOfNeverPresentDigisHE->Reset(); NumberOfNeverPresentDigisHO->Reset(); NumberOfNeverPresentDigisHF->Reset();
 
   for (unsigned int depth=0;depth<DigiPresentByDepth.depth.size();++depth)
     DigiPresentByDepth.depth[depth]->Reset();
-  
+
   // Mark HORing2 channels as present  (fill with a 2, rather than a 1, to distinguish between this setting and actual presence)
   if (excludeHORing2_==true && DigiPresentByDepth.depth.size()>3)
     {
@@ -505,12 +527,24 @@ void HcalDeadCellMonitor::endLuminosityBlock(const edm::LuminosityBlock& lumiSeg
       ProblemsCurrentLB->Reset();
 
   ProblemsInLastNLB_HBHEHF_alarm->Reset();
+  ProblemsInLastNLB_HO01_alarm->Reset();
 
   //increase the number of LS counting, for alarmer. Only make alarms for HBHE
   if(hbhedcsON == true && hfdcsON == true && HBpresent_ == 1 && HEpresent_ == 1 && HFpresent_ == 1)
     ++alarmer_counter_;
   else 
     alarmer_counter_ = 0;
+
+  if(hodcsON==true && HOpresent_ == 1)
+    ++alarmer_counterHO01_;
+  else 
+    alarmer_counterHO01_ = 0;
+
+  if (!is_stable_beam)
+    {
+      alarmer_counter_ = 0;
+      alarmer_counterHO01_ = 0;
+    }
 
   // Here is where we determine whether or not to process an event
   // Not enough events
@@ -574,6 +608,7 @@ void HcalDeadCellMonitor::endRun(const edm::Run& run, const edm::EventSetup& c)
   // Or should we require an absolute lower bound?
   // We can always run this test; we'll use the summary client to implement a lower bound before calculating reportSummary values
   if (endLumiProcessed_==false) fillNevents_problemCells(); // always check for never-present cells
+
   return;
 }
 
@@ -587,6 +622,10 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 {
   if (!IsAllowedCalibType()) return;
   endLumiProcessed_=false;
+
+  if(doReset_) 
+    this->reset();
+
   Nevents->Fill(0,1); // count all events of allowed calibration type, even if their lumi block is not in the right order
   if (LumiInOrder(e.luminosityBlock())==false) return;
   // try to get rechits and digis
@@ -622,6 +661,13 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
 	  if (debug_) std::cout << "hf on" << std::endl;
 	} 
       else hfdcsON = false;
+      
+      if ((*dcsStatus)[0].ready(DcsStatus::HO))
+	{
+	  hodcsON = true;
+	  if (debug_) std::cout << "ho on" << std::endl;
+	} 
+      else hodcsON = false;     
     }
   ///////////////////////////////////////////////////////////////
 
@@ -678,18 +724,19 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
     {                              //"wrong", calibration-type events. Compare with tevt_ instead...            
       for(int i=71; i<132; i++)
 	{
-	  //These RBXs in HO are excluded, set to 1 to ignore
-	  if(i >= 72 && i < 85)
+	  // These RBXs in HO are excluded, set to 1 to ignore
+	  // HO0: 96-107 (all)
+	  // HO1: 85-95, 109-119 (all odd)
+	  // HO2: 73, 75, 79, 81, 83, 121-131 (all odd)	  
+	  if(i >= 72 && i < 95 && i%2==0)
 	    occupancy_RBX[i] = 1;
-	  if(i >=85 && i <= 95 && i%2==0)
-	    occupancy_RBX[i] = 1;
-	  if(i >=108 && i <= 119 && i%2==0)
-	    occupancy_RBX[i] = 1;
-	  if(i >=120 && i <= 131)
+	  if(i >=108 && i <= 131 && i%2==0)
 	    occupancy_RBX[i] = 1;
 
 	  if(i==117 || i==131) // HO SiPMs have much less hits, 10 events not enough. 
 	    occupancy_RBX[i] = 1;  // Also no RBX loss for SiPMs, so ignore for now.
+	  if(i==77)
+	    occupancy_RBX[i] = 1; 
 	}
       
       // RBX loss detected
@@ -702,6 +749,8 @@ void HcalDeadCellMonitor::analyze(edm::Event const&e, edm::EventSetup const&s)
       
       int intensity1_ = gtfeEvmExtWord.totalIntensityBeam1();
       int intensity2_ = gtfeEvmExtWord.totalIntensityBeam2();
+      
+      is_stable_beam = gtfeEvmExtWord.beamMode() == 11 ? true : false; 
       
       for (unsigned int i=132;i<156;++i)
 	if(occupancy_RBX[i] == 0 && gtfeEvmExtWord.beamMode() == 11) 
@@ -957,9 +1006,9 @@ void HcalDeadCellMonitor::process_RecHit(RECHIT& rechit)
 	    RecHitPresentByDepth.depth[depth-1]->setBinContent(CalcEtaBin(id.subdet(),ieta,depth)+1,iphi,1); 
 	}
       /////////////////////////////
-      // RBX index, HO RBX indices are 85-95 (odd), 96-107 (all), 108-119 (odd), 120-130 (EXCL), 131
+      // RBX index, HO RBX indices are 73-95 (odd), 96-107 (all), 108-119 (odd), 120-130 (EXCL), 131
       int RBXindex = logicalMap_->getHcalFrontEndId(rechit->detid()).rbxIndex();
-
+	
       occupancy_RBX[RBXindex]++;
       /////////////////////////////
     }
@@ -969,9 +1018,6 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 {
   // Fill Histograms showing digi cells with no occupancy for the past few lumiblocks
   if (!deadmon_test_digis_) return; // extra protection here against calling histograms than don't exist
-
-
-  if (deadevt_ < minDeadEventCount_) return; // not enough entries to make a determination for this LS
 
   if (debug_>0)
     std::cout <<"<HcalDeadCellMonitor::fillNevents_recentdigis> CHECKING FOR RECENT MISSING DIGIS   evtcount = "<<deadevt_<<std::endl;
@@ -983,8 +1029,8 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
   int phibins=0;
 
   /////////////////
-  if (deadevt_ >= 10 && deadevt_<minDeadEventCount_) // maybe not enough events to run the standard test
-    if( is_RBX_loss_ == 1 )                          // but enough to detect RBX loss
+  if ((deadevt_ >= 10 && deadevt_<minDeadEventCount_) || (deadevt_ >= 10 && is_RBX_loss_==1)) // maybe not enough events to run the standard test
+    // if( is_RBX_loss_ == 1 )                          // but enough to detect RBX loss
       for (unsigned int depth=0;depth<RecentMissingDigisByDepth.depth.size();++depth)
 	{
 	  RecentMissingDigisByDepth.depth[depth]->setBinContent(0,0,ievt_);
@@ -1015,6 +1061,8 @@ void HcalDeadCellMonitor::fillNevents_recentdigis()
 	      }
 	}
   /////////////////
+
+  if (deadevt_ < minDeadEventCount_) return; // not enough entries to make a determination for this LS
 
   for (unsigned int depth=0;depth<RecentMissingDigisByDepth.depth.size();++depth)
     { 
@@ -1098,8 +1146,8 @@ void HcalDeadCellMonitor::fillNevents_recentrechits()
   int phibins=0;
 
   /////////////////
-  if (deadevt_ >= 10 && deadevt_<minDeadEventCount_) // maybe not enough events to run the standard test
-    if( is_RBX_loss_ == 1 )                          // but enough to detect RBX loss
+  if ((deadevt_ >= 10 && deadevt_<minDeadEventCount_) || (deadevt_ >= 10 && is_RBX_loss_==1)) // maybe not enough events to run the standard test
+    // if( is_RBX_loss_ == 1 )                          // but enough to detect RBX loss
       for (unsigned int depth=0;depth<RecentMissingRecHitsByDepth.depth.size();++depth)
 	{
 	  RecentMissingRecHitsByDepth.depth[depth]->setBinContent(0,0,ievt_);
@@ -1200,7 +1248,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
   NumBadHO=0;
   NumBadHF=0;
   NumBadHFLUMI=0;
-  NumBadHO0=0;
+  NumBadHO01=0;
+  NumBadHO2=0;
   NumBadHO12=0;
   NumBadHO1P02=0;
   
@@ -1209,7 +1258,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
   int knownBadHF=0;
   int knownBadHO=0;
   int knownBadHFLUMI=0;
-  int knownBadHO0=0;
+  int knownBadHO01=0;
+  int knownBadHO2=0;
   int knownBadHO12=0;
 
 
@@ -1247,12 +1297,14 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
   //Check for RBX data loss
   unsigned int RBX_loss_HB=0;
   unsigned int RBX_loss_HE=0;
-  unsigned int RBX_loss_HO=0;
+  unsigned int RBX_loss_HO01=0;
+  unsigned int RBX_loss_HO2=0;
   unsigned int RBX_loss_HF=0;
 
   unsigned int counter_HB = 0;
   unsigned int counter_HE = 0;
-  unsigned int counter_HO = 0;
+  unsigned int counter_HO01 = 0;
+  unsigned int counter_HO2 = 0;
   unsigned int counter_HF = 0;
 
   for(int i=0; i<156; i++)
@@ -1263,18 +1315,19 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	    { counter_HB ++ ; RBX_loss_HB = 72*(counter_HB); }
 	  if(i>=36 && i<=71)   //HE
 	    { counter_HE ++ ; RBX_loss_HE = 72*(counter_HE); }
-	  if(i>=72 && i<=131)   //HO
-	    { counter_HO ++ ; RBX_loss_HO = 72*(counter_HO); }
+	  if(i>=85 && i<=119) // HO Rings 0, 1
+	    { counter_HO01 ++ ; RBX_loss_HO01 = 72*(counter_HO01); }
+	  if(i>=121 || i<=83) // HO Ring 2
+	    { counter_HO2 ++ ; RBX_loss_HO2 = 72*(counter_HO2); }
 	  if(i>=132 && i<=155)  //HF
 	    { counter_HF ++ ; RBX_loss_HF = 72*(counter_HF); }
 	  
 	  if(excludeHO1P02_==true && i==109) NumBadHO1P02 = 72; // exclude HO1P02
-	}
-            
+	}      
       if(occupancy_RBX[i]>0)
 	RBX_loss_VS_LB->Fill(currentLS, i, 0);
       if(occupancy_RBX[i]==0 && is_RBX_loss_ == 1)
-	RBX_loss_VS_LB->Fill(currentLS, i, 1);
+	RBX_loss_VS_LB->Fill(currentLS, i, 1);      
     }  
   
   if (deadevt_ >= 10 && deadevt_<minDeadEventCount_) // maybe not enough events to run the standard test
@@ -1282,17 +1335,19 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
       {	
 	NumBadHB+=RBX_loss_HB;
 	NumBadHE+=RBX_loss_HE;
-	NumBadHO+=RBX_loss_HO;
+	NumBadHO+=RBX_loss_HO01+RBX_loss_HO2;
+	NumBadHO01+=RBX_loss_HO01;
+	NumBadHO2+=RBX_loss_HO2;
 	NumBadHF+=RBX_loss_HF;
 
 	belowenergyHB+=RBX_loss_HB;
 	belowenergyHE+=RBX_loss_HE;
-	belowenergyHO+=RBX_loss_HO;
+	belowenergyHO+=RBX_loss_HO01+RBX_loss_HO2;
 	belowenergyHF+=RBX_loss_HF;
 
 	unoccupiedHB+=RBX_loss_HB;
 	unoccupiedHE+=RBX_loss_HE;
-	unoccupiedHO+=RBX_loss_HO;
+	unoccupiedHO+=RBX_loss_HO01+RBX_loss_HO2;
 	unoccupiedHF+=RBX_loss_HF;
       }
   ////////////////////////////
@@ -1351,12 +1406,13 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 		      else if (subdet==HcalOuter)  
 			{
 			  ++NumBadHO;
-			  if (abs(ieta)<5) ++NumBadHO0;
-			  else ++NumBadHO12;
+			  if (abs(ieta)<=10) ++NumBadHO01;
+			  else ++NumBadHO2;
 			  // Don't include HORing2 if boolean set; subtract away those counters
 			  if (excludeHORing2_==true && abs(ieta)>10 && isSiPM(ieta,iphi,depth+1)==false)
 			    {
 			      --NumBadHO;
+			      --NumBadHO2;
 			      --NumBadHO12;
 			    }			  
 			  // Don't include HO1P02 if boolean set, RBX does not repsond well to resets,; subtract away those counters
@@ -1366,8 +1422,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 			  if (KnownBadCells_.find(TempID.rawId())!=KnownBadCells_.end())
 			    {
 			      ++knownBadHO;
-			      if (abs(ieta)<5) ++knownBadHO0;
-			      else ++knownBadHO12;
+			      if (abs(ieta)<=10) ++knownBadHO01;
+			      else ++knownBadHO2;
 			      // Don't include HORing2 if boolean set; subtract away those counters
 			      if (excludeHORing2_==true && abs(ieta)>10 && isSiPM(ieta,iphi,depth+1)==false)
 				{
@@ -1470,8 +1526,10 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	NumBadHB+=RBX_loss_HB;
       if( NumBadHE<RBX_loss_HE )
 	NumBadHE+=RBX_loss_HE;
-      if( NumBadHO<RBX_loss_HO )
-	NumBadHO+=RBX_loss_HO;
+      if( NumBadHO01<RBX_loss_HO01 )
+	NumBadHO01+=RBX_loss_HO01;
+      if( NumBadHO2<RBX_loss_HO2 )
+	NumBadHO2+=RBX_loss_HO2;
       if( NumBadHF<RBX_loss_HF )
 	NumBadHF+=RBX_loss_HF;
 
@@ -1479,8 +1537,8 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	belowenergyHB+=RBX_loss_HB;
       if( belowenergyHE<RBX_loss_HE )
 	belowenergyHE+=RBX_loss_HE;
-      if( belowenergyHO<RBX_loss_HO )
-	belowenergyHO+=RBX_loss_HO;
+      if( belowenergyHO<RBX_loss_HO01+RBX_loss_HO2)
+	belowenergyHO+=RBX_loss_HO01+RBX_loss_HO2;
       if( belowenergyHF<RBX_loss_HF )
 	belowenergyHF+=RBX_loss_HF;
 
@@ -1488,29 +1546,34 @@ void HcalDeadCellMonitor::fillNevents_problemCells()
 	unoccupiedHB+=RBX_loss_HB;
       if( unoccupiedHE<RBX_loss_HE )
 	unoccupiedHE+=RBX_loss_HE;
-      if( unoccupiedHO<RBX_loss_HO )
-	unoccupiedHO+=RBX_loss_HO;
+      if( unoccupiedHO<RBX_loss_HO01+RBX_loss_HO2 )
+	unoccupiedHO+=RBX_loss_HO01+RBX_loss_HO2;
       if( unoccupiedHF<RBX_loss_HF )
 	unoccupiedHF+=RBX_loss_HF;
 
-      is_RBX_loss_ = 0;
+      // is_RBX_loss_ = 0;
     }
 
   ProblemsVsLB_HB->Fill(currentLS,NumBadHB-knownBadHB+0.0001); // add a small offset, so that the histograms reset when no errors follow
   ProblemsVsLB_HE->Fill(currentLS,NumBadHE-knownBadHE+0.0001); // problematic LSs
-  ProblemsVsLB_HO->Fill(currentLS,NumBadHO-knownBadHO+0.0001);
+  ProblemsVsLB_HO->Fill(currentLS,NumBadHO01-knownBadHO01+0.0001);
+  ProblemsVsLB_HO2->Fill(currentLS,NumBadHO2-knownBadHO2+0.0001);
   ProblemsVsLB_HF->Fill(currentLS,NumBadHF-knownBadHF+0.0001);
   ProblemsVsLB_HBHEHF->Fill(currentLS,NumBadHB+NumBadHE+NumBadHF-knownBadHB-knownBadHE-knownBadHF+0.0001);
-  ProblemsVsLB->Fill(currentLS,NumBadHB+NumBadHE+NumBadHO+NumBadHF-knownBadHB-knownBadHE-knownBadHO-knownBadHF+0.0001);
+  ProblemsVsLB->Fill(currentLS,NumBadHB+NumBadHE+NumBadHO01+NumBadHO2+NumBadHF-knownBadHB-knownBadHE-knownBadHO01-knownBadHO2-knownBadHF+0.0001);
   
   if(excludeHO1P02_==true)
     ProblemsVsLB_HO->Fill(0, NumBadHO1P02);
 
-  if( NumBadHB+NumBadHE+NumBadHF-knownBadHB-knownBadHE-knownBadHF < 50 )    
+  if( NumBadHB+NumBadHE+NumBadHF-knownBadHB-knownBadHE-knownBadHF < 30 )    
     alarmer_counter_ = 0;
+  if( NumBadHO01-knownBadHO01 < 30 )    
+    alarmer_counterHO01_ = 0;
     
   if( alarmer_counter_ >= 10 )
     ProblemsInLastNLB_HBHEHF_alarm->Fill( std::min(int(NumBadHB+NumBadHE+NumBadHF-knownBadHB-knownBadHE-knownBadHF), 99) );
+  if( alarmer_counterHO01_ >= 10 )
+    ProblemsInLastNLB_HO01_alarm->Fill( std::min(int(NumBadHO01-knownBadHO01), 99) );
 
   // if (deadevt_<minDeadEventCount_)
   //   return;
